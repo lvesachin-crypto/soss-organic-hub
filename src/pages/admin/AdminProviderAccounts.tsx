@@ -27,6 +27,7 @@ interface ProviderAccount {
   last_used_at: string | null;
   created_at: string;
   updated_at: string;
+  delivery_multiplier?: number | null;
 }
 
 interface Provider {
@@ -49,6 +50,7 @@ export default function AdminProviderAccounts() {
     api_url: "",
     priority: 1,
     is_active: true,
+    delivery_multiplier: 1,
   });
 
   // Fetch providers for dropdown
@@ -92,6 +94,7 @@ export default function AdminProviderAccounts() {
             api_url: data.api_url,
             priority: data.priority,
             is_active: data.is_active,
+            delivery_multiplier: data.delivery_multiplier,
           })
           .eq("id", data.id);
         if (error) throw error;
@@ -106,6 +109,7 @@ export default function AdminProviderAccounts() {
             api_url: data.api_url,
             priority: data.priority,
             is_active: data.is_active,
+            delivery_multiplier: data.delivery_multiplier,
           });
         if (error) throw error;
       }
@@ -209,6 +213,7 @@ export default function AdminProviderAccounts() {
       api_url: "",
       priority: 1,
       is_active: true,
+      delivery_multiplier: 1,
     });
     setEditingAccount(null);
   };
@@ -222,6 +227,7 @@ export default function AdminProviderAccounts() {
       api_url: account.api_url,
       priority: account.priority,
       is_active: account.is_active,
+      delivery_multiplier: Number(account.delivery_multiplier ?? 1),
     });
     setIsDialogOpen(true);
   };
@@ -347,6 +353,21 @@ export default function AdminProviderAccounts() {
                       value={formData.priority}
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) || 1 }))}
                     />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Delivery Multiplier (over-delivery factor)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min={0.5}
+                      max={5}
+                      value={formData.delivery_multiplier}
+                      onChange={(e) => setFormData(prev => ({ ...prev, delivery_multiplier: parseFloat(e.target.value) || 1 }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Agar yeh provider 2x extra deta hai (1000 order par 2000 deta hai), to <strong>2.0</strong> set karo. System apne aap aadhi quantity bhejega. Default: <strong>1.0</strong>
+                    </p>
                   </div>
                   
                   <div className="flex items-center gap-2">

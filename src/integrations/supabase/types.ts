@@ -659,6 +659,7 @@ export type Database = {
           balance_checked_at: string | null
           balance_currency: string | null
           created_at: string | null
+          delivery_multiplier: number
           id: string
           is_active: boolean | null
           last_balance_error: string | null
@@ -677,6 +678,7 @@ export type Database = {
           balance_checked_at?: string | null
           balance_currency?: string | null
           created_at?: string | null
+          delivery_multiplier?: number
           id?: string
           is_active?: boolean | null
           last_balance_error?: string | null
@@ -695,6 +697,7 @@ export type Database = {
           balance_checked_at?: string | null
           balance_currency?: string | null
           created_at?: string | null
+          delivery_multiplier?: number
           id?: string
           is_active?: boolean | null
           last_balance_error?: string | null
