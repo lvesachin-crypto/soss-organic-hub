@@ -211,6 +211,19 @@ async function claimRunLock(params: {
   }
 }
 
+function hasUncertainDispatch(row: any) {
+  const message = (row?.error_message || '').toLowerCase()
+  if (message.includes('[dispatch uncertain]') || message.includes('[awaiting provider confirmation]')) {
+    return true
+  }
+
+  return Boolean(
+    row?.provider_response &&
+    typeof row.provider_response === 'object' &&
+    row.provider_response.uncertain_dispatch === true,
+  )
+}
+
 type ProviderStatusCheckResult =
   | { ok: true; data: any; rawText: string }
   | { ok: false; error: string; rawText: string }
@@ -1070,6 +1083,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               }).eq('id', stuckRun.id)
             }
           } else if (stuckRun.provider_account_id) {
+            if (hasUncertainDispatch(stuckRun)) {
+              console.log(`🛑 Holding run #${stuckRun.run_number}: provider dispatch uncertain, skipping resend until manual/provider confirmation`)
+              skipped++
+              continue
+            }
+
             if (!stuckRun.provider_order_id && runAge > 60) {
               await supabase.from('organic_run_schedule').update({
                 status: 'pending', started_at: null, provider_account_id: null,
@@ -1437,9 +1456,27 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             break
           }
         } catch (fetchError: any) {
-          lastError = 'Network error: ' + (fetchError.message || 'Unknown')
-          await new Promise(resolve => setTimeout(resolve, 300))
-          continue
+          const uncertainDispatchAt = new Date().toISOString()
+          const uncertainMessage = `Network error after provider request. [Dispatch uncertain] Verify provider before retrying: ${fetchError.message || 'Unknown'}`
+
+          await supabase.from('organic_run_schedule').update({
+            status: 'started',
+            started_at: run.started_at || uncertainDispatchAt,
+            completed_at: null,
+            error_message: uncertainMessage,
+            provider_response: {
+              uncertain_dispatch: true,
+              stage: 'provider_add_request',
+              fetch_error: fetchError.message || 'Unknown',
+              happened_at: uncertainDispatchAt,
+            },
+            last_status_check: uncertainDispatchAt,
+          }).eq('id', run.id).eq('status', 'started')
+
+          lastError = null
+          console.error(`🚨 Dispatch uncertain for run #${run.run_number}; resend blocked to avoid duplicate provider order`, fetchError)
+          skipped++
+          break
         }
       }
 
@@ -1633,6 +1670,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             }).eq('id', stuckRun.id)
           }
         } else {
+          if (hasUncertainDispatch(stuckRun)) {
+            skipped++
+            continue
+          }
+
           const runAge = Math.round((Date.now() - startedAt.getTime()) / 1000)
           if (runAge < 60) { skipped++; continue }
         }
@@ -1707,11 +1749,23 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             break
           }
         } catch (fetchError: any) {
-          lastError = 'Network error'
-          if (attempt < MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt))
-            retried++
-          }
+          const uncertainDispatchAt = new Date().toISOString()
+          await supabase.from('organic_run_schedule').update({
+            status: 'started',
+            started_at: run.started_at || uncertainDispatchAt,
+            completed_at: null,
+            error_message: `Network error after provider request. [Dispatch uncertain] Verify provider before retrying: ${fetchError.message || 'Unknown'}`,
+            provider_response: {
+              uncertain_dispatch: true,
+              stage: 'provider_add_request',
+              fetch_error: fetchError.message || 'Unknown',
+              happened_at: uncertainDispatchAt,
+            },
+          }).eq('id', run.id).eq('status', 'started')
+
+          lastError = null
+          skipped++
+          break
         }
       }
 

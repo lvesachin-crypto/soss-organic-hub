@@ -152,6 +152,23 @@ serve(async (req) => {
                     return err(`Insufficient balance. Need $${totalPrice.toFixed(4)}, have $${wallet.balance.toFixed(4)}`)
                 }
 
+                const duplicateWindowStart = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+                const { data: recentDuplicateOrder } = await supabase
+                    .from('orders')
+                    .select('id, order_number, status, created_at')
+                    .eq('user_id', userId)
+                    .eq('service_id', svc.id)
+                    .eq('link', link)
+                    .eq('quantity', qty)
+                    .gte('created_at', duplicateWindowStart)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+
+                if (recentDuplicateOrder) {
+                    return json({ order: recentDuplicateOrder.order_number, duplicate_blocked: true })
+                }
+
                 const { data: order, error: oErr } = await supabase
                     .from('orders')
                     .insert({

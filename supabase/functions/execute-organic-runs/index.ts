@@ -126,6 +126,11 @@ serve(async (req) => {
       }
 
       const run = pendingRuns[0]
+      const existingRunError = (run.error_message || '').toLowerCase()
+      if (run.provider_order_id || existingRunError.includes('[dispatch uncertain]') || existingRunError.includes('[awaiting provider confirmation]')) {
+        skipped++
+        continue
+      }
       console.log(`Processing Run #${run.run_number} for order ${order.id}`)
       console.log(`Quantity: ${run.quantity_to_send}`)
 
@@ -163,7 +168,7 @@ serve(async (req) => {
       }
 
       // Step 5: Mark run as started FIRST (prevents duplicate processing)
-      const { error: updateError } = await supabase
+      const { data: claimedRun, error: updateError } = await supabase
         .from('organic_run_schedule')
         .update({
           status: 'started',
@@ -171,9 +176,18 @@ serve(async (req) => {
         })
         .eq('id', run.id)
         .eq('status', 'pending')
+        .is('provider_order_id', null)
+        .select('id')
+        .maybeSingle()
 
       if (updateError) {
         console.log(`Run ${run.id} already being processed, skipping`)
+        continue
+      }
+
+      if (!claimedRun) {
+        console.log(`Run ${run.id} already claimed by another execution, skipping duplicate send`)
+        skipped++
         continue
       }
 
@@ -262,10 +276,16 @@ serve(async (req) => {
       } catch (fetchError) {
         console.error(`Network error for run ${run.id}:`, fetchError)
         await supabase.from('organic_run_schedule').update({
-          status: 'failed',
-          error_message: 'Network error: ' + ((fetchError as Error).message || 'Unknown')
+          status: 'started',
+          error_message: 'Network error after provider request. [Dispatch uncertain] Verify provider before retrying: ' + (((fetchError as Error).message) || 'Unknown'),
+          provider_response: {
+            uncertain_dispatch: true,
+            stage: 'provider_add_request',
+            fetch_error: ((fetchError as Error).message) || 'Unknown',
+            happened_at: new Date().toISOString(),
+          }
         }).eq('id', run.id)
-        failed++
+        skipped++
       }
 
       // Small delay between orders
