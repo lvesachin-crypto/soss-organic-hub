@@ -42,6 +42,7 @@ interface ProviderAccount {
   priority: number
   is_active: boolean
   last_used_at: string | null
+  delivery_multiplier?: number | null
 }
 
 interface ServiceMapping {
