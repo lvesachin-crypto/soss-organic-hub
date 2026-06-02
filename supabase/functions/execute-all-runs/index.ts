@@ -1670,6 +1670,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             }).eq('id', stuckRun.id)
           }
         } else {
+          if (hasUncertainDispatch(stuckRun)) {
+            skipped++
+            continue
+          }
+
           const runAge = Math.round((Date.now() - startedAt.getTime()) / 1000)
           if (runAge < 60) { skipped++; continue }
         }
@@ -1744,11 +1749,23 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             break
           }
         } catch (fetchError: any) {
-          lastError = 'Network error'
-          if (attempt < MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt))
-            retried++
-          }
+          const uncertainDispatchAt = new Date().toISOString()
+          await supabase.from('organic_run_schedule').update({
+            status: 'started',
+            started_at: run.started_at || uncertainDispatchAt,
+            completed_at: null,
+            error_message: `Network error after provider request. [Dispatch uncertain] Verify provider before retrying: ${fetchError.message || 'Unknown'}`,
+            provider_response: {
+              uncertain_dispatch: true,
+              stage: 'provider_add_request',
+              fetch_error: fetchError.message || 'Unknown',
+              happened_at: uncertainDispatchAt,
+            },
+          }).eq('id', run.id).eq('status', 'started')
+
+          lastError = null
+          skipped++
+          break
         }
       }
 
