@@ -74,6 +74,21 @@ serve(async (req) => {
     const { data: order, error: orderError } = await supabase.from('orders').select('*, service:services(*)').eq('id', order_id).single()
     if (orderError || !order) return new Response(JSON.stringify({ error: 'Order not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
+    const currentOrderError = (order.error_message || '').toLowerCase()
+    const hasUncertainDispatch = currentOrderError.includes('[dispatch uncertain]') || currentOrderError.includes('[awaiting provider confirmation]')
+
+    if (order.provider_order_id) {
+      return new Response(JSON.stringify({ success: true, provider_order_id: order.provider_order_id, skipped: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    if (hasUncertainDispatch) {
+      return new Response(JSON.stringify({ success: false, skipped: true, error: 'Order dispatch is awaiting provider confirmation to avoid duplicate placement' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    if (!['pending', 'failed'].includes(order.status || 'pending')) {
+      return new Response(JSON.stringify({ success: true, skipped: true, status: order.status }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // CRITICAL: Skip direct API call for organic orders
     if (order.is_organic_mode) {
       console.log(`[process-order] Organic order ${order_id} detected, skips direct API call (handled by schedule)`)
@@ -153,6 +168,28 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No provider available for this service' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    const claimTimestamp = new Date().toISOString()
+    const { data: claimedOrder, error: claimError } = await supabase
+      .from('orders')
+      .update({
+        status: 'processing',
+        error_message: 'Dispatching provider order...',
+        updated_at: claimTimestamp,
+      })
+      .eq('id', order_id)
+      .in('status', ['pending', 'failed'])
+      .is('provider_order_id', null)
+      .select('id')
+      .maybeSingle()
+
+    if (claimError) {
+      return new Response(JSON.stringify({ error: claimError.message || 'Failed to claim order for processing' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    if (!claimedOrder) {
+      return new Response(JSON.stringify({ success: true, skipped: true, message: 'Order already claimed by another execution' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     // Try each provider in order until one succeeds
     let lastError = ''
     
@@ -217,11 +254,15 @@ serve(async (req) => {
         console.log(`[process-order] ✅ Success via ${provider.name}, provider order: ${providerOrderId}`)
         return new Response(JSON.stringify({ success: true, provider_order_id: providerOrderId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         
-      } catch (fetchError: any) {
+        } catch (fetchError: any) {
         console.log(`[process-order] Network error with ${provider.name}: ${fetchError.message}`)
-        lastError = `Network error: ${fetchError.message}`
-        // Try next provider
-        continue
+        await supabase.from('orders').update({
+          status: 'processing',
+          error_message: `Network error after provider request. [Dispatch uncertain] Verify provider before retrying: ${fetchError.message}`,
+          updated_at: new Date().toISOString(),
+        }).eq('id', order_id)
+
+        return new Response(JSON.stringify({ success: false, error: 'Provider dispatch uncertain. Auto-retry blocked to prevent duplicate order.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
     }
 
