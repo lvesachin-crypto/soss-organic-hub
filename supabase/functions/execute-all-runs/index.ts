@@ -211,6 +211,19 @@ async function claimRunLock(params: {
   }
 }
 
+function hasUncertainDispatch(row: any) {
+  const message = (row?.error_message || '').toLowerCase()
+  if (message.includes('[dispatch uncertain]') || message.includes('[awaiting provider confirmation]')) {
+    return true
+  }
+
+  return Boolean(
+    row?.provider_response &&
+    typeof row.provider_response === 'object' &&
+    row.provider_response.uncertain_dispatch === true,
+  )
+}
+
 type ProviderStatusCheckResult =
   | { ok: true; data: any; rawText: string }
   | { ok: false; error: string; rawText: string }
