@@ -1354,7 +1354,19 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           formData.append('action', 'add')
           formData.append('service', providerServiceId)
           formData.append('link', item.engagement_order.link)
-          formData.append('quantity', quantityToSend.toString())
+          // OVER-DELIVERY GUARD: if admin configured this provider to over-deliver (e.g. 2.0 = sends 2x),
+          // divide the scheduled qty so the user's video ultimately receives the correct amount.
+          const deliveryMultiplier = Math.max(Number(selectedAccount.delivery_multiplier || 1), 0.5)
+          let adjustedQty = quantityToSend
+          if (deliveryMultiplier > 1) {
+            adjustedQty = Math.max(1, Math.round(quantityToSend / deliveryMultiplier))
+            console.log(`📉 Over-delivery guard: ${selectedAccount.name} multiplier=${deliveryMultiplier}, sending ${adjustedQty} instead of ${quantityToSend}`)
+          }
+          // Respect provider min even after dividing
+          if (accountMinQty && adjustedQty < accountMinQty) {
+            adjustedQty = accountMinQty
+          }
+          formData.append('quantity', adjustedQty.toString())
 
           const controller = new AbortController()
           const timeoutId = setTimeout(() => controller.abort(), 30000)
