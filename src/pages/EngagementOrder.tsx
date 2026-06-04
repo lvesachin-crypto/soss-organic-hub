@@ -57,7 +57,7 @@ export default function EngagementOrder() {
   const { user, profile, isLoading: authLoading, isAdmin, wallet, refreshWallet } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, rates } = useCurrency();
   const { applyMarkup } = useGlobalMarkup();
 
   // Form State
@@ -281,8 +281,15 @@ export default function EngagementOrder() {
         };
       }
     });
+    // FIXED PRICE OVERRIDE: Views are always ₹2 per 1000 (regardless of provider cost)
+    // Convert ₹2 → USD using live INR rate (DB/wallet are in USD base)
+    const inrRate = rates?.INR || 83.5;
+    const viewsUsdPerK = 2 / inrRate;
+    if (prices['views']) {
+      prices['views'] = { ...prices['views'], pricePerK: viewsUsdPerK };
+    }
     return prices;
-  }, [bundles, applyMarkup, allServices, platform]);
+  }, [bundles, applyMarkup, allServices, platform, rates]);
 
   // Update engagement configs when bundle or base quantity changes
   // Use debounced value to prevent excessive recalculations
