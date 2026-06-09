@@ -27,25 +27,22 @@ async function verifySignature(body: string, signature: string, secret: string):
   return diff === 0;
 }
 
-async function notifyTelegram(text: string) {
-  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
-  if (!token || !chatId) {
-    console.log("Telegram not configured, skipping notify");
+async function notifyTelegram(supabase: ReturnType<typeof createClient>, text: string) {
+  const projectUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!projectUrl || !serviceRoleKey) {
+    console.log("Supabase env missing, skipping Telegram notify");
     return;
   }
+
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
+    const { error } = await supabase.functions.invoke("send-telegram-notification", {
+      body: {
+        message: text,
         parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
+      },
     });
-    if (!res.ok) console.error("Telegram error:", await res.text());
+    if (error) console.error("Telegram invoke error:", error.message);
   } catch (e) {
     console.error("Telegram fetch failed:", e);
   }
@@ -176,6 +173,7 @@ Deno.serve(async (req) => {
         description: `UNRESOLVED USER. ₹${amountInr} (~$${amountUsd}). Email: ${userEmailFromNotes || "none"}`,
       });
       await notifyTelegram(
+        supabase,
         `⚠️ <b>OrganicSMM — UNRESOLVED Payment</b>\n` +
         `Amount: <b>₹${amountInr}</b>\n` +
         `Payment ID: <code>${paymentId}</code>\n` +
@@ -240,6 +238,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     await notifyTelegram(
+      supabase,
       `✅ <b>OrganicSMM — Wallet Credited</b>\n` +
       `User: <b>${prof?.full_name || "—"}</b>\n` +
       `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
@@ -253,7 +252,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Webhook error:", err);
-    await notifyTelegram(`🚨 <b>OrganicSMM webhook error</b>\n<code>${String(err).slice(0, 500)}</code>`);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
