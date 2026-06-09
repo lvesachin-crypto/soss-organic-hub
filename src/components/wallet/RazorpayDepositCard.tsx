@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,17 +11,81 @@ const PAYMENT_BUTTONS = [
   { amount: 500, buttonId: 'pl_SzPylVK8jvgNoO' },
 ] as const;
 
-function RazorpayButton({ amount: _amount, buttonId: _buttonId }: { amount: number; buttonId: string }) {
-  const [isReady] = useState(false);
+function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    setStatus('loading');
+    container.innerHTML = '';
+
+    const form = document.createElement('form');
+    form.className = 'w-full flex items-center justify-center';
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+    script.async = true;
+    script.setAttribute('data-payment_button_id', buttonId);
+
+    const markReadyIfRendered = () => {
+      if (container.querySelector('iframe, .razorpay-payment-button, button')) {
+        setStatus('ready');
+      }
+    };
+
+    script.onload = () => {
+      window.setTimeout(markReadyIfRendered, 250);
+      window.setTimeout(markReadyIfRendered, 1200);
+    };
+    script.onerror = () => setStatus('error');
+
+    const observer = new MutationObserver(() => {
+      markReadyIfRendered();
+    });
+
+    observer.observe(container, { childList: true, subtree: true });
+    form.appendChild(script);
+    container.appendChild(form);
+
+    const failSafe = window.setTimeout(() => {
+      if (status !== 'ready') {
+        markReadyIfRendered();
+      }
+    }, 1800);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(failSafe);
+      container.innerHTML = '';
+    };
+  }, [buttonId, status]);
 
   return (
     <div className="w-full">
-      {!isReady && (
+      <div
+        ref={containerRef}
+        className="w-full min-h-[44px] flex items-center justify-center overflow-hidden [&_form]:w-full [&_.razorpay-payment-button]:!w-full [&_iframe]:!w-full"
+      />
+
+      {status === 'loading' && (
+        <div className="w-full rounded-xl flex flex-col items-center justify-center gap-2 px-3 py-3 text-center" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid rgba(59,130,246,.18)' }}>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span className="text-[11px] font-semibold">Loading secure payment</span>
+          <span className="text-[10px] leading-relaxed" style={{ color: '#1e40af' }}>
+            ₹{amount} payment button load ho raha hai...
+          </span>
+        </div>
+      )}
+
+      {status === 'error' && (
         <div className="w-full rounded-xl flex flex-col items-center justify-center gap-2 px-3 py-3 text-center" style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid rgba(234,88,12,.18)' }}>
-          <Loader2 className="h-3.5 w-3.5" />
-          <span className="text-[11px] font-semibold">Temporarily paused</span>
+          <AlertTriangle className="h-3.5 w-3.5" />
+          <span className="text-[11px] font-semibold">Button load nahi hua</span>
           <span className="text-[10px] leading-relaxed" style={{ color: '#9a3412' }}>
-            Razorpay auto credit abhi safety check ke liye hold par hai.
+            Ek baar page refresh karke dobara try karo.
           </span>
         </div>
       )}

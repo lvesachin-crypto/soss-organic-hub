@@ -128,44 +128,75 @@ Deno.serve(async (req) => {
       ? notes.user_email.trim().toLowerCase()
       : (typeof payment.email === "string" ? payment.email.trim().toLowerCase() : "");
 
-    if (!userIdFromNotes) {
-      console.error("Blocked Razorpay payment without trusted user_id note", paymentId, notes);
-      await notifyTelegram(
-        supabase,
-        `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
-        `Amount: <b>₹${amountInr}</b>\n` +
-        `Payment ID: <code>${paymentId}</code>\n` +
-        `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
-        `Reason: trusted <code>user_id</code> note missing, wallet NOT credited.`,
-      );
-      return new Response(JSON.stringify({ ok: true, skipped: "missing_user_note" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    let prof: { user_id: string; email: string | null; full_name: string | null } | null = null;
+    let resolutionMode: "user_id_note" | "email_fallback" = "user_id_note";
 
-    const { data: prof, error: profileLookupError } = await supabase
-      .from("profiles")
-      .select("user_id, email, full_name")
-      .eq("user_id", userIdFromNotes)
-      .maybeSingle();
+    if (userIdFromNotes) {
+      const { data: profileByUserId, error: profileLookupError } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .eq("user_id", userIdFromNotes)
+        .maybeSingle();
 
-    if (profileLookupError) throw profileLookupError;
+      if (profileLookupError) throw profileLookupError;
+      prof = profileByUserId;
 
-    if (!prof) {
-      console.error("Blocked Razorpay payment with unknown user_id note", paymentId, userIdFromNotes);
-      await notifyTelegram(
-        supabase,
-        `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
-        `Amount: <b>₹${amountInr}</b>\n` +
-        `Payment ID: <code>${paymentId}</code>\n` +
-        `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
-        `Reason: noted user does not exist, wallet NOT credited.`,
-      );
-      return new Response(JSON.stringify({ ok: true, skipped: "unknown_user_note" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (!prof) {
+        console.error("Blocked Razorpay payment with unknown user_id note", paymentId, userIdFromNotes);
+        await notifyTelegram(
+          supabase,
+          `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
+          `Amount: <b>₹${amountInr}</b>\n` +
+          `Payment ID: <code>${paymentId}</code>\n` +
+          `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
+          `Reason: noted user does not exist, wallet NOT credited.`,
+        );
+        return new Response(JSON.stringify({ ok: true, skipped: "unknown_user_note" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      if (!userEmailFromNotes) {
+        console.error("Blocked Razorpay payment without trusted user_id note or checkout email", paymentId, notes);
+        await notifyTelegram(
+          supabase,
+          `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
+          `Amount: <b>₹${amountInr}</b>\n` +
+          `Payment ID: <code>${paymentId}</code>\n` +
+          `Reason: trusted <code>user_id</code> note missing and checkout email unavailable, wallet NOT credited.`,
+        );
+        return new Response(JSON.stringify({ ok: true, skipped: "missing_user_note_and_email" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profilesByEmail, error: profileByEmailError } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name")
+        .ilike("email", userEmailFromNotes);
+
+      if (profileByEmailError) throw profileByEmailError;
+
+      if (!profilesByEmail || profilesByEmail.length !== 1) {
+        console.error("Blocked Razorpay payment because checkout email did not resolve to exactly one profile", paymentId, userEmailFromNotes);
+        await notifyTelegram(
+          supabase,
+          `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
+          `Amount: <b>₹${amountInr}</b>\n` +
+          `Payment ID: <code>${paymentId}</code>\n` +
+          `Checkout email: <code>${userEmailFromNotes}</code>\n` +
+          `Reason: email could not be matched to exactly one account, wallet NOT credited.`,
+        );
+        return new Response(JSON.stringify({ ok: true, skipped: "email_match_failed" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      prof = profilesByEmail[0];
+      resolutionMode = "email_fallback";
     }
 
     const profileEmail = typeof prof.email === "string" ? prof.email.trim().toLowerCase() : "";
@@ -228,6 +259,7 @@ Deno.serve(async (req) => {
       `User: <b>${prof?.full_name || "—"}</b>\n` +
       `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
       `Amount: <b>₹${creditedInr.toFixed(2)}</b>\n` +
+      `Matched By: <b>${resolutionMode === "email_fallback" ? "checkout email" : "trusted user id"}</b>\n` +
       `New Balance: ₹${(newBalance * 83.5).toFixed(2)}\n` +
       `Payment ID: <code>${paymentId}</code>`,
     );
