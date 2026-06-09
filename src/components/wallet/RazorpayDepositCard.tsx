@@ -295,7 +295,7 @@ export default function RazorpayDepositCard() {
               </div>
             </div>
 
-            <RazorpayButton amount={selectedPayment.amount} buttonId={selectedPayment.buttonId} />
+            <RazorpayButton key={selectedPayment.buttonId} amount={selectedPayment.amount} buttonId={selectedPayment.buttonId} />
           </div>
         </div>
 
