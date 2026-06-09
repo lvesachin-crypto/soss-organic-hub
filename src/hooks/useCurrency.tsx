@@ -35,9 +35,9 @@ const CurrencyContext = createContext<CurrencyContextType | null>(null);
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
-    // Load from localStorage first for instant UI
+    // Load from localStorage first for instant UI. Default = INR (India-first product).
     const saved = localStorage.getItem('preferred_currency');
-    return (saved as CurrencyCode) || 'USD';
+    return (saved as CurrencyCode) || 'INR';
   });
 
   // Sync from profile on load
@@ -143,9 +143,9 @@ export function useCurrency() {
       setCurrency: () => { },
       rates: { USD: 1 },
       isLoadingRates: false,
-      formatPrice: (usdAmount: number) => `$${usdAmount.toFixed(2)}`,
-      convertFromUSD: (usdAmount: number) => usdAmount,
-      currencyInfo: CURRENCIES[0],
+      formatPrice: (usdAmount: number) => `₹${(usdAmount * 83.5).toFixed(2)}`,
+      convertFromUSD: (usdAmount: number) => usdAmount * 83.5,
+      currencyInfo: CURRENCIES[1],
     };
   }
   return context;
