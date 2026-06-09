@@ -1,7 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+
+const DEFAULT_RATES: Record<CurrencyCode, number> = {
+  USD: 1,
+  INR: 83.5,
+  EUR: 0.92,
+  GBP: 0.79,
+  AED: 3.67,
+};
 
 export type CurrencyCode = 'USD' | 'INR' | 'EUR' | 'GBP' | 'AED';
 
@@ -48,21 +55,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     }
   }, [profile?.currency]);
 
-  // Fetch live exchange rates
-  const { data: ratesData, isLoading: isLoadingRates } = useQuery({
-    queryKey: ['exchange-rates'],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-exchange-rates');
-      if (error) throw error;
-      return data as { rates: Record<string, number> };
-    },
-    staleTime: 60 * 60 * 1000, // 1 hour
-    gcTime: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 2,
-  });
-
-  const rates = ratesData?.rates || { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.79, AED: 3.67 };
+  const rates = DEFAULT_RATES;
+  const isLoadingRates = false;
 
   const setCurrency = useCallback(async (code: CurrencyCode) => {
     setCurrencyState(code);
@@ -141,10 +135,10 @@ export function useCurrency() {
     return {
       currency: 'USD' as CurrencyCode,
       setCurrency: () => { },
-      rates: { USD: 1 },
+      rates: DEFAULT_RATES,
       isLoadingRates: false,
-      formatPrice: (usdAmount: number) => `₹${(usdAmount * 83.5).toFixed(2)}`,
-      convertFromUSD: (usdAmount: number) => usdAmount * 83.5,
+      formatPrice: (usdAmount: number) => `₹${(usdAmount * DEFAULT_RATES.INR).toFixed(2)}`,
+      convertFromUSD: (usdAmount: number) => usdAmount * DEFAULT_RATES.INR,
       currencyInfo: CURRENCIES[1],
     };
   }

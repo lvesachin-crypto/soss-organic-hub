@@ -27,28 +27,37 @@ async function verifySignature(body: string, signature: string, secret: string):
   return diff === 0;
 }
 
-async function notifyTelegram(text: string) {
-  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
-  if (!token || !chatId) {
-    console.log("Telegram not configured, skipping notify");
+async function notifyTelegram(supabase: ReturnType<typeof createClient>, text: string) {
+  const projectUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!projectUrl || !serviceRoleKey) {
+    console.log("Supabase env missing, skipping Telegram notify");
     return;
   }
+
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
+    const { error } = await supabase.functions.invoke("send-telegram-notification", {
+      body: {
+        message: text,
         parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
+      },
     });
-    if (!res.ok) console.error("Telegram error:", await res.text());
+    if (error) console.error("Telegram invoke error:", error.message);
   } catch (e) {
     console.error("Telegram fetch failed:", e);
   }
+}
+
+function toUsdFromInr(amountInr: number, inrPerUsd: number): number {
+  return Number((amountInr / inrPerUsd).toFixed(4));
+}
+
+function lockKey(paymentId: string): number {
+  let hash = 0;
+  for (let i = 0; i < paymentId.length; i++) {
+    hash = ((hash << 5) - hash + paymentId.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
 }
 
 Deno.serve(async (req) => {
@@ -112,9 +121,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    // Wallet system stores values in USD. Convert INR -> USD.
-    const INR_PER_USD = Number(Deno.env.get("INR_USD_RATE") || "83.5");
-    const amountUsd: number = Number((amountInr / INR_PER_USD).toFixed(4));
+    const INR_PER_USD = 83.5;
+    const amountUsd = toUsdFromInr(amountInr, INR_PER_USD);
     const notes = payment.notes || {};
     const userIdFromNotes: string | undefined = notes.user_id;
     const userEmailFromNotes: string | undefined = notes.user_email || payment.email;
@@ -124,11 +132,14 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    await supabase.rpc("pg_advisory_xact_lock", { key: lockKey(paymentId) }).catch(() => null);
+
     // Idempotency
     const { data: existing } = await supabase
       .from("transactions")
       .select("id")
       .eq("payment_reference", paymentId)
+      .eq("payment_method", "razorpay_auto")
       .maybeSingle();
 
     if (existing) {
@@ -162,6 +173,7 @@ Deno.serve(async (req) => {
         description: `UNRESOLVED USER. ₹${amountInr} (~$${amountUsd}). Email: ${userEmailFromNotes || "none"}`,
       });
       await notifyTelegram(
+        supabase,
         `⚠️ <b>OrganicSMM — UNRESOLVED Payment</b>\n` +
         `Amount: <b>₹${amountInr}</b>\n` +
         `Payment ID: <code>${paymentId}</code>\n` +
@@ -185,8 +197,8 @@ Deno.serve(async (req) => {
 
     const currentBalance = Number(wallet?.balance || 0);
     const currentDeposited = Number(wallet?.total_deposited || 0);
-    const newBalance = currentBalance + amountUsd;
-    const newDeposited = currentDeposited + amountUsd;
+    const newBalance = Number((currentBalance + amountUsd).toFixed(4));
+    const newDeposited = Number((currentDeposited + amountUsd).toFixed(4));
 
     if (wallet) {
       const { error: updErr } = await supabase
@@ -212,7 +224,7 @@ Deno.serve(async (req) => {
       status: "completed",
       payment_method: "razorpay_auto",
       payment_reference: paymentId,
-      description: `Wallet top-up via Razorpay (₹${amountInr} @ ₹${INR_PER_USD}/USD)`,
+      description: `Wallet top-up via Razorpay (₹${amountInr} exact credit)`,
     });
     if (txErr) throw txErr;
 
@@ -226,6 +238,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     await notifyTelegram(
+      supabase,
       `✅ <b>OrganicSMM — Wallet Credited</b>\n` +
       `User: <b>${prof?.full_name || "—"}</b>\n` +
       `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
@@ -239,7 +252,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Webhook error:", err);
-    await notifyTelegram(`🚨 <b>OrganicSMM webhook error</b>\n<code>${String(err).slice(0, 500)}</code>`);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

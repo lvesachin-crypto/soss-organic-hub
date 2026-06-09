@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const TG_BOT_TOKEN = "8709248334:AAFq3gcC0LG7yXZkNjQkweNOTb29v4QcgHE";
-const TG_ADMIN_CHAT_ID = "8766641148";
-
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers":
@@ -15,6 +12,16 @@ serve(async (req) => {
     }
 
     try {
+        const TG_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
+        const TG_ADMIN_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID");
+
+        if (!TG_BOT_TOKEN || !TG_ADMIN_CHAT_ID) {
+            return new Response(JSON.stringify({ skipped: true, reason: "Telegram secrets not configured" }), {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+        }
+
         const { message, photo, photo_url, parse_mode = "HTML" } = await req.json();
 
         if (!message) {
