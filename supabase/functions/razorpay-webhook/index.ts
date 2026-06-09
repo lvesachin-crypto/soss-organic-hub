@@ -101,7 +101,13 @@ Deno.serve(async (req) => {
     }
 
     const paymentId: string = payment.id;
-    const amountInr: number = Number(payment.amount) / 100; // paise -> rupees
+    // Razorpay sometimes captures `amount` net of fee/tax (depending on fee-bearer config).
+    // Customer's true out-of-pocket = amount + fee + tax. Use that so wallet credit matches what user paid.
+    const grossPaise =
+      Number(payment.amount || 0) +
+      Number(payment.fee || 0) +
+      Number(payment.tax || 0);
+    const amountInr: number = grossPaise / 100; // paise -> rupees
     if (!Number.isFinite(amountInr) || amountInr <= 0) {
       console.error("Blocked Razorpay payment with invalid captured amount", paymentId, payment.amount);
       return new Response(JSON.stringify({ error: "Invalid captured amount" }), {
