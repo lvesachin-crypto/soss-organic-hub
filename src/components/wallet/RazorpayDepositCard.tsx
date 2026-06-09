@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 const PAYMENT_BUTTONS = [
   { amount: 50,  buttonId: 'pl_SzPv4XOWVeFVlN' },
   { amount: 100, buttonId: 'pl_SzPvjpKyafR9PG' },
-  { amount: 200, buttonId: 'pl_SzPyGOaz2chntI' },
+  { amount: 200, buttonId: 'pl_SzZmUjbLNs0Wus' },
   { amount: 500, buttonId: 'pl_SzPylVK8jvgNoO' },
 ] as const;
 
