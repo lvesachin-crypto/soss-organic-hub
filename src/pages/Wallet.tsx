@@ -162,11 +162,11 @@ export default function Wallet() {
 
                   <div className="text-right flex-shrink-0 ml-4">
                     <p className="font-bold text-[15px]" style={{ color: getAmountColor(tx.type) }}>
-                      {tx.type === 'order' ? '−' : '+'}${Math.abs(Number(tx.amount)).toFixed(2)}
+                      {tx.type === 'order' ? '−' : '+'}{formatPrice(Math.abs(Number(tx.amount)))}
                     </p>
                     {tx.balance_after != null && (
                       <p className="text-[11px] mt-0.5" style={{ color: '#bbb' }}>
-                        Bal: ${Number(tx.balance_after).toFixed(2)}
+                        Bal: {formatPrice(Number(tx.balance_after))}
                       </p>
                     )}
                   </div>
