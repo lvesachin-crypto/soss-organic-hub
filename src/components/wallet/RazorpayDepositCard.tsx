@@ -72,7 +72,7 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
 
 export default function RazorpayDepositCard() {
   const queryClient = useQueryClient();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshWallet } = useAuth();
   const userEmail = profile?.email || user?.email || '';
   const [copied, setCopied] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number>(PAYMENT_BUTTONS[0].amount);
@@ -86,15 +86,47 @@ export default function RazorpayDepositCard() {
     } catch {}
   };
 
+  const refreshPaymentState = async () => {
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      refreshWallet(),
+    ]);
+  };
+
   // Refresh wallet when window regains focus (user returns from Razorpay)
   useEffect(() => {
     const onFocus = () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      void refreshPaymentState();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [queryClient]);
+  }, [queryClient, refreshWallet]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+
+    const pollAfterReturn = async () => {
+      while (!cancelled && attempts < 8) {
+        attempts += 1;
+        await refreshPaymentState();
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void pollAfterReturn();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [queryClient, refreshWallet]);
 
   return (
     <div className="max-w-lg mx-auto">
