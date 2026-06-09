@@ -1,332 +1,287 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Loader2, IndianRupee, ExternalLink, ArrowLeft,
-  CheckCircle2, ShieldCheck, Send,
-  ArrowRight, ImagePlus, Copy, Upload
-} from 'lucide-react';
+import { Loader2, Zap, ShieldCheck, CheckCircle2, Wallet as WalletIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrency } from '@/hooks/useCurrency';
 
-const RAZORPAY_PAGE_URL = "https://razorpay.me/@organicsmm";
-const TELEGRAM_SUPPORT = "https://t.me/whopcampaign";
+// ⚠️ REPLACE this with your Razorpay Key ID (publishable, safe to expose).
+// Get it from: https://dashboard.razorpay.com/app/keys
+const RAZORPAY_KEY_ID = "rzp_live_REPLACE_ME";
+
+const AMOUNTS = [50, 100, 200, 500] as const;
+const COMPANY_NAME = "OrganicSMM";
+const THEME_COLOR = "#16a34a";
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function RazorpayDepositCard() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
-  const { rates } = useCurrency();
-  const [inrAmount, setInrAmount] = useState('');
-  const [usdCredit, setUsdCredit] = useState<number>(0);
-  const [paymentId, setPaymentId] = useState('');
+  const [selected, setSelected] = useState<number>(100);
   const [loading, setLoading] = useState(false);
-  const [screenshot, setScreenshot] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-  const [step, setStep] = useState<'amount' | 'pay_and_submit' | 'done'>('amount');
+  const [success, setSuccess] = useState<number | null>(null);
 
+  // Ensure Razorpay script is loaded (it's also in index.html but fallback safe).
   useEffect(() => {
-    const val = parseFloat(inrAmount);
-    if (!isNaN(val) && val > 0) {
-      const inrRate = rates['INR'] || 83.5;
-      setUsdCredit(parseFloat((val / inrRate).toFixed(2)));
-    } else {
-      setUsdCredit(0);
-    }
-  }, [inrAmount, rates]);
+    if (window.Razorpay) return;
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.async = true;
+    document.body.appendChild(s);
+  }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setScreenshot(file);
-      const reader = new FileReader();
-      reader.onload = (ev) => setScreenshotPreview(ev.target?.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: `${label} Copied`, description: `Copied to clipboard` });
-  };
-
-  const handleSubmitProof = async () => {
-    if (!inrAmount || Number(inrAmount) < 30) {
-      toast({ title: 'Invalid amount', description: 'Minimum deposit is ₹30', variant: 'destructive' });
+  const openCheckout = () => {
+    if (!user) {
+      toast({ title: 'Login required', description: 'Please log in first', variant: 'destructive' });
       return;
     }
-    if (!paymentId.trim() || paymentId.length < 8) {
-      toast({ title: 'Invalid UTR', description: 'Please enter a valid Transaction ID/UTR', variant: 'destructive' });
+    if (!window.Razorpay) {
+      toast({ title: 'Loading…', description: 'Razorpay abhi load ho raha hai, 2 sec wait karo', variant: 'destructive' });
       return;
     }
+    if (RAZORPAY_KEY_ID.includes('REPLACE_ME')) {
+      toast({ title: 'Setup incomplete', description: 'Admin: Razorpay Key ID code me set karo', variant: 'destructive' });
+      return;
+    }
+
+    const email = profile?.email || user.email || '';
+    const name = profile?.full_name || email.split('@')[0] || 'User';
 
     setLoading(true);
+
+    const options = {
+      key: RAZORPAY_KEY_ID,
+      amount: selected * 100, // paise
+      currency: 'INR',
+      name: COMPANY_NAME,
+      description: `Wallet top-up — ₹${selected}`,
+      image: '/icon-192x192.png',
+      prefill: {
+        email,
+        name,
+      },
+      readonly: {
+        email: true,
+      },
+      notes: {
+        user_id: user.id,
+        user_email: email,
+        purpose: 'wallet_topup',
+      },
+      theme: { color: THEME_COLOR },
+      handler: function (response: any) {
+        setSuccess(selected);
+        toast({
+          title: '✅ Payment Successful!',
+          description: `₹${selected} aapke wallet me 5-10 sec me credit ho jayega.`,
+        });
+        // Auto-refresh wallet a few times (webhook may take a moment)
+        const refresh = () => {
+          queryClient.invalidateQueries({ queryKey: ['wallet'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        };
+        refresh();
+        setTimeout(refresh, 3000);
+        setTimeout(refresh, 8000);
+        setTimeout(refresh, 15000);
+        setLoading(false);
+      },
+      modal: {
+        ondismiss: () => setLoading(false),
+        escape: true,
+      },
+    };
+
     try {
-      let screenshotUrl: string | null = null;
-      if (screenshot) {
-        const ext = screenshot.name.split('.').pop() || 'jpg';
-        const path = `${user?.id}/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('deposit-screenshots')
-          .upload(path, screenshot, { upsert: true });
-        if (uploadErr) throw uploadErr;
-        const { data: urlData } = supabase.storage.from('deposit-screenshots').getPublicUrl(path);
-        screenshotUrl = urlData.publicUrl;
-      }
-
-      const userId = user?.id || profile?.user_id;
-      if (!userId) throw new Error('Session expired. Please refresh.');
-
-      const { error: dbErr } = await supabase.from('transactions').insert({
-        user_id: userId,
-        type: 'deposit',
-        amount: usdCredit,
-        balance_after: 0,
-        status: 'pending',
-        payment_method: 'razorpay_manual',
-        payment_reference: paymentId,
-        description: JSON.stringify({ inr_amount: inrAmount, screenshot_url: screenshotUrl, type: 'razorpay_manual' }),
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (resp: any) => {
+        toast({
+          title: 'Payment Failed',
+          description: resp?.error?.description || 'Try again',
+          variant: 'destructive',
+        });
+        setLoading(false);
       });
-      if (dbErr) throw dbErr;
-
-      const userName = profile?.full_name || 'Unknown';
-      const userEmail = profile?.email || user?.email || 'N/A';
-      const tgMessage = `🔥 <b>NEW DEPOSIT REQUEST</b>\n\n👤 Name: ${userName}\n📧 Email: ${userEmail}\n💰 Amount: ₹${inrAmount} (~$${usdCredit})\n🔑 UTR: <code>${paymentId}</code>`;
-      supabase.functions.invoke('send-telegram-notification', {
-        body: {
-          message: tgMessage,
-          photo_url: screenshotUrl,
-        },
-      }).catch(console.error);
-
-      setStep('done');
-      toast({ title: 'Submitted!', description: 'Our team will verify shortly.' });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      rzp.open();
     } catch (err: any) {
-      toast({ title: 'Failed', description: err.message, variant: 'destructive' });
-    } finally {
+      toast({ title: 'Checkout error', description: err.message, variant: 'destructive' });
       setLoading(false);
     }
   };
 
+  if (success !== null) {
+    return (
+      <div className="max-w-lg mx-auto">
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{
+            background: 'white',
+            border: '1px solid rgba(22,163,74,.2)',
+            boxShadow: '0 8px 32px rgba(22,163,74,.12)',
+          }}
+        >
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'rgba(16,185,129,.12)' }}
+          >
+            <CheckCircle2 className="h-9 w-9" style={{ color: '#10b981' }} />
+          </div>
+          <h3 className="text-xl font-bold" style={{ color: '#1a1a2e' }}>
+            ₹{success} Payment Successful!
+          </h3>
+          <p className="text-[13px] mt-2" style={{ color: '#666' }}>
+            Aapke wallet me funds 5-10 second me auto-credit ho jayenge.
+          </p>
+          <Button
+            onClick={() => setSuccess(null)}
+            className="mt-6 w-full h-11 rounded-xl font-semibold text-white"
+            style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+          >
+            Add More Funds
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-lg mx-auto">
-      <div className="rounded-2xl overflow-hidden" style={{ background: 'white', border: '1px solid rgba(0,0,0,.06)', boxShadow: '0 2px 16px rgba(0,0,0,.04)' }}>
-
-        {/* Progress bar */}
-        <div className="flex gap-1 px-4 pt-3">
-          <div className="h-1 flex-1 rounded-full" style={{ background: '#16a34a' }} />
-          <div className="h-1 flex-1 rounded-full" style={{ background: ['pay_and_submit', 'done'].includes(step) ? '#16a34a' : 'rgba(0,0,0,.06)' }} />
-          <div className="h-1 flex-1 rounded-full" style={{ background: step === 'done' ? '#16a34a' : 'rgba(0,0,0,.06)' }} />
-        </div>
+      <div
+        className="rounded-2xl overflow-hidden relative"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,255,255,1), rgba(248,250,252,1))',
+          border: '1px solid rgba(22,163,74,.15)',
+          boxShadow: '0 8px 32px rgba(22,163,74,.08), 0 2px 8px rgba(0,0,0,.04)',
+        }}
+      >
+        {/* Top gradient strip */}
+        <div className="h-1.5" style={{ background: 'linear-gradient(90deg, #16a34a, #10b981, #16a34a)' }} />
 
         {/* Header */}
-        <div className="p-5 pb-4 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(0,0,0,.04)' }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(22, 163, 74,.1)' }}>
-            <IndianRupee className="h-5 w-5" style={{ color: '#16a34a' }} />
-          </div>
-          <div>
-            <h2 className="text-[16px] font-bold" style={{ color: '#1a1a2e' }}>UPI / Card Deposit</h2>
-            <p className="text-[10px] font-medium" style={{ color: '#16a34a' }}>Manual Verification • 5-10 min</p>
+        <div className="p-6 pb-4">
+          <div className="flex items-center gap-3 mb-1">
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', boxShadow: '0 4px 12px rgba(22,163,74,.25)' }}
+            >
+              <WalletIcon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-[18px] font-bold flex items-center gap-1.5" style={{ color: '#1a1a2e' }}>
+                💰 Add Funds Instantly
+              </h2>
+              <p className="text-[12px] mt-0.5" style={{ color: '#888' }}>
+                Choose an amount. Funds credited automatically after payment.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* STEP 1: Amount */}
-        {step === 'amount' && (
-          <div className="p-5 space-y-5">
-            <div>
-              <p className="text-[11px] font-semibold mb-3" style={{ color: '#888' }}>Quick Amount</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[500, 1000, 2500].map(amt => (
-                  <button
-                    key={amt}
-                    onClick={() => setInrAmount(String(amt))}
-                    className="py-3 rounded-xl text-[14px] font-bold transition-all"
-                    style={{
-                      background: inrAmount === String(amt) ? '#16a34a' : 'rgba(0,0,0,.02)',
-                      color: inrAmount === String(amt) ? 'white' : '#555',
-                      border: `1px solid ${inrAmount === String(amt) ? '#16a34a' : 'rgba(0,0,0,.06)'}`,
-                    }}
-                  >
-                    ₹{amt}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[11px] font-semibold mb-2" style={{ color: '#888' }}>Manual Amount (INR)</p>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-bold" style={{ color: '#16a34a' }}>₹</span>
-                <Input
-                  type="number"
-                  value={inrAmount}
-                  onChange={(e) => setInrAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="h-14 pl-10 rounded-xl text-xl font-bold"
-                  style={{ background: 'rgba(0,0,0,.02)', border: '1px solid rgba(0,0,0,.08)', color: '#1a1a2e' }}
-                />
-                {usdCredit > 0 && (
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-bold" style={{ color: '#10b981' }}>
-                    ≈ ${usdCredit}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] mt-2 text-center" style={{ color: '#bbb' }}>
-                Min: ₹30 • 1 USD ≈ ₹{rates['INR'] || 83.5}
-              </p>
-            </div>
-
-            <Button
-              onClick={() => setStep('pay_and_submit')}
-              disabled={!inrAmount || Number(inrAmount) < 30}
-              className="w-full h-13 rounded-xl text-[14px] font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', boxShadow: '0 4px 16px rgba(22, 163, 74,.3)' }}
-            >
-              Pay ₹{inrAmount || '0'} <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+        {/* Amount grid */}
+        <div className="px-6 pb-2">
+          <p className="text-[11px] font-semibold mb-3 uppercase tracking-wider" style={{ color: '#888' }}>
+            Select Amount
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {AMOUNTS.map((amt) => {
+              const isSelected = selected === amt;
+              return (
+                <button
+                  key={amt}
+                  onClick={() => setSelected(amt)}
+                  className="relative py-5 rounded-2xl text-[20px] font-extrabold transition-all duration-200 active:scale-95"
+                  style={{
+                    background: isSelected
+                      ? 'linear-gradient(135deg, #16a34a, #15803d)'
+                      : 'white',
+                    color: isSelected ? 'white' : '#1a1a2e',
+                    border: `2px solid ${isSelected ? '#16a34a' : 'rgba(0,0,0,.08)'}`,
+                    boxShadow: isSelected
+                      ? '0 8px 20px rgba(22,163,74,.3)'
+                      : '0 1px 3px rgba(0,0,0,.04)',
+                    transform: isSelected ? 'translateY(-1px)' : 'none',
+                  }}
+                >
+                  ₹{amt}
+                  {isSelected && (
+                    <span
+                      className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: 'rgba(255,255,255,.25)' }}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </div>
 
-        {/* STEP 2: Payment & Submit */}
-        {step === 'pay_and_submit' && (
-          <div className="p-5 space-y-5">
-            {/* Pay instruction */}
-            <div className="rounded-xl p-4" style={{ background: 'rgba(22, 163, 74,.04)', border: '1px solid rgba(22, 163, 74,.1)' }}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full text-[11px] font-bold text-white flex items-center justify-center" style={{ background: '#16a34a' }}>1</span>
-                  <span className="text-[13px] font-bold" style={{ color: '#1a1a2e' }}>Pay ₹{inrAmount}</span>
-                </div>
-              </div>
+        {/* Pay button */}
+        <div className="px-6 pt-5 pb-4">
+          <Button
+            onClick={openCheckout}
+            disabled={loading}
+            className="w-full h-14 rounded-2xl text-[15px] font-bold text-white"
+            style={{
+              background: 'linear-gradient(135deg, #16a34a, #10b981, #15803d)',
+              boxShadow: '0 8px 24px rgba(22,163,74,.35)',
+            }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Opening Razorpay…
+              </>
+            ) : (
+              <>
+                <Zap className="h-5 w-5 mr-2 fill-white" />
+                Pay ₹{selected} with Razorpay
+              </>
+            )}
+          </Button>
+        </div>
 
-              <p className="text-[12px] mb-3 leading-relaxed" style={{ color: '#666' }}>
-                Niche link pe click karo aur <strong>Paytm, Google Pay, PhonePe, WhatsApp Pay</strong> ya UPI se payment karo.
-              </p>
-
-              <Button
-                onClick={() => window.open(RAZORPAY_PAGE_URL, '_blank')}
-                className="w-full h-12 rounded-xl text-[13px] font-bold text-white mb-2"
-                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', boxShadow: '0 4px 14px rgba(22, 163, 74,.3)' }}
+        {/* Trust badges */}
+        <div className="px-6 pb-5">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { icon: '🔒', label: 'Secure Payment' },
+              { icon: '⚡', label: 'Instant Credit' },
+              { icon: '✅', label: '100% Safe' },
+            ].map((b) => (
+              <div
+                key={b.label}
+                className="rounded-xl py-2.5 px-2 text-center"
+                style={{ background: 'rgba(22,163,74,.05)', border: '1px solid rgba(22,163,74,.1)' }}
               >
-                <ExternalLink className="h-4 w-4 mr-2" /> Pay Now — ₹{inrAmount}
-              </Button>
-
-              <button
-                onClick={() => copyToClipboard(RAZORPAY_PAGE_URL, 'Payment Link')}
-                className="w-full flex items-center justify-center gap-1.5 h-9 rounded-lg text-[11px] font-medium transition-colors"
-                style={{ color: '#999', border: '1px solid rgba(0,0,0,.06)' }}
-              >
-                <Copy className="h-3 w-3" /> Copy Payment Link
-              </button>
-
-              <div className="mt-3 p-2.5 rounded-lg" style={{ background: 'rgba(245,158,11,.06)', border: '1px solid rgba(245,158,11,.12)' }}>
-                <p className="text-[10px] font-medium" style={{ color: '#d97706' }}>
-                  ⚠️ Payment ke baad <strong>12-Digit UTR ID</strong> copy karo aur niche paste karo.
+                <div className="text-[16px] leading-none mb-1">{b.icon}</div>
+                <p className="text-[10px] font-semibold" style={{ color: '#16a34a' }}>
+                  {b.label}
                 </p>
               </div>
-            </div>
-
-            {/* Submit proof */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full text-[11px] font-bold text-white flex items-center justify-center" style={{ background: '#10b981' }}>2</span>
-                <span className="text-[13px] font-bold" style={{ color: '#1a1a2e' }}>Submit Proof</span>
-              </div>
-
-              <div>
-                <p className="text-[11px] font-medium mb-1.5" style={{ color: '#888' }}>Transaction ID / UTR *</p>
-                <Input
-                  placeholder="Enter 12-digit UTR"
-                  value={paymentId}
-                  onChange={(e) => setPaymentId(e.target.value)}
-                  className="h-12 rounded-xl text-[14px] font-medium"
-                  style={{ background: 'rgba(0,0,0,.02)', border: '1px solid rgba(0,0,0,.08)', color: '#1a1a2e' }}
-                />
-              </div>
-
-              <div>
-                <p className="text-[11px] font-medium mb-1.5" style={{ color: '#888' }}>Screenshot (Optional)</p>
-                <div className="relative h-24 rounded-xl flex items-center justify-center overflow-hidden" style={{ border: '2px dashed rgba(0,0,0,.08)', background: 'rgba(0,0,0,.01)' }}>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
-                  />
-                  {screenshotPreview ? (
-                    <div className="flex items-center gap-3 px-4">
-                      <img src={screenshotPreview} alt="Proof" className="w-14 h-14 rounded-lg object-cover" style={{ border: '2px solid #10b981' }} />
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-semibold truncate" style={{ color: '#10b981' }}>{screenshot?.name}</p>
-                        <p className="text-[10px]" style={{ color: '#bbb' }}>Ready to upload</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1">
-                      <ImagePlus className="h-5 w-5" style={{ color: '#ccc' }} />
-                      <span className="text-[10px] font-medium" style={{ color: '#bbb' }}>Upload Screenshot</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <Button
-                onClick={handleSubmitProof}
-                disabled={loading || !paymentId.trim()}
-                className="w-full h-12 rounded-xl text-[13px] font-bold text-white"
-                style={{ background: '#10b981' }}
-              >
-                {loading ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...</>
-                ) : (
-                  <><ShieldCheck className="h-4 w-4 mr-2" /> Verify Deposit</>
-                )}
-              </Button>
-            </div>
-
-            <button onClick={() => setStep('amount')} className="text-[11px] font-medium flex items-center gap-1 mx-auto" style={{ color: '#bbb' }}>
-              <ArrowLeft className="h-3 w-3" /> Back
-            </button>
+            ))}
           </div>
-        )}
+        </div>
 
-        {/* STEP 3: Done */}
-        {step === 'done' && (
-          <div className="p-8 text-center space-y-5">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style={{ background: 'rgba(16,185,129,.1)' }}>
-              <CheckCircle2 className="h-8 w-8" style={{ color: '#10b981' }} />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold" style={{ color: '#1a1a2e' }}>Submitted!</h3>
-              <p className="text-[12px] mt-1" style={{ color: '#10b981' }}>Pending Admin Approval</p>
-            </div>
-            <p className="text-[13px] p-3 rounded-xl" style={{ background: 'rgba(0,0,0,.02)', color: '#666', border: '1px solid rgba(0,0,0,.04)' }}>
-              Your deposit will be credited within <strong>5-10 minutes</strong>.
-            </p>
-            <Button onClick={() => setStep('amount')} className="w-full h-11 rounded-xl font-semibold" style={{ background: '#16a34a', color: 'white' }}>
-              Done
-            </Button>
-          </div>
-        )}
-
-        {/* Support */}
-        <div className="px-5 pb-5">
-          <a href={TELEGRAM_SUPPORT} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-between p-3 rounded-xl transition-colors"
-            style={{ background: 'rgba(0,0,0,.02)', border: '1px solid rgba(0,0,0,.04)' }}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: '#10b981' }} />
-              <span className="text-[11px] font-medium" style={{ color: '#999' }}>Need help?</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: '#0ea5e9' }}>
-              <Send className="h-3 w-3" /> Telegram Support
-            </div>
-          </a>
+        {/* Footer */}
+        <div
+          className="px-6 py-3 flex items-center justify-center gap-2"
+          style={{ borderTop: '1px solid rgba(0,0,0,.04)', background: 'rgba(0,0,0,.015)' }}
+        >
+          <ShieldCheck className="h-3.5 w-3.5" style={{ color: '#888' }} />
+          <span className="text-[11px] font-medium" style={{ color: '#888' }}>
+            Powered by{' '}
+            <span className="font-bold" style={{ color: '#3395FF' }}>
+              Razorpay
+            </span>{' '}
+            • UPI, Cards, Netbanking, Wallets
+          </span>
         </div>
       </div>
     </div>
