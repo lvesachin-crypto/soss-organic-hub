@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { ShieldCheck, Wallet as WalletIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
 
 // ⚡ Razorpay Hosted Payment Buttons — each fixed to its amount.
 const PAYMENT_BUTTONS = [
@@ -57,6 +58,17 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
 
 export default function RazorpayDepositCard() {
   const queryClient = useQueryClient();
+  const { user, profile } = useAuth();
+  const userEmail = profile?.email || user?.email || '';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(userEmail);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  };
 
   // Refresh wallet when window regains focus (user returns from Razorpay)
   useEffect(() => {
@@ -100,6 +112,65 @@ export default function RazorpayDepositCard() {
               <p className="text-[12px] mt-0.5" style={{ color: '#888' }}>
                 Niche se amount choose karo. Payment ke baad auto credit.
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ZAROORI — sahi email daalo */}
+        <div className="px-6 pb-4">
+          <div
+            className="relative rounded-2xl overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #fff1f2, #fef2f2)',
+              border: '1.5px solid rgba(239,68,68,.25)',
+              boxShadow: '0 4px 16px rgba(239,68,68,.08)',
+            }}
+          >
+            {/* red side bar */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-1"
+              style={{ background: 'linear-gradient(180deg, #ef4444, #b91c1c)' }}
+            />
+            <div className="p-4 pl-5">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center animate-pulse"
+                  style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-white" />
+                </div>
+                <p className="text-[12px] font-extrabold tracking-wider" style={{ color: '#b91c1c' }}>
+                  ZAROORI — SAHI EMAIL DAALO
+                </p>
+              </div>
+              <p className="text-[12px] leading-relaxed mb-3" style={{ color: '#7f1d1d' }}>
+                Razorpay checkout pe <b>bilkul yahi email</b> daalo (typo bhi nahi),
+                warna payment success hone ke baad bhi wallet me credit <b>nahi</b> hoga.
+              </p>
+
+              <button
+                onClick={handleCopy}
+                className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-all hover:scale-[1.01]"
+                style={{
+                  background: 'white',
+                  border: '1.5px dashed rgba(239,68,68,.35)',
+                  boxShadow: '0 2px 8px rgba(239,68,68,.06)',
+                }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Mail className="h-4 w-4 flex-shrink-0" style={{ color: '#b91c1c' }} />
+                  <span className="text-[13px] font-bold truncate" style={{ color: '#1a1a2e' }}>
+                    {userEmail || 'Loading...'}
+                  </span>
+                </div>
+                <span
+                  className="flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+                  style={{ color: copied ? '#16a34a' : '#ef4444' }}
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </span>
+              </button>
             </div>
           </div>
         </div>

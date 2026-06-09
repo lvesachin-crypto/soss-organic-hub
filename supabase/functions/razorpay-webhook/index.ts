@@ -27,6 +27,30 @@ async function verifySignature(body: string, signature: string, secret: string):
   return diff === 0;
 }
 
+async function notifyTelegram(text: string) {
+  const token = Deno.env.get("TELEGRAM_BOT_TOKEN");
+  const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (!token || !chatId) {
+    console.log("Telegram not configured, skipping notify");
+    return;
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      }),
+    });
+    if (!res.ok) console.error("Telegram error:", await res.text());
+  } catch (e) {
+    console.error("Telegram fetch failed:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -39,6 +63,15 @@ Deno.serve(async (req) => {
       console.error("RAZORPAY_WEBHOOK_SECRET not set");
       return new Response(JSON.stringify({ error: "Server misconfigured" }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // STRICT: signature header is mandatory
+    if (!signature) {
+      console.error("Missing x-razorpay-signature header — rejecting");
+      return new Response(JSON.stringify({ error: "Missing signature" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -72,6 +105,13 @@ Deno.serve(async (req) => {
 
     const paymentId: string = payment.id;
     const amountInr: number = Number(payment.amount) / 100; // paise -> rupees
+    // STRICT: only credit when Razorpay confirms capture (defence-in-depth)
+    if (payment.status && payment.status !== "captured") {
+      console.error(`Payment ${paymentId} status=${payment.status}, not crediting`);
+      return new Response(JSON.stringify({ ok: true, skipped: payment.status }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     // Wallet system stores values in USD. Convert INR -> USD.
     const INR_PER_USD = Number(Deno.env.get("INR_USD_RATE") || "83.5");
     const amountUsd: number = Number((amountInr / INR_PER_USD).toFixed(4));
@@ -121,6 +161,13 @@ Deno.serve(async (req) => {
         payment_reference: paymentId,
         description: `UNRESOLVED USER. ₹${amountInr} (~$${amountUsd}). Email: ${userEmailFromNotes || "none"}`,
       });
+      await notifyTelegram(
+        `⚠️ <b>OrganicSMM — UNRESOLVED Payment</b>\n` +
+        `Amount: <b>₹${amountInr}</b>\n` +
+        `Payment ID: <code>${paymentId}</code>\n` +
+        `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
+        `User not found — wallet NOT credited.`,
+      );
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 200, // 200 so Razorpay doesn't retry forever
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -171,11 +218,28 @@ Deno.serve(async (req) => {
 
     console.log(`Credited ₹${amountInr} (=$${amountUsd}) to user ${userId} via ${paymentId}`);
 
+    // Fetch profile for Telegram message
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("email, full_name")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    await notifyTelegram(
+      `✅ <b>OrganicSMM — Wallet Credited</b>\n` +
+      `User: <b>${prof?.full_name || "—"}</b>\n` +
+      `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
+      `Amount: <b>₹${amountInr}</b>\n` +
+      `New Balance: ₹${(newBalance * INR_PER_USD).toFixed(2)}\n` +
+      `Payment ID: <code>${paymentId}</code>`,
+    );
+
     return new Response(JSON.stringify({ ok: true, credited: amountInr }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("Webhook error:", err);
+    await notifyTelegram(`🚨 <b>OrganicSMM webhook error</b>\n<code>${String(err).slice(0, 500)}</code>`);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
