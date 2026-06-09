@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -86,13 +86,13 @@ export default function RazorpayDepositCard() {
     } catch {}
   };
 
-  const refreshPaymentState = async () => {
+  const refreshPaymentState = useCallback(async () => {
     await Promise.allSettled([
       queryClient.invalidateQueries({ queryKey: ['wallet'] }),
       queryClient.invalidateQueries({ queryKey: ['transactions'] }),
       refreshWallet(),
     ]);
-  };
+  }, [queryClient, refreshWallet]);
 
   // Refresh wallet when window regains focus (user returns from Razorpay)
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function RazorpayDepositCard() {
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [queryClient, refreshWallet]);
+  }, [refreshPaymentState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,7 +126,7 @@ export default function RazorpayDepositCard() {
       cancelled = true;
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [queryClient, refreshWallet]);
+  }, [refreshPaymentState]);
 
   return (
     <div className="max-w-lg mx-auto">
