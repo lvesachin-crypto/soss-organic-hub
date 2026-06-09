@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FIXED_BUTTON_AMOUNTS_INR = new Set([50, 100, 200, 500]);
+const FIXED_BUTTON_AMOUNTS_PAISE = new Set([5000, 10000, 20000, 50000]);
 
 async function verifySignature(body: string, signature: string, secret: string): Promise<boolean> {
   const enc = new TextEncoder();
@@ -103,17 +103,17 @@ Deno.serve(async (req) => {
     }
 
     const paymentId: string = payment.id;
-    const netAmountInr = Number(payment.amount || 0) / 100;
-    const grossAmountInr =
-      (Number(payment.amount || 0) + Number(payment.fee || 0) + Number(payment.tax || 0)) / 100;
+    const netPaise = Number(payment.amount || 0);
+    const grossPaise = netPaise + Number(payment.fee || 0) + Number(payment.tax || 0);
 
     // Hosted buttons are fixed-value top-ups. Prefer the exact configured button amount
     // if either Razorpay representation (net or gross) matches it.
-    const amountInr: number = FIXED_BUTTON_AMOUNTS_INR.has(netAmountInr)
-      ? netAmountInr
-      : FIXED_BUTTON_AMOUNTS_INR.has(grossAmountInr)
-        ? grossAmountInr
-        : netAmountInr;
+    const creditPaise = FIXED_BUTTON_AMOUNTS_PAISE.has(netPaise)
+      ? netPaise
+      : FIXED_BUTTON_AMOUNTS_PAISE.has(grossPaise)
+        ? grossPaise
+        : netPaise;
+    const amountInr: number = creditPaise / 100;
     if (!Number.isFinite(amountInr) || amountInr <= 0) {
       console.error("Blocked Razorpay payment with invalid captured amount", paymentId, payment.amount);
       return new Response(JSON.stringify({ error: "Invalid captured amount" }), {
