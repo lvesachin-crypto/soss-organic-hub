@@ -103,6 +103,9 @@ Deno.serve(async (req) => {
     }
 
     const paymentId: string = payment.id;
+    // Razorpay sends x-razorpay-event-id header; fall back to a deterministic id
+    const eventId: string = (req.headers.get("x-razorpay-event-id") || "").trim()
+      || `${event}:${paymentId}`;
     const netPaise = Number(payment.amount || 0);
     const grossPaise = netPaise + Number(payment.fee || 0) + Number(payment.tax || 0);
 
@@ -133,6 +136,30 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Event-level idempotency guard. UNIQUE(event_id) ensures the same webhook
+    // delivery is never processed twice, even before reaching the wallet RPC.
+    const { error: eventInsertErr } = await supabase
+      .from("razorpay_webhook_events")
+      .insert({
+        event_id: eventId,
+        event_type: event,
+        payment_id: paymentId,
+        payload,
+      });
+
+    if (eventInsertErr) {
+      const msg = String(eventInsertErr.message || "");
+      // 23505 = unique_violation → already processed, ack 200
+      if ((eventInsertErr as any).code === "23505" || msg.includes("duplicate key")) {
+        console.log("Duplicate webhook event", eventId, "— already processed, ack 200");
+        return new Response(JSON.stringify({ ok: true, duplicate_event: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.error("Failed to record webhook event:", msg);
+      throw eventInsertErr;
+    }
 
     const notes = payment.notes || {};
     const userIdFromNotes = typeof notes.user_id === "string" ? notes.user_id.trim() : "";
