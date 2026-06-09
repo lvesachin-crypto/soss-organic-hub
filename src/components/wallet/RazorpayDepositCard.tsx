@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,7 +11,7 @@ const PAYMENT_BUTTONS = [
   { amount: 500, buttonId: 'pl_SzPylVK8jvgNoO' },
 ] as const;
 
-function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string }) {
+function RazorpayButton({ amount: _amount, buttonId: _buttonId }: { amount: number; buttonId: string }) {
   const [isReady] = useState(false);
 
   return (
