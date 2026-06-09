@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const FIXED_BUTTON_AMOUNTS_INR = new Set([50, 100, 200, 500]);
+
 async function verifySignature(body: string, signature: string, secret: string): Promise<boolean> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -101,10 +103,17 @@ Deno.serve(async (req) => {
     }
 
     const paymentId: string = payment.id;
-    // Credit only the actual captured payment amount.
-    // Never add gateway fee/tax on top, otherwise wallet can get over-credited.
-    const capturedPaise = Number(payment.amount || 0);
-    const amountInr: number = capturedPaise / 100; // paise -> rupees
+    const netAmountInr = Number(payment.amount || 0) / 100;
+    const grossAmountInr =
+      (Number(payment.amount || 0) + Number(payment.fee || 0) + Number(payment.tax || 0)) / 100;
+
+    // Hosted buttons are fixed-value top-ups. Prefer the exact configured button amount
+    // if either Razorpay representation (net or gross) matches it.
+    const amountInr: number = FIXED_BUTTON_AMOUNTS_INR.has(netAmountInr)
+      ? netAmountInr
+      : FIXED_BUTTON_AMOUNTS_INR.has(grossAmountInr)
+        ? grossAmountInr
+        : netAmountInr;
     if (!Number.isFinite(amountInr) || amountInr <= 0) {
       console.error("Blocked Razorpay payment with invalid captured amount", paymentId, payment.amount);
       return new Response(JSON.stringify({ error: "Invalid captured amount" }), {
