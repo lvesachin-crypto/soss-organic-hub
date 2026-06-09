@@ -52,14 +52,6 @@ function toUsdFromInr(amountInr: number, inrPerUsd: number): number {
   return Number((amountInr / inrPerUsd).toFixed(4));
 }
 
-function lockKey(paymentId: string): number {
-  let hash = 0;
-  for (let i = 0; i < paymentId.length; i++) {
-    hash = ((hash << 5) - hash + paymentId.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -132,28 +124,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { error: lockError } = await supabase.rpc("pg_advisory_xact_lock", { key: lockKey(paymentId) });
-    if (lockError) {
-      console.error("Advisory lock failed:", lockError.message);
-    }
-
-    // Idempotency
-    const { data: existing, error: existingError } = await supabase
-      .from("transactions")
-      .select("id")
-      .eq("payment_reference", paymentId)
-      .eq("payment_method", "razorpay_auto")
-      .maybeSingle();
-
-    if (existingError) throw existingError;
-
-    if (existing) {
-      console.log("Already processed:", paymentId);
-      return new Response(JSON.stringify({ ok: true, duplicate: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Resolve user
     let userId: string | null = userIdFromNotes || null;
     if (!userId && userEmailFromNotes) {
@@ -169,16 +139,6 @@ Deno.serve(async (req) => {
 
     if (!userId) {
       console.error("User not resolved for payment", paymentId, notes);
-      await supabase.from("transactions").insert({
-        user_id: "00000000-0000-0000-0000-000000000000",
-        type: "deposit",
-        amount: amountUsd,
-        balance_after: 0,
-        status: "failed",
-        payment_method: "razorpay_auto",
-        payment_reference: paymentId,
-        description: `UNRESOLVED USER. ₹${amountInr} (~$${amountUsd}). Email: ${userEmailFromNotes || "none"}`,
-      });
       await notifyTelegram(
         supabase,
         `⚠️ <b>OrganicSMM — UNRESOLVED Payment</b>\n` +
@@ -193,47 +153,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch wallet
-    const { data: wallet, error: wErr } = await supabase
-      .from("wallets")
-      .select("balance, total_deposited")
-      .eq("user_id", userId)
-      .maybeSingle();
+    // ATOMIC credit via SECURITY DEFINER function — handles lock + idempotency + wallet update + tx insert
+    // Safe under Razorpay's retry policy because of UNIQUE index on payment_reference.
+    const { data: creditResult, error: creditErr } = await supabase.rpc("credit_wallet_razorpay", {
+      p_user_id: userId,
+      p_payment_id: paymentId,
+      p_amount_usd: amountUsd,
+      p_amount_inr: amountInr,
+    });
 
-    if (wErr) throw wErr;
-
-    const currentBalance = Number(wallet?.balance || 0);
-    const currentDeposited = Number(wallet?.total_deposited || 0);
-    const newBalance = Number((currentBalance + amountUsd).toFixed(4));
-    const newDeposited = Number((currentDeposited + amountUsd).toFixed(4));
-
-    if (wallet) {
-      const { error: updErr } = await supabase
-        .from("wallets")
-        .update({ balance: newBalance, total_deposited: newDeposited })
-        .eq("user_id", userId);
-      if (updErr) throw updErr;
-    } else {
-      const { error: insErr } = await supabase.from("wallets").insert({
-        user_id: userId,
-        balance: newBalance,
-        total_deposited: newDeposited,
-        total_spent: 0,
-      });
-      if (insErr) throw insErr;
+    if (creditErr) {
+      // Transient DB error — return 5xx so Razorpay retries
+      console.error("credit_wallet_razorpay failed:", creditErr.message);
+      throw creditErr;
     }
 
-    const { error: txErr } = await supabase.from("transactions").insert({
-      user_id: userId,
-      type: "deposit",
-      amount: amountUsd,
-      balance_after: newBalance,
-      status: "completed",
-      payment_method: "razorpay_auto",
-      payment_reference: paymentId,
-      description: `Wallet top-up via Razorpay (₹${amountInr} exact credit)`,
-    });
-    if (txErr) throw txErr;
+    const credited = (creditResult as any)?.credited === true;
+    const duplicate = (creditResult as any)?.duplicate === true;
+    const newBalance = Number((creditResult as any)?.new_balance ?? 0);
+
+    if (duplicate) {
+      console.log("Duplicate webhook for payment", paymentId, "— already credited, ack 200");
+      return new Response(JSON.stringify({ ok: true, duplicate: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     console.log(`Credited ₹${amountInr} (db=${amountUsd} USD) to user ${userId} via ${paymentId}`);
 
@@ -259,6 +203,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Webhook error:", err);
+    // 5xx triggers Razorpay's automatic retry — the UNIQUE index + RPC make retries safe
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
