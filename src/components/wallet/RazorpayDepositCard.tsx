@@ -18,6 +18,7 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    let cancelled = false;
 
     setStatus('loading');
     container.innerHTML = '';
@@ -31,6 +32,7 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
     script.setAttribute('data-payment_button_id', buttonId);
 
     const markReadyIfRendered = () => {
+      if (cancelled) return;
       if (container.querySelector('iframe, .razorpay-payment-button, button')) {
         setStatus('ready');
       }
@@ -51,17 +53,16 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
     container.appendChild(form);
 
     const failSafe = window.setTimeout(() => {
-      if (status !== 'ready') {
-        markReadyIfRendered();
-      }
+      markReadyIfRendered();
     }, 1800);
 
     return () => {
+      cancelled = true;
       observer.disconnect();
       window.clearTimeout(failSafe);
       container.innerHTML = '';
     };
-  }, [buttonId, status]);
+  }, [buttonId]);
 
   return (
     <div className="w-full">
