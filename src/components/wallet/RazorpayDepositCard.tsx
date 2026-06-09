@@ -36,33 +36,11 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
   }, [buttonId]);
 
   return (
-    <div
-      className="relative rounded-2xl p-4 flex flex-col items-center justify-center min-h-[140px] transition-transform hover:-translate-y-0.5"
-      style={{
-        background: 'linear-gradient(135deg, #ffffff, #f0fdf4)',
-        border: '2px solid rgba(22,163,74,.15)',
-        boxShadow: '0 4px 16px rgba(22,163,74,.08)',
-      }}
-    >
-      <div
-        className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold text-white tracking-wider"
-        style={{
-          background: 'linear-gradient(135deg, #16a34a, #15803d)',
-          boxShadow: '0 2px 8px rgba(22,163,74,.3)',
-        }}
-      >
-        ₹{amount}
-      </div>
-      <p className="text-[28px] font-extrabold leading-none mt-1" style={{ color: '#16a34a' }}>
-        ₹{amount}
-      </p>
-      <p className="text-[10px] mt-1 mb-3 font-medium" style={{ color: '#888' }}>
-        Instant Credit
-      </p>
+    <div className="w-full">
       {!isReady && (
-        <div className="w-full h-[44px] rounded-xl flex items-center justify-center gap-2" style={{ background: '#eef6ff', color: '#3395FF' }}>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span className="text-[11px] font-semibold">Payment loading...</span>
+        <div className="w-full h-[40px] rounded-xl flex items-center justify-center gap-2" style={{ background: '#eef6ff', color: '#3395FF' }}>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span className="text-[11px] font-semibold">Loading...</span>
         </div>
       )}
       <form ref={formRef} className="w-full flex justify-center overflow-hidden" />
@@ -75,8 +53,6 @@ export default function RazorpayDepositCard() {
   const { user, profile, refreshWallet } = useAuth();
   const userEmail = profile?.email || user?.email || '';
   const [copied, setCopied] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState<number>(PAYMENT_BUTTONS[0].amount);
-  const selectedPayment = PAYMENT_BUTTONS.find((item) => item.amount === selectedAmount) || PAYMENT_BUTTONS[0];
 
   const handleCopy = async () => {
     try {
@@ -237,65 +213,33 @@ export default function RazorpayDepositCard() {
           </p>
           <div className="grid grid-cols-2 gap-4">
             {PAYMENT_BUTTONS.map((pb) => (
-              <button
+              <div
                 key={pb.buttonId}
-                type="button"
-                onClick={() => setSelectedAmount(pb.amount)}
-                className="relative rounded-2xl p-4 flex flex-col items-center justify-center min-h-[136px] transition-all text-left"
+                className="relative rounded-2xl p-4 flex flex-col items-center justify-center min-h-[150px]"
                 style={{
-                  background: pb.amount === selectedAmount ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)' : 'linear-gradient(135deg, #ffffff, #f8fafc)',
-                  border: pb.amount === selectedAmount ? '2px solid rgba(22,163,74,.45)' : '2px solid rgba(22,163,74,.12)',
-                  boxShadow: pb.amount === selectedAmount ? '0 10px 24px rgba(22,163,74,.14)' : '0 4px 16px rgba(22,163,74,.06)',
-                  transform: pb.amount === selectedAmount ? 'translateY(-1px)' : 'none',
+                  background: 'linear-gradient(135deg, #ffffff, #f0fdf4)',
+                  border: '2px solid rgba(22,163,74,.18)',
+                  boxShadow: '0 4px 16px rgba(22,163,74,.08)',
                 }}
               >
                 <div
                   className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold text-white tracking-wider"
                   style={{
-                    background: pb.amount === selectedAmount ? 'linear-gradient(135deg, #15803d, #166534)' : 'linear-gradient(135deg, #16a34a, #15803d)',
+                    background: 'linear-gradient(135deg, #16a34a, #15803d)',
                     boxShadow: '0 2px 8px rgba(22,163,74,.22)',
                   }}
                 >
                   ₹{pb.amount}
                 </div>
-                <p className="text-[30px] font-extrabold leading-none mt-1" style={{ color: '#16a34a' }}>
+                <p className="text-[28px] font-extrabold leading-none mt-1" style={{ color: '#16a34a' }}>
                   ₹{pb.amount}
                 </p>
-                <p className="text-[11px] mt-1 font-medium" style={{ color: '#666' }}>
+                <p className="text-[10px] mt-1 mb-3 font-medium" style={{ color: '#666' }}>
                   Instant Credit
                 </p>
-                <div
-                  className="mt-4 w-full rounded-xl py-2 text-center text-[12px] font-bold"
-                  style={{
-                    background: pb.amount === selectedAmount ? '#16a34a' : 'rgba(22,163,74,.08)',
-                    color: pb.amount === selectedAmount ? '#fff' : '#16a34a',
-                  }}
-                >
-                  {pb.amount === selectedAmount ? 'Selected' : 'Choose Amount'}
-                </div>
-              </button>
+                <RazorpayButton amount={pb.amount} buttonId={pb.buttonId} />
+              </div>
             ))}
-          </div>
-        </div>
-
-        <div className="px-6 pb-5">
-          <div className="rounded-2xl p-4" style={{ background: 'rgba(22,163,74,.05)', border: '1px solid rgba(22,163,74,.12)' }}>
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
-                  Ready to Pay
-                </p>
-                <p className="text-[22px] font-extrabold" style={{ color: '#16a34a' }}>
-                  ₹{selectedPayment.amount}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] font-semibold" style={{ color: '#166534' }}>INR only</p>
-                <p className="text-[10px]" style={{ color: '#666' }}>Exact same amount credit</p>
-              </div>
-            </div>
-
-            <RazorpayButton key={selectedPayment.buttonId} amount={selectedPayment.amount} buttonId={selectedPayment.buttonId} />
           </div>
         </div>
 
