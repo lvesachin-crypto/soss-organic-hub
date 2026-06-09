@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const FIXED_BUTTON_AMOUNTS_PAISE = new Set([5000, 10000, 20000, 50000]);
+const FIXED_BUTTON_AMOUNTS_PAISE = new Set([5000, 10000, 20000, 50000, 100000]);
 
 async function verifySignature(body: string, signature: string, secret: string): Promise<boolean> {
   const enc = new TextEncoder();

@@ -5,10 +5,11 @@ import { useAuth } from '@/hooks/useAuth';
 
 // ⚡ Razorpay Hosted Payment Buttons — each fixed to its amount.
 const PAYMENT_BUTTONS = [
-  { amount: 50,  buttonId: 'pl_SzPv4XOWVeFVlN' },
-  { amount: 100, buttonId: 'pl_SzPvjpKyafR9PG' },
-  { amount: 200, buttonId: 'pl_SzZmUjbLNs0Wus' },
-  { amount: 500, buttonId: 'pl_SzPylVK8jvgNoO' },
+  { amount: 50,   buttonId: 'pl_SzPv4XOWVeFVlN' },
+  { amount: 100,  buttonId: 'pl_SzPvjpKyafR9PG' },
+  { amount: 200,  buttonId: 'pl_SzZmUjbLNs0Wus' },
+  { amount: 500,  buttonId: 'pl_SzPylVK8jvgNoO' },
+  { amount: 1000, buttonId: 'pl_SzZoe01griPXxN' },
 ] as const;
 
 function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string }) {
