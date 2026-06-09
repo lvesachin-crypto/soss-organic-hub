@@ -48,10 +48,6 @@ async function notifyTelegram(supabase: ReturnType<typeof createClient>, text: s
   }
 }
 
-function toUsdFromInr(amountInr: number, inrPerUsd: number): number {
-  return Number((amountInr / inrPerUsd).toFixed(4));
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -106,6 +102,14 @@ Deno.serve(async (req) => {
 
     const paymentId: string = payment.id;
     const amountInr: number = Number(payment.amount) / 100; // paise -> rupees
+    if (!Number.isFinite(amountInr) || amountInr <= 0) {
+      console.error("Blocked Razorpay payment with invalid captured amount", paymentId, payment.amount);
+      return new Response(JSON.stringify({ error: "Invalid captured amount" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // STRICT: only credit when Razorpay confirms capture (defence-in-depth)
     if (payment.status && payment.status !== "captured") {
       console.error(`Payment ${paymentId} status=${payment.status}, not crediting`);
@@ -118,8 +122,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const INR_PER_USD = 83.5;
-    const amountUsd = toUsdFromInr(amountInr, INR_PER_USD);
     const notes = payment.notes || {};
     const userIdFromNotes = typeof notes.user_id === "string" ? notes.user_id.trim() : "";
     const userEmailFromNotes = typeof notes.user_email === "string"
@@ -191,7 +193,7 @@ Deno.serve(async (req) => {
     const { data: creditResult, error: creditErr } = await supabase.rpc("credit_wallet_razorpay", {
       p_user_id: userId,
       p_payment_id: paymentId,
-      p_amount_usd: amountUsd,
+      p_amount_usd: 0,
       p_amount_inr: amountInr,
     });
 
@@ -204,6 +206,8 @@ Deno.serve(async (req) => {
     const credited = (creditResult as any)?.credited === true;
     const duplicate = (creditResult as any)?.duplicate === true;
     const newBalance = Number((creditResult as any)?.new_balance ?? 0);
+    const creditedUsd = Number((creditResult as any)?.credited_usd ?? 0);
+    const creditedInr = Number((creditResult as any)?.credited_inr ?? amountInr);
 
     if (duplicate) {
       console.log("Duplicate webhook for payment", paymentId, "— already credited, ack 200");
@@ -212,19 +216,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Credited ₹${amountInr} (db=${amountUsd} USD) to user ${userId} via ${paymentId}`);
+    if (!credited) {
+      throw new Error(`credit_wallet_razorpay returned unexpected response for ${paymentId}`);
+    }
+
+    console.log(`Credited ₹${creditedInr} (db=${creditedUsd} USD) to user ${userId} via ${paymentId}`);
 
     await notifyTelegram(
       supabase,
       `✅ <b>OrganicSMM — Wallet Credited</b>\n` +
       `User: <b>${prof?.full_name || "—"}</b>\n` +
       `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
-      `Amount: <b>₹${amountInr}</b>\n` +
-      `New Balance: ₹${(newBalance * INR_PER_USD).toFixed(2)}\n` +
+      `Amount: <b>₹${creditedInr.toFixed(2)}</b>\n` +
+      `New Balance: ₹${(newBalance * 83.5).toFixed(2)}\n` +
       `Payment ID: <code>${paymentId}</code>`,
     );
 
-    return new Response(JSON.stringify({ ok: true, credited: amountInr }), {
+    return new Response(JSON.stringify({ ok: true, credited_inr: creditedInr, credited_usd: creditedUsd }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
