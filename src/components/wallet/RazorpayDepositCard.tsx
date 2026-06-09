@@ -12,38 +12,19 @@ const PAYMENT_BUTTONS = [
 ] as const;
 
 function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    const form = formRef.current;
-    if (!form) return;
-    // Avoid re-injecting if already present
-    if (form.querySelector('script[data-payment_button_id]')) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
-    script.async = true;
-    script.setAttribute('data-payment_button_id', buttonId);
-    script.onload = () => setIsReady(true);
-    script.onerror = () => setIsReady(false);
-    form.appendChild(script);
-
-    return () => {
-      script.onload = null;
-      script.onerror = null;
-    };
-  }, [buttonId]);
+  const [isReady] = useState(false);
 
   return (
     <div className="w-full">
       {!isReady && (
-        <div className="w-full h-[40px] rounded-xl flex items-center justify-center gap-2" style={{ background: '#eef6ff', color: '#3395FF' }}>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span className="text-[11px] font-semibold">Loading...</span>
+        <div className="w-full rounded-xl flex flex-col items-center justify-center gap-2 px-3 py-3 text-center" style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid rgba(234,88,12,.18)' }}>
+          <Loader2 className="h-3.5 w-3.5" />
+          <span className="text-[11px] font-semibold">Temporarily paused</span>
+          <span className="text-[10px] leading-relaxed" style={{ color: '#9a3412' }}>
+            Razorpay auto credit abhi safety check ke liye hold par hai.
+          </span>
         </div>
       )}
-      <form ref={formRef} className="w-full flex justify-center overflow-hidden" />
     </div>
   );
 }
