@@ -72,6 +72,9 @@ Deno.serve(async (req) => {
 
     const paymentId: string = payment.id;
     const amountInr: number = Number(payment.amount) / 100; // paise -> rupees
+    // Wallet system stores values in USD. Convert INR -> USD.
+    const INR_PER_USD = Number(Deno.env.get("INR_USD_RATE") || "83.5");
+    const amountUsd: number = Number((amountInr / INR_PER_USD).toFixed(4));
     const notes = payment.notes || {};
     const userIdFromNotes: string | undefined = notes.user_id;
     const userEmailFromNotes: string | undefined = notes.user_email || payment.email;
@@ -111,12 +114,12 @@ Deno.serve(async (req) => {
       await supabase.from("transactions").insert({
         user_id: "00000000-0000-0000-0000-000000000000",
         type: "deposit",
-        amount: amountInr,
+        amount: amountUsd,
         balance_after: 0,
         status: "failed",
         payment_method: "razorpay_auto",
         payment_reference: paymentId,
-        description: `UNRESOLVED USER. Email: ${userEmailFromNotes || "none"}`,
+        description: `UNRESOLVED USER. ₹${amountInr} (~$${amountUsd}). Email: ${userEmailFromNotes || "none"}`,
       });
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 200, // 200 so Razorpay doesn't retry forever
@@ -135,8 +138,8 @@ Deno.serve(async (req) => {
 
     const currentBalance = Number(wallet?.balance || 0);
     const currentDeposited = Number(wallet?.total_deposited || 0);
-    const newBalance = currentBalance + amountInr;
-    const newDeposited = currentDeposited + amountInr;
+    const newBalance = currentBalance + amountUsd;
+    const newDeposited = currentDeposited + amountUsd;
 
     if (wallet) {
       const { error: updErr } = await supabase
@@ -157,16 +160,16 @@ Deno.serve(async (req) => {
     const { error: txErr } = await supabase.from("transactions").insert({
       user_id: userId,
       type: "deposit",
-      amount: amountInr,
+      amount: amountUsd,
       balance_after: newBalance,
       status: "completed",
       payment_method: "razorpay_auto",
       payment_reference: paymentId,
-      description: `Wallet top-up via Razorpay (₹${amountInr})`,
+      description: `Wallet top-up via Razorpay (₹${amountInr} @ ₹${INR_PER_USD}/USD)`,
     });
     if (txErr) throw txErr;
 
-    console.log(`Credited ₹${amountInr} to user ${userId} via payment ${paymentId}`);
+    console.log(`Credited ₹${amountInr} (=$${amountUsd}) to user ${userId} via ${paymentId}`);
 
     return new Response(JSON.stringify({ ok: true, credited: amountInr }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
