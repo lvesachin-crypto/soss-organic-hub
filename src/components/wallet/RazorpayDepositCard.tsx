@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail } from 'lucide-react';
+import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,6 +13,7 @@ const PAYMENT_BUTTONS = [
 
 function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const form = formRef.current;
@@ -24,7 +25,14 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
     script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
     script.async = true;
     script.setAttribute('data-payment_button_id', buttonId);
+    script.onload = () => setIsReady(true);
+    script.onerror = () => setIsReady(false);
     form.appendChild(script);
+
+    return () => {
+      script.onload = null;
+      script.onerror = null;
+    };
   }, [buttonId]);
 
   return (
@@ -51,7 +59,13 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
       <p className="text-[10px] mt-1 mb-3 font-medium" style={{ color: '#888' }}>
         Instant Credit
       </p>
-      <form ref={formRef} className="w-full flex justify-center" />
+      {!isReady && (
+        <div className="w-full h-[44px] rounded-xl flex items-center justify-center gap-2" style={{ background: '#eef6ff', color: '#3395FF' }}>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-[11px] font-semibold">Payment loading...</span>
+        </div>
+      )}
+      <form ref={formRef} className="w-full flex justify-center overflow-hidden" />
     </div>
   );
 }
@@ -147,8 +161,12 @@ export default function RazorpayDepositCard() {
                 Razorpay checkout pe <b>bilkul yahi email</b> daalo (typo bhi nahi),
                 warna payment success hone ke baad bhi wallet me credit <b>nahi</b> hoga.
               </p>
+              <p className="text-[11px] leading-relaxed mb-3 font-semibold" style={{ color: '#991b1b' }}>
+                Jitna amount choose karoge <b>utna hi exact wallet me add hoga</b> — ₹50 means ₹50 only.
+              </p>
 
               <button
+                type="button"
                 onClick={handleCopy}
                 className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-all hover:scale-[1.01]"
                 style={{
