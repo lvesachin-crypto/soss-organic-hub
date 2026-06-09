@@ -18,7 +18,7 @@ import {
 
 export default function Wallet() {
   const { wallet } = useWallet();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, rates } = useCurrency();
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const { data: transactions } = useTransactions(filter);
 
@@ -54,6 +54,50 @@ export default function Wallet() {
       month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
+
+  const displayTransactions = (() => {
+    if (!transactions?.length) return [];
+
+    const adjustments = new Map<string, number>();
+    const inrRate = rates.INR || 83.5;
+
+    for (const tx of transactions) {
+      if (tx.payment_method !== 'razorpay_auto' || !tx.payment_reference) continue;
+
+      const originalReference = tx.payment_reference.endsWith('_exact_credit_fix')
+        ? tx.payment_reference.replace(/_exact_credit_fix$/, '')
+        : tx.payment_reference.endsWith('_fee_adjust')
+          ? tx.payment_reference.replace(/_fee_adjust$/, '')
+          : null;
+
+      if (!originalReference) continue;
+      adjustments.set(originalReference, (adjustments.get(originalReference) || 0) + Number(tx.amount || 0));
+    }
+
+    return transactions
+      .filter((tx) => !(tx.payment_method === 'razorpay_auto' && tx.payment_reference && (tx.payment_reference.endsWith('_exact_credit_fix') || tx.payment_reference.endsWith('_fee_adjust'))))
+      .map((tx) => {
+        const adjustment = tx.payment_method === 'razorpay_auto' && tx.payment_reference
+          ? adjustments.get(tx.payment_reference) || 0
+          : 0;
+
+        const displayAmount = Number(tx.amount || 0) + adjustment;
+        const displayBalanceAfter = tx.balance_after != null
+          ? Number(tx.balance_after) + adjustment
+          : null;
+
+        const displayDescription = tx.payment_method === 'razorpay_auto' && adjustment !== 0
+          ? `Wallet top-up via Razorpay (₹${(displayAmount * inrRate).toFixed(2)} exact credit)`
+          : (tx.description || tx.type.charAt(0).toUpperCase() + tx.type.slice(1));
+
+        return {
+          ...tx,
+          displayAmount,
+          displayBalanceAfter,
+          displayDescription,
+        };
+      });
+  })();
 
   return (
     <DashboardLayout>
@@ -184,9 +228,9 @@ export default function Wallet() {
             </div>
           </div>
 
-          {transactions && transactions.length > 0 ? (
+          {displayTransactions.length > 0 ? (
             <div className="space-y-2">
-              {transactions.map((tx) => (
+              {displayTransactions.map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-center justify-between p-4 rounded-xl transition-colors"
@@ -198,7 +242,7 @@ export default function Wallet() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-[13px] leading-tight truncate max-w-[260px]" style={{ color: '#1a1a2e' }}>
-                        {tx.description || tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
+                        {tx.displayDescription}
                       </p>
                       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">
                         {tx.payment_method && (
@@ -233,11 +277,11 @@ export default function Wallet() {
 
                   <div className="text-right flex-shrink-0 ml-4">
                     <p className="font-bold text-[15px]" style={{ color: getAmountColor(tx.type) }}>
-                      {tx.type === 'order' ? '−' : '+'}{formatPrice(Math.abs(Number(tx.amount)))}
+                      {tx.type === 'order' ? '−' : '+'}{formatPrice(Math.abs(Number(tx.displayAmount)))}
                     </p>
-                    {tx.balance_after != null && (
+                    {tx.displayBalanceAfter != null && (
                       <p className="text-[11px] mt-0.5" style={{ color: '#bbb' }}>
-                        Bal: {formatPrice(Number(tx.balance_after))}
+                        Bal: {formatPrice(Number(tx.displayBalanceAfter))}
                       </p>
                     )}
                   </div>
