@@ -132,15 +132,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    await supabase.rpc("pg_advisory_xact_lock", { key: lockKey(paymentId) }).catch(() => null);
+    const { error: lockError } = await supabase.rpc("pg_advisory_xact_lock", { key: lockKey(paymentId) });
+    if (lockError) {
+      console.error("Advisory lock failed:", lockError.message);
+    }
 
     // Idempotency
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("transactions")
       .select("id")
       .eq("payment_reference", paymentId)
       .eq("payment_method", "razorpay_auto")
       .maybeSingle();
+
+    if (existingError) throw existingError;
 
     if (existing) {
       console.log("Already processed:", paymentId);
@@ -152,11 +157,13 @@ Deno.serve(async (req) => {
     // Resolve user
     let userId: string | null = userIdFromNotes || null;
     if (!userId && userEmailFromNotes) {
-      const { data: prof } = await supabase
+      const normalizedEmail = userEmailFromNotes.trim().toLowerCase();
+      const { data: prof, error: profileLookupError } = await supabase
         .from("profiles")
         .select("user_id")
-        .eq("email", userEmailFromNotes)
+        .ilike("email", normalizedEmail)
         .maybeSingle();
+      if (profileLookupError) throw profileLookupError;
       userId = prof?.user_id || null;
     }
 
@@ -228,7 +235,7 @@ Deno.serve(async (req) => {
     });
     if (txErr) throw txErr;
 
-    console.log(`Credited ₹${amountInr} (=$${amountUsd}) to user ${userId} via ${paymentId}`);
+    console.log(`Credited ₹${amountInr} (db=${amountUsd} USD) to user ${userId} via ${paymentId}`);
 
     // Fetch profile for Telegram message
     const { data: prof } = await supabase
