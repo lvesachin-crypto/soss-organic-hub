@@ -1145,6 +1145,7 @@ export type Database = {
         Returns: boolean
       }
       is_maintenance_mode: { Args: never; Returns: boolean }
+      pg_advisory_xact_lock: { Args: { key: number }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
