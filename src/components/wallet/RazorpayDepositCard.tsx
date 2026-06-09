@@ -198,6 +198,9 @@ export default function RazorpayDepositCard() {
               <p className="text-[11px] leading-relaxed mb-3 font-semibold" style={{ color: '#991b1b' }}>
                 Jitna amount choose karoge <b>utna hi exact wallet me add hoga</b> — ₹50 means ₹50 only.
               </p>
+              <p className="text-[11px] leading-relaxed mb-3 font-medium" style={{ color: '#991b1b' }}>
+                Payment success ke baad page par wapas aate hi balance <b>5-10 second</b> me auto refresh ho jayega.
+              </p>
 
               <button
                 type="button"
