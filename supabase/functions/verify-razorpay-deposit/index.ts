@@ -12,6 +12,13 @@ Deno.serve(async (req) => {
     }
 
     try {
+        return new Response(JSON.stringify({
+            error: "Legacy Razorpay verify flow disabled. Use webhook-based credit only."
+        }), {
+            status: 410,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+
         const authHeader = req.headers.get("Authorization");
         if (!authHeader?.startsWith("Bearer ")) {
             return new Response(JSON.stringify({ error: "Unauthorized" }), {

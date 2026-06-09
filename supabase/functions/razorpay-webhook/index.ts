@@ -113,45 +113,78 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const INR_PER_USD = 83.5;
-    const amountUsd = toUsdFromInr(amountInr, INR_PER_USD);
-    const notes = payment.notes || {};
-    const userIdFromNotes: string | undefined = notes.user_id;
-    const userEmailFromNotes: string | undefined = notes.user_email || payment.email;
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Resolve user
-    let userId: string | null = userIdFromNotes || null;
-    if (!userId && userEmailFromNotes) {
-      const normalizedEmail = userEmailFromNotes.trim().toLowerCase();
-      const { data: prof, error: profileLookupError } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .ilike("email", normalizedEmail)
-        .maybeSingle();
-      if (profileLookupError) throw profileLookupError;
-      userId = prof?.user_id || null;
-    }
+    const INR_PER_USD = 83.5;
+    const amountUsd = toUsdFromInr(amountInr, INR_PER_USD);
+    const notes = payment.notes || {};
+    const userIdFromNotes = typeof notes.user_id === "string" ? notes.user_id.trim() : "";
+    const userEmailFromNotes = typeof notes.user_email === "string"
+      ? notes.user_email.trim().toLowerCase()
+      : (typeof payment.email === "string" ? payment.email.trim().toLowerCase() : "");
 
-    if (!userId) {
-      console.error("User not resolved for payment", paymentId, notes);
+    if (!userIdFromNotes) {
+      console.error("Blocked Razorpay payment without trusted user_id note", paymentId, notes);
       await notifyTelegram(
         supabase,
-        `⚠️ <b>OrganicSMM — UNRESOLVED Payment</b>\n` +
+        `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
         `Amount: <b>₹${amountInr}</b>\n` +
         `Payment ID: <code>${paymentId}</code>\n` +
         `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
-        `User not found — wallet NOT credited.`,
+        `Reason: trusted <code>user_id</code> note missing, wallet NOT credited.`,
       );
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 200, // 200 so Razorpay doesn't retry forever
+      return new Response(JSON.stringify({ ok: true, skipped: "missing_user_note" }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const { data: prof, error: profileLookupError } = await supabase
+      .from("profiles")
+      .select("user_id, email, full_name")
+      .eq("user_id", userIdFromNotes)
+      .maybeSingle();
+
+    if (profileLookupError) throw profileLookupError;
+
+    if (!prof) {
+      console.error("Blocked Razorpay payment with unknown user_id note", paymentId, userIdFromNotes);
+      await notifyTelegram(
+        supabase,
+        `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
+        `Amount: <b>₹${amountInr}</b>\n` +
+        `Payment ID: <code>${paymentId}</code>\n` +
+        `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
+        `Reason: noted user does not exist, wallet NOT credited.`,
+      );
+      return new Response(JSON.stringify({ ok: true, skipped: "unknown_user_note" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const profileEmail = typeof prof.email === "string" ? prof.email.trim().toLowerCase() : "";
+    if (userEmailFromNotes && profileEmail && userEmailFromNotes !== profileEmail) {
+      console.error("Blocked Razorpay payment because noted email does not match profile", paymentId);
+      await notifyTelegram(
+        supabase,
+        `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
+        `Amount: <b>₹${amountInr}</b>\n` +
+        `Payment ID: <code>${paymentId}</code>\n` +
+        `Profile email: <code>${profileEmail}</code>\n` +
+        `Checkout email: <code>${userEmailFromNotes}</code>\n` +
+        `Reason: email mismatch, wallet NOT credited.`,
+      );
+      return new Response(JSON.stringify({ ok: true, skipped: "email_mismatch" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = prof.user_id;
 
     // ATOMIC credit via SECURITY DEFINER function — handles lock + idempotency + wallet update + tx insert
     // Safe under Razorpay's retry policy because of UNIQUE index on payment_reference.
@@ -180,13 +213,6 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Credited ₹${amountInr} (db=${amountUsd} USD) to user ${userId} via ${paymentId}`);
-
-    // Fetch profile for Telegram message
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("email, full_name")
-      .eq("user_id", userId)
-      .maybeSingle();
 
     await notifyTelegram(
       supabase,
