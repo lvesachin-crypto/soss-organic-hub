@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -72,7 +72,7 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
 
 export default function RazorpayDepositCard() {
   const queryClient = useQueryClient();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshWallet } = useAuth();
   const userEmail = profile?.email || user?.email || '';
   const [copied, setCopied] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number>(PAYMENT_BUTTONS[0].amount);
@@ -86,15 +86,47 @@ export default function RazorpayDepositCard() {
     } catch {}
   };
 
+  const refreshPaymentState = useCallback(async () => {
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      refreshWallet(),
+    ]);
+  }, [queryClient, refreshWallet]);
+
   // Refresh wallet when window regains focus (user returns from Razorpay)
   useEffect(() => {
     const onFocus = () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      void refreshPaymentState();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [queryClient]);
+  }, [refreshPaymentState]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+
+    const pollAfterReturn = async () => {
+      while (!cancelled && attempts < 8) {
+        attempts += 1;
+        await refreshPaymentState();
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void pollAfterReturn();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refreshPaymentState]);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -165,6 +197,9 @@ export default function RazorpayDepositCard() {
               </p>
               <p className="text-[11px] leading-relaxed mb-3 font-semibold" style={{ color: '#991b1b' }}>
                 Jitna amount choose karoge <b>utna hi exact wallet me add hoga</b> — ₹50 means ₹50 only.
+              </p>
+              <p className="text-[11px] leading-relaxed mb-3 font-medium" style={{ color: '#991b1b' }}>
+                Payment success ke baad page par wapas aate hi balance <b>5-10 second</b> me auto refresh ho jayega.
               </p>
 
               <button
