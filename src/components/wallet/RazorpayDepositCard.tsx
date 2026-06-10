@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Copy, Check, Mail, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 // ⚡ Razorpay Hosted Payment Buttons — each fixed to its amount.
 const PAYMENT_BUTTONS = [
@@ -21,45 +22,67 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
     if (!container) return;
     let cancelled = false;
 
-    setStatus('loading');
-    container.innerHTML = '';
+    const controller = new AbortController();
+    let observer: MutationObserver | null = null;
+    let failSafe = 0;
 
-    const form = document.createElement('form');
-    form.className = 'w-full flex items-center justify-center';
+    const loadButton = async () => {
+      try {
+        setStatus('loading');
+        container.innerHTML = '';
 
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
-    script.async = true;
-    script.setAttribute('data-payment_button_id', buttonId);
+        const { error } = await supabase.functions.invoke('create-razorpay-deposit-intent', {
+          body: { amount_paise: amount * 100 },
+        });
 
-    const markReadyIfRendered = () => {
-      if (cancelled) return;
-      if (container.querySelector('iframe, .razorpay-payment-button, button')) {
-        setStatus('ready');
+        if (controller.signal.aborted || cancelled) return;
+        if (error) throw error;
+
+        const form = document.createElement('form');
+        form.className = 'w-full flex items-center justify-center';
+
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+        script.async = true;
+        script.setAttribute('data-payment_button_id', buttonId);
+
+        const markReadyIfRendered = () => {
+          if (cancelled) return;
+          if (container.querySelector('iframe, .razorpay-payment-button, button')) {
+            setStatus('ready');
+          }
+        };
+
+        script.onload = () => {
+          window.setTimeout(markReadyIfRendered, 250);
+          window.setTimeout(markReadyIfRendered, 1200);
+        };
+        script.onerror = () => setStatus('error');
+
+        observer = new MutationObserver(() => {
+          markReadyIfRendered();
+        });
+
+        observer.observe(container, { childList: true, subtree: true });
+        form.appendChild(script);
+        container.appendChild(form);
+
+        failSafe = window.setTimeout(() => {
+          markReadyIfRendered();
+        }, 1800);
+      } catch {
+        if (!controller.signal.aborted && !cancelled) {
+          setStatus('error');
+        }
       }
     };
 
-    script.onload = () => {
-      window.setTimeout(markReadyIfRendered, 250);
-      window.setTimeout(markReadyIfRendered, 1200);
-    };
-    script.onerror = () => setStatus('error');
-
-    const observer = new MutationObserver(() => {
-      markReadyIfRendered();
-    });
-
-    observer.observe(container, { childList: true, subtree: true });
-    form.appendChild(script);
-    container.appendChild(form);
-
-    const failSafe = window.setTimeout(() => {
-      markReadyIfRendered();
-    }, 1800);
+    void loadButton();
 
     return () => {
       cancelled = true;
-      observer.disconnect();
+      controller.abort();
+      observer?.disconnect();
       window.clearTimeout(failSafe);
       container.innerHTML = '';
     };
