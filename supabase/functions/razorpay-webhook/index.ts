@@ -129,13 +129,25 @@ Deno.serve(async (req) => {
     const netPaise = Number(payment.amount || 0);
     const grossPaise = netPaise + Number(payment.fee || 0) + Number(payment.tax || 0);
 
-    // Hosted buttons are fixed-value top-ups. Prefer the exact configured button amount
-    // if either Razorpay representation (net or gross) matches it.
+    // OrganicSMM should only credit the exact hosted-button amounts.
+    // If some other site shares the same Razorpay account/webhook, ignore it here.
     const creditPaise = FIXED_BUTTON_AMOUNTS_PAISE.has(netPaise)
       ? netPaise
       : FIXED_BUTTON_AMOUNTS_PAISE.has(grossPaise)
         ? grossPaise
-        : netPaise;
+        : null;
+
+    if (creditPaise === null) {
+      console.log("Ignoring Razorpay payment with unsupported amount for SMM panel:", paymentId, {
+        netPaise,
+        grossPaise,
+      });
+      return new Response(JSON.stringify({ ok: true, ignored: "unsupported_amount" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const amountInr: number = creditPaise / 100;
     if (!Number.isFinite(amountInr) || amountInr <= 0) {
       console.error("Blocked Razorpay payment with invalid captured amount", paymentId, payment.amount);

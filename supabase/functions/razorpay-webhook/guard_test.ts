@@ -100,3 +100,25 @@ Deno.test("ignores access-key payment by chat_id in payment notes", async () => 
   assertEquals(r.status, 200);
   assertEquals(r.json.ignored, "access_key_payment");
 });
+
+Deno.test("ignores unsupported amount that is not one of the SMM hosted buttons", async () => {
+  const r = await post({
+    event: "payment.captured",
+    payload: {
+      payment: {
+        entity: {
+          id: "pay_test_unsupported_amount_1",
+          amount: 14900,
+          fee: 0,
+          tax: 0,
+          email: "xbhishekh@gmail.com",
+          contact: "+916666666666",
+          notes: {},
+        },
+      },
+    },
+  });
+  console.log("unsupported_amount result:", r);
+  assertEquals(r.status, 200);
+  assertEquals(r.json.ignored, "unsupported_amount");
+});
