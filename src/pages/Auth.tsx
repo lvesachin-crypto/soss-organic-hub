@@ -58,7 +58,6 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(''); setSuccessMessage(''); setIsSubmitting(true);
-    const timeoutId = setTimeout(() => { setIsSubmitting(c => { if (c) { setError('Connection timeout.'); return false; } return false; }); }, 20000);
     try {
       if (isLogin) {
         const v = loginSchema.safeParse({ email, password });
@@ -82,14 +81,14 @@ export default function Auth() {
           if (msg.includes('already registered')) setError('This email is already registered.');
           else if (msg.includes('rate limit')) setError('Too many attempts. Wait 5 minutes.');
           else setError(error.message || 'Signup failed.');
-          setIsSubmitting(false); clearTimeout(timeoutId); return;
+          setIsSubmitting(false); return;
         }
         setSuccessMessage('Account created successfully!');
         setTimeout(() => setIsLogin(true), 2000);
       }
     } catch (err: any) {
       if (!err?.message?.includes('abort')) setError('Something went wrong. Please try again.');
-    } finally { setIsSubmitting(false); clearTimeout(timeoutId); }
+    } finally { setIsSubmitting(false); }
   };
 
   const inputClass = "h-12 rounded-xl border-[#e5e5e5] bg-white focus:border-[#1a1a2e] focus:ring-1 focus:ring-[#1a1a2e] text-[#1a1a2e] font-medium px-4 placeholder:text-[#bbb] transition-all";
