@@ -691,8 +691,22 @@ export default function EngagementOrderDetail() {
     );
   }
 
-  const StatusIcon = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.icon || Clock;
-  const statusColor = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.color || "";
+  // Derive effective status from real delivery (provider truth) so the header
+  // badge stays in sync with the Live Stats board.
+  const totalOriginalQuantity = order.items?.reduce((s: number, i: any) => s + (i.quantity || 0), 0) || 0;
+  const liveDelivered = stats?.totalDelivered ?? 0;
+  const hasPending = (stats?.pendingRuns?.length ?? 0) > 0;
+  const hasActive = (stats?.startedRuns?.length ?? 0) > 0;
+  let effectiveStatus = order.status as string;
+  if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
+    if (totalOriginalQuantity > 0 && liveDelivered >= totalOriginalQuantity) {
+      effectiveStatus = 'completed';
+    } else if (hasActive || hasPending || liveDelivered > 0) {
+      effectiveStatus = 'processing';
+    }
+  }
+  const StatusIcon = STATUS_CONFIG[effectiveStatus as keyof typeof STATUS_CONFIG]?.icon || Clock;
+  const statusColor = STATUS_CONFIG[effectiveStatus as keyof typeof STATUS_CONFIG]?.color || "";
   const lastUpdated = new Date(dataUpdatedAt);
 
   return (
@@ -708,7 +722,7 @@ export default function EngagementOrderDetail() {
               <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2"><BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" /> Order #{order.order_number}</h1>
               <Badge className={statusColor}>
                 <StatusIcon className="h-3 w-3 mr-1" />
-                {order.status}
+                {effectiveStatus}
               </Badge>
               {order.is_organic_mode && (
                 <Badge className="bg-teal-500/20 text-teal-400 border-teal-500/30">
