@@ -81,7 +81,7 @@ export default function Auth() {
           if (msg.includes('already registered')) setError('This email is already registered.');
           else if (msg.includes('rate limit')) setError('Too many attempts. Wait 5 minutes.');
           else setError(error.message || 'Signup failed.');
-          setIsSubmitting(false); clearTimeout(timeoutId); return;
+          setIsSubmitting(false); return;
         }
         setSuccessMessage('Account created successfully!');
         setTimeout(() => setIsLogin(true), 2000);
