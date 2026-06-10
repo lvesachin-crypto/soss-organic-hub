@@ -318,9 +318,10 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
             const Icon = ENGAGEMENT_ICONS[item.engagement_type as keyof typeof ENGAGEMENT_ICONS] || Eye;
             const itemRuns = item.runs || [];
             const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed').length;
-            const itemDelivered = itemRuns
-              .filter((r: any) => r.status === 'completed')
-              .reduce((sum: number, r: any) => sum + r.quantity_to_send, 0);
+            const itemDelivered = itemRuns.reduce(
+              (sum: number, r: any) => sum + calculateActualDelivered(r),
+              0
+            );
 
             return (
               <Badge 
