@@ -180,19 +180,24 @@ export default function EngagementOrders() {
 
 function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const { formatPrice } = useCurrency();
-  const StatusIcon = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.icon || Clock;
-  const statusColor = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG]?.color || "";
-
   // Calculate progress
   const allRuns = order.items?.flatMap((item: any) => item.runs || []) || [];
   const completedRuns = allRuns.filter((r: any) => r.status === 'completed').length;
   const totalRuns = allRuns.length;
   const progressPercent = totalRuns > 0 ? (completedRuns / totalRuns) * 100 : 0;
 
-  // Calculate totals
-  const totalDelivered = allRuns
-    .filter((r: any) => r.status === 'completed')
-    .reduce((sum: number, r: any) => sum + r.quantity_to_send, 0);
+  // Calculate delivered using provider truth (matches Live Stats on detail page)
+  const normalizeProviderStatus = (s: any): string => (s ?? '').toString().toLowerCase().trim();
+  const calculateActualDelivered = (run: any): number => {
+    const ps = normalizeProviderStatus(run.provider_status);
+    if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
+    if (run.provider_remains !== null && run.provider_remains !== undefined) {
+      return Math.max(0, run.quantity_to_send - run.provider_remains);
+    }
+    if (run.status === 'completed') return run.quantity_to_send;
+    return 0;
+  };
+  const totalDelivered = allRuns.reduce((sum: number, r: any) => sum + calculateActualDelivered(r), 0);
 
   const totalQuantity = order.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
@@ -204,6 +209,19 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
 
   // Active runs
   const activeRuns = allRuns.filter((r: any) => r.status === 'started').length;
+
+  // Derive effective status: if provider delivered everything, treat as completed
+  // regardless of stale DB status (real-time accuracy).
+  let effectiveStatus = order.status as string;
+  if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
+    if (totalQuantity > 0 && totalDelivered >= totalQuantity) {
+      effectiveStatus = 'completed';
+    } else if (activeRuns > 0 || pendingRuns.length > 0 || totalDelivered > 0) {
+      effectiveStatus = 'processing';
+    }
+  }
+  const StatusIcon = STATUS_CONFIG[effectiveStatus as keyof typeof STATUS_CONFIG]?.icon || Clock;
+  const statusColor = STATUS_CONFIG[effectiveStatus as keyof typeof STATUS_CONFIG]?.color || "";
 
   return (
     <Card 
@@ -217,7 +235,7 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
               <CardTitle className="text-lg text-foreground">Order #{order.order_number}</CardTitle>
               <Badge className={statusColor}>
                 <StatusIcon className="h-3 w-3 mr-1" />
-                {order.status}
+                {effectiveStatus}
               </Badge>
               {order.is_organic_mode && (
                 <Badge variant="outline" className="border-border text-muted-foreground">
