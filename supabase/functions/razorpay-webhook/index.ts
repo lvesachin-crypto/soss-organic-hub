@@ -88,6 +88,26 @@ Deno.serve(async (req) => {
     const event = payload?.event;
     console.log("Razorpay event:", event);
 
+    // Access-key payment guard — ignore payments from the other service
+    const paymentNotes = payload?.payload?.payment?.entity?.notes || {};
+    const orderNotes = payload?.payload?.order?.entity?.notes || {};
+    const isAccessKeyPayment =
+      paymentNotes.service_code === "MUJCLONE_KEY_2026" ||
+      orderNotes.service_code === "MUJCLONE_KEY_2026" ||
+      paymentNotes.telegram_chat_id ||
+      orderNotes.telegram_chat_id ||
+      paymentNotes.chat_id ||
+      orderNotes.chat_id;
+
+    if (isAccessKeyPayment) {
+      const paymentId = payload?.payload?.payment?.entity?.id || "unknown";
+      console.log("Ignoring access-key payment, not for SMM panel:", paymentId);
+      return new Response(
+        JSON.stringify({ ok: true, ignored: "access_key_payment" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (event !== "payment.captured") {
       return new Response(JSON.stringify({ ok: true, skipped: event }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
