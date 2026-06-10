@@ -34,6 +34,38 @@ async function post(body: object) {
   return { status: res.status, json };
 }
 
+async function insertWalletIntent(email: string, amountPaise: number) {
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const intentId = crypto.randomUUID();
+
+  const res = await fetch(`${Deno.env.get("VITE_SUPABASE_URL")}/rest/v1/razorpay_webhook_events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+      "apikey": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      "Prefer": "return=minimal",
+    },
+    body: JSON.stringify({
+      event_id: `test_wallet_intent:${intentId}`,
+      event_type: "wallet_deposit_intent",
+      payment_id: null,
+      payload: {
+        kind: "wallet_deposit_intent",
+        provider: "razorpay",
+        status: "pending",
+        user_id: "c43c4f77-7276-4d5f-8ca1-b5d796cb4d80",
+        email,
+        amount_paise: amountPaise,
+        expires_at: expiresAt,
+      },
+    }),
+  });
+
+  await res.text();
+  assertEquals(res.ok, true);
+}
+
 Deno.test("ignores access-key payment by service_code in payment notes", async () => {
   const r = await post({
     event: "payment.captured",
@@ -121,6 +153,55 @@ Deno.test("ignores unsupported amount that is not one of the SMM hosted buttons"
   console.log("unsupported_amount result:", r);
   assertEquals(r.status, 200);
   assertEquals(r.json.ignored, "unsupported_amount");
+});
+
+Deno.test("ignores fixed-button amount without matching wallet intent", async () => {
+  const r = await post({
+    event: "payment.captured",
+    payload: {
+      payment: {
+        entity: {
+          id: "pay_test_missing_wallet_intent_1",
+          amount: 5000,
+          fee: 0,
+          tax: 0,
+          email: "xbhishekh@gmail.com",
+          contact: "+918102564383",
+          notes: {},
+        },
+      },
+    },
+  });
+  console.log("missing_wallet_intent result:", r);
+  assertEquals(r.status, 200);
+  assertEquals(r.json.ignored, "missing_wallet_intent");
+});
+
+Deno.test("credits only when a matching wallet intent exists for allowed amount", async () => {
+  await insertWalletIntent("xbhishekh@gmail.com", 5000);
+
+  const r = await post({
+    event: "payment.captured",
+    payload: {
+      payment: {
+        entity: {
+          id: `pay_test_wallet_intent_ok_${Date.now()}`,
+          amount: 5000,
+          fee: 0,
+          tax: 0,
+          email: "xbhishekh@gmail.com",
+          contact: "+918102564383",
+          notes: {},
+          status: "captured",
+        },
+      },
+    },
+  });
+
+  console.log("wallet_intent_ok result:", r);
+  assertEquals(r.status, 200);
+  assertEquals(r.json.ok, true);
+  assertEquals(typeof r.json.credited_inr, "number");
 });
 
 for (const bad of [14900, 19800, 25000, 30000, 75000, 99900, 150000, 1, 99]) {
