@@ -22,66 +22,56 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
     if (!container) return;
     let cancelled = false;
 
-    const controller = new AbortController();
     let observer: MutationObserver | null = null;
     let failSafe = 0;
 
-    const loadButton = async () => {
-      try {
-        setStatus('loading');
-        container.innerHTML = '';
+    const loadButton = () => {
+      setStatus('loading');
+      container.innerHTML = '';
 
-        const { error } = await supabase.functions.invoke('create-razorpay-deposit-intent', {
-          body: { amount_paise: amount * 100 },
-        });
+      const form = document.createElement('form');
+      form.className = 'w-full flex items-center justify-center';
 
-        if (controller.signal.aborted || cancelled) return;
-        if (error) throw error;
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
+      script.async = true;
+      script.setAttribute('data-payment_button_id', buttonId);
 
-        const form = document.createElement('form');
-        form.className = 'w-full flex items-center justify-center';
-
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/payment-button.js';
-        script.async = true;
-        script.setAttribute('data-payment_button_id', buttonId);
-
-        const markReadyIfRendered = () => {
-          if (cancelled) return;
-          if (container.querySelector('iframe, .razorpay-payment-button, button')) {
-            setStatus('ready');
-          }
-        };
-
-        script.onload = () => {
-          window.setTimeout(markReadyIfRendered, 250);
-          window.setTimeout(markReadyIfRendered, 1200);
-        };
-        script.onerror = () => setStatus('error');
-
-        observer = new MutationObserver(() => {
-          markReadyIfRendered();
-        });
-
-        observer.observe(container, { childList: true, subtree: true });
-        form.appendChild(script);
-        container.appendChild(form);
-
-        failSafe = window.setTimeout(() => {
-          markReadyIfRendered();
-        }, 1800);
-      } catch {
-        if (!controller.signal.aborted && !cancelled) {
-          setStatus('error');
+      const markReadyIfRendered = () => {
+        if (cancelled) return;
+        if (container.querySelector('iframe, .razorpay-payment-button, button')) {
+          setStatus('ready');
         }
-      }
+      };
+
+      script.onload = () => {
+        window.setTimeout(markReadyIfRendered, 200);
+        window.setTimeout(markReadyIfRendered, 800);
+        window.setTimeout(markReadyIfRendered, 2000);
+      };
+      // Even if script errors, still try — Razorpay sometimes renders via cached copy
+      script.onerror = () => {
+        window.setTimeout(markReadyIfRendered, 500);
+      };
+
+      observer = new MutationObserver(() => {
+        markReadyIfRendered();
+      });
+
+      observer.observe(container, { childList: true, subtree: true });
+      form.appendChild(script);
+      container.appendChild(form);
+
+      // Always reveal button area after 2.5s so user can interact even if detection misses
+      failSafe = window.setTimeout(() => {
+        if (!cancelled) setStatus('ready');
+      }, 2500);
     };
 
-    void loadButton();
+    loadButton();
 
     return () => {
       cancelled = true;
-      controller.abort();
       observer?.disconnect();
       window.clearTimeout(failSafe);
       container.innerHTML = '';
@@ -96,22 +86,9 @@ function RazorpayButton({ amount, buttonId }: { amount: number; buttonId: string
       />
 
       {status === 'loading' && (
-        <div className="w-full rounded-xl flex flex-col items-center justify-center gap-2 px-3 py-3 text-center" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid rgba(59,130,246,.18)' }}>
+        <div className="w-full flex items-center justify-center py-2 gap-2 text-[11px] font-semibold" style={{ color: '#16a34a' }}>
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span className="text-[11px] font-semibold">Loading secure payment</span>
-          <span className="text-[10px] leading-relaxed" style={{ color: '#1e40af' }}>
-            ₹{amount} payment button load ho raha hai...
-          </span>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="w-full rounded-xl flex flex-col items-center justify-center gap-2 px-3 py-3 text-center" style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid rgba(234,88,12,.18)' }}>
-          <AlertTriangle className="h-3.5 w-3.5" />
-          <span className="text-[11px] font-semibold">Button load nahi hua</span>
-          <span className="text-[10px] leading-relaxed" style={{ color: '#9a3412' }}>
-            Ek baar page refresh karke dobara try karo.
-          </span>
+          <span>Pay ₹{amount}</span>
         </div>
       )}
     </div>
