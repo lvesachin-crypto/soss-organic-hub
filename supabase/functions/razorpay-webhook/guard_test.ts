@@ -122,3 +122,27 @@ Deno.test("ignores unsupported amount that is not one of the SMM hosted buttons"
   assertEquals(r.status, 200);
   assertEquals(r.json.ignored, "unsupported_amount");
 });
+
+for (const bad of [14900, 19800, 25000, 30000, 75000, 99900, 150000, 1, 99]) {
+  Deno.test(`ignores unsupported amount ${bad} paise`, async () => {
+    const r = await post({
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: `pay_test_bad_${bad}_${Date.now()}`,
+            amount: bad,
+            fee: 0,
+            tax: 0,
+            email: "xbhishekh@gmail.com",
+            contact: "+910000000000",
+            notes: {},
+          },
+        },
+      },
+    });
+    console.log(`bad amount ${bad} result:`, r);
+    assertEquals(r.status, 200);
+    assertEquals(r.json.ignored, "unsupported_amount");
+  });
+}
