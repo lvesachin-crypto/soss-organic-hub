@@ -157,12 +157,13 @@ Deno.test("ignores unsupported amount that is not one of the SMM hosted buttons"
 });
 
 Deno.test("ignores fixed-button amount without matching wallet intent", async () => {
+  const paymentId = `pay_test_missing_wallet_intent_${Date.now()}`;
   const r = await post({
     event: "payment.captured",
     payload: {
       payment: {
         entity: {
-          id: "pay_test_missing_wallet_intent_1",
+          id: paymentId,
           amount: 5000,
           fee: 0,
           tax: 0,
