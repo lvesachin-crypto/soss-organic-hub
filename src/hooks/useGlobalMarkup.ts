@@ -6,13 +6,9 @@ export function useGlobalMarkup() {
   const { data, isLoading } = useQuery({
     queryKey: ['platform-settings-markup'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('platform_settings')
-        .select('global_markup_percent')
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_public_markup');
       if (error) throw error;
-      return data;
+      return { global_markup_percent: Number(data ?? 0) };
     },
     staleTime: 5 * 60 * 1000, // 5 min cache
     refetchOnWindowFocus: false,

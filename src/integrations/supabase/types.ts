@@ -1169,6 +1169,7 @@ export type Database = {
       }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_admin_users_summary: { Args: never; Returns: Json }
+      get_public_markup: { Args: never; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
