@@ -9,6 +9,71 @@ const corsHeaders = {
 
 const FIXED_BUTTON_AMOUNTS_PAISE = new Set([5000, 10000, 20000, 50000, 100000]);
 
+async function resolveTrustedWalletIntent(
+  supabase: ReturnType<typeof createClient>,
+  paymentId: string,
+  email: string,
+  amountPaise: number,
+) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !FIXED_BUTTON_AMOUNTS_PAISE.has(amountPaise)) return null;
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("razorpay_webhook_events")
+    .select("id, payload")
+    .eq("event_type", "wallet_deposit_intent")
+    .is("payment_id", null)
+    .eq("payload->>kind", "wallet_deposit_intent")
+    .eq("payload->>status", "pending")
+    .eq("payload->>provider", "razorpay")
+    .eq("payload->>email", normalizedEmail)
+    .eq("payload->>amount_paise", String(amountPaise))
+    .gte("payload->>expires_at", nowIso)
+    .order("processed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id) return null;
+
+  const intentPayload = typeof data.payload === "object" && data.payload ? data.payload as Record<string, unknown> : {};
+  const userId = typeof intentPayload.user_id === "string" ? intentPayload.user_id.trim() : "";
+  const intentEmail = typeof intentPayload.email === "string" ? intentPayload.email.trim().toLowerCase() : normalizedEmail;
+
+  if (!userId || intentEmail !== normalizedEmail) return null;
+
+  const { error: claimError } = await supabase
+    .from("razorpay_webhook_events")
+    .update({
+      payment_id: paymentId,
+      payload: {
+        ...intentPayload,
+        status: "processed",
+        matched_payment_id: paymentId,
+        matched_at: nowIso,
+      },
+    })
+    .eq("id", data.id)
+    .is("payment_id", null)
+    .eq("event_type", "wallet_deposit_intent")
+    .eq("payload->>status", "pending");
+
+  if (claimError) throw claimError;
+
+  const { data: claimedIntent, error: verifyError } = await supabase
+    .from("razorpay_webhook_events")
+    .select("payload")
+    .eq("id", data.id)
+    .eq("payment_id", paymentId)
+    .maybeSingle();
+
+  if (verifyError) throw verifyError;
+  if (!claimedIntent) return null;
+
+  return { userId, email: intentEmail };
+}
+
 async function verifySignature(body: string, signature: string, secret: string): Promise<boolean> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -194,80 +259,41 @@ Deno.serve(async (req) => {
     }
 
     const notes = payment.notes || {};
-    const userIdFromNotes = typeof notes.user_id === "string" ? notes.user_id.trim() : "";
-    const userEmailFromNotes = typeof notes.user_email === "string"
-      ? notes.user_email.trim().toLowerCase()
-      : (typeof payment.email === "string" ? payment.email.trim().toLowerCase() : "");
+    const checkoutEmail = typeof payment.email === "string" ? payment.email.trim().toLowerCase() : "";
+    const trustedIntent = await resolveTrustedWalletIntent(supabase, paymentId, checkoutEmail, creditPaise);
+
+    if (!trustedIntent) {
+      console.log("Ignoring Razorpay payment without a matching app wallet intent:", paymentId, {
+        email: checkoutEmail,
+        creditPaise,
+      });
+      return new Response(JSON.stringify({ ok: true, ignored: "missing_wallet_intent" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userIdFromNotes = trustedIntent.userId;
+    const userEmailFromNotes = trustedIntent.email;
 
     let prof: { user_id: string; email: string | null; full_name: string | null } | null = null;
-    let resolutionMode: "user_id_note" | "email_fallback" = "user_id_note";
+    const resolutionMode: "trusted_wallet_intent" = "trusted_wallet_intent";
 
-    if (userIdFromNotes) {
-      const { data: profileByUserId, error: profileLookupError } = await supabase
-        .from("profiles")
-        .select("user_id, email, full_name")
-        .eq("user_id", userIdFromNotes)
-        .maybeSingle();
+    const { data: profileByUserId, error: profileLookupError } = await supabase
+      .from("profiles")
+      .select("user_id, email, full_name")
+      .eq("user_id", userIdFromNotes)
+      .maybeSingle();
 
-      if (profileLookupError) throw profileLookupError;
-      prof = profileByUserId;
+    if (profileLookupError) throw profileLookupError;
+    prof = profileByUserId;
 
-      if (!prof) {
-        console.error("Blocked Razorpay payment with unknown user_id note", paymentId, userIdFromNotes);
-        await notifyTelegram(
-          supabase,
-          `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
-          `Amount: <b>₹${amountInr}</b>\n` +
-          `Payment ID: <code>${paymentId}</code>\n` +
-          `Email used at checkout: <code>${userEmailFromNotes || "(none)"}</code>\n` +
-          `Reason: noted user does not exist, wallet NOT credited.`,
-        );
-        return new Response(JSON.stringify({ ok: true, skipped: "unknown_user_note" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      if (!userEmailFromNotes) {
-        console.error("Blocked Razorpay payment without trusted user_id note or checkout email", paymentId, notes);
-        await notifyTelegram(
-          supabase,
-          `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
-          `Amount: <b>₹${amountInr}</b>\n` +
-          `Payment ID: <code>${paymentId}</code>\n` +
-          `Reason: trusted <code>user_id</code> note missing and checkout email unavailable, wallet NOT credited.`,
-        );
-        return new Response(JSON.stringify({ ok: true, skipped: "missing_user_note_and_email" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const { data: profilesByEmail, error: profileByEmailError } = await supabase
-        .from("profiles")
-        .select("user_id, email, full_name")
-        .ilike("email", userEmailFromNotes);
-
-      if (profileByEmailError) throw profileByEmailError;
-
-      if (!profilesByEmail || profilesByEmail.length !== 1) {
-        console.error("Blocked Razorpay payment because checkout email did not resolve to exactly one profile", paymentId, userEmailFromNotes);
-        await notifyTelegram(
-          supabase,
-          `🚫 <b>OrganicSMM — Blocked Razorpay Credit</b>\n` +
-          `Amount: <b>₹${amountInr}</b>\n` +
-          `Payment ID: <code>${paymentId}</code>\n` +
-          `Checkout email: <code>${userEmailFromNotes}</code>\n` +
-          `Reason: email could not be matched to exactly one account, wallet NOT credited.`,
-        );
-        return new Response(JSON.stringify({ ok: true, skipped: "email_match_failed" }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      prof = profilesByEmail[0];
-      resolutionMode = "email_fallback";
+    if (!prof) {
+      console.error("Blocked Razorpay payment with unknown wallet intent user", paymentId, userIdFromNotes);
+      return new Response(JSON.stringify({ ok: true, skipped: "unknown_wallet_intent_user" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const profileEmail = typeof prof.email === "string" ? prof.email.trim().toLowerCase() : "";
@@ -330,7 +356,7 @@ Deno.serve(async (req) => {
       `User: <b>${prof?.full_name || "—"}</b>\n` +
       `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
       `Amount: <b>₹${creditedInr.toFixed(2)}</b>\n` +
-      `Matched By: <b>${resolutionMode === "email_fallback" ? "checkout email" : "trusted user id"}</b>\n` +
+      `Matched By: <b>trusted wallet intent</b>\n` +
       `New Balance: ₹${(newBalance * 83.5).toFixed(2)}\n` +
       `Payment ID: <code>${paymentId}</code>`,
     );
