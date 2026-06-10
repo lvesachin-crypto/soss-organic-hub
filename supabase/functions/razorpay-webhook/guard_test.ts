@@ -35,6 +35,7 @@ async function post(body: object) {
 }
 
 async function insertWalletIntent(email: string, amountPaise: number) {
+  const trustedUserId = "9e34224d-d112-4388-a720-13a31e96674b";
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const intentId = crypto.randomUUID();
 
@@ -54,7 +55,7 @@ async function insertWalletIntent(email: string, amountPaise: number) {
         kind: "wallet_deposit_intent",
         provider: "razorpay",
         status: "pending",
-        user_id: "c43c4f77-7276-4d5f-8ca1-b5d796cb4d80",
+        user_id: trustedUserId,
         email,
         amount_paise: amountPaise,
         expires_at: expiresAt,
