@@ -262,22 +262,71 @@ Deno.serve(async (req) => {
     const checkoutEmail = typeof payment.email === "string" ? payment.email.trim().toLowerCase() : "";
     const trustedIntent = await resolveTrustedWalletIntent(supabase, paymentId, checkoutEmail, creditPaise);
 
-    if (!trustedIntent) {
-      console.log("Ignoring Razorpay payment without a matching app wallet intent:", paymentId, {
-        email: checkoutEmail,
-        creditPaise,
-      });
-      return new Response(JSON.stringify({ ok: true, ignored: "missing_wallet_intent" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let userIdFromNotes: string;
+    let userEmailFromNotes: string;
+    let resolutionSource: "trusted_wallet_intent" | "profile_email_match" = "trusted_wallet_intent";
+
+    if (trustedIntent) {
+      userIdFromNotes = trustedIntent.userId;
+      userEmailFromNotes = trustedIntent.email;
+    } else {
+      // Fallback: match by checkout email against profiles. This enables auto-credit
+      // even when the user paid via the hosted Razorpay button without first clicking
+      // through the app (which is what creates the wallet_deposit_intent row).
+      if (!checkoutEmail) {
+        console.log("Ignoring Razorpay payment with no email and no wallet intent:", paymentId);
+        return new Response(JSON.stringify({ ok: true, ignored: "no_email_no_intent" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profileByEmail, error: emailLookupError } = await supabase
+        .from("profiles")
+        .select("user_id, email")
+        .ilike("email", checkoutEmail)
+        .limit(2);
+
+      if (emailLookupError) throw emailLookupError;
+
+      if (!profileByEmail || profileByEmail.length === 0) {
+        console.log("Ignoring Razorpay payment with no matching app user:", paymentId, checkoutEmail);
+        await notifyTelegram(
+          supabase,
+          `⚠️ <b>OrganicSMM — Razorpay payment, NO user match</b>\n` +
+          `Email: <code>${checkoutEmail}</code>\n` +
+          `Amount: <b>₹${amountInr}</b>\n` +
+          `Payment ID: <code>${paymentId}</code>\n` +
+          `Reason: no profile with that email — credit manually if needed.`,
+        );
+        return new Response(JSON.stringify({ ok: true, ignored: "no_profile_for_email" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (profileByEmail.length > 1) {
+        console.error("Multiple profiles share email, refusing auto-credit:", paymentId, checkoutEmail);
+        await notifyTelegram(
+          supabase,
+          `🚫 <b>OrganicSMM — Razorpay payment, ambiguous email</b>\n` +
+          `Email: <code>${checkoutEmail}</code>\n` +
+          `Amount: <b>₹${amountInr}</b>\n` +
+          `Payment ID: <code>${paymentId}</code>\n` +
+          `Reason: multiple users share this email, credit manually.`,
+        );
+        return new Response(JSON.stringify({ ok: true, ignored: "ambiguous_email" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      userIdFromNotes = profileByEmail[0].user_id as string;
+      userEmailFromNotes = checkoutEmail;
+      resolutionSource = "profile_email_match";
     }
 
-    const userIdFromNotes = trustedIntent.userId;
-    const userEmailFromNotes = trustedIntent.email;
-
     let prof: { user_id: string; email: string | null; full_name: string | null } | null = null;
-    const resolutionMode: "trusted_wallet_intent" = "trusted_wallet_intent";
 
     const { data: profileByUserId, error: profileLookupError } = await supabase
       .from("profiles")
@@ -356,7 +405,7 @@ Deno.serve(async (req) => {
       `User: <b>${prof?.full_name || "—"}</b>\n` +
       `Email: <code>${prof?.email || userEmailFromNotes || "—"}</code>\n` +
       `Amount: <b>₹${creditedInr.toFixed(2)}</b>\n` +
-      `Matched By: <b>trusted wallet intent</b>\n` +
+      `Matched By: <b>${resolutionSource === "trusted_wallet_intent" ? "trusted wallet intent" : "profile email match"}</b>\n` +
       `New Balance: ₹${(newBalance * 83.5).toFixed(2)}\n` +
       `Payment ID: <code>${paymentId}</code>`,
     );
