@@ -694,9 +694,9 @@ export default function EngagementOrderDetail() {
   // Derive effective status from real delivery (provider truth) so the header
   // badge stays in sync with the Live Stats board.
   const totalOriginalQuantity = order.items?.reduce((s: number, i: any) => s + (i.quantity || 0), 0) || 0;
-  const liveDelivered = liveStats?.totalDelivered ?? 0;
-  const hasPending = (liveStats?.pendingRuns?.length ?? 0) > 0;
-  const hasActive = (liveStats?.startedRuns?.length ?? 0) > 0;
+  const liveDelivered = stats?.totalDelivered ?? 0;
+  const hasPending = (stats?.pendingRuns?.length ?? 0) > 0;
+  const hasActive = (stats?.startedRuns?.length ?? 0) > 0;
   let effectiveStatus = order.status as string;
   if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
     if (totalOriginalQuantity > 0 && liveDelivered >= totalOriginalQuantity) {
