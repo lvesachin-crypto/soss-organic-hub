@@ -360,13 +360,19 @@ const Index = () => {
                   </Link>
                 ))}
                 <a href="mailto:zyrozoofficial@gmail.com" className="block text-[12px] mt-2" style={{ color: C.muted }}>zyrozoofficial@gmail.com</a>
-                <a href="https://wa.me/918678809455" target="_blank" rel="noreferrer" className="block text-[12px]" style={{ color: C.muted }}>+91 86788 09455</a>
+                <a href="tel:+13678288027" className="block text-[12px]" style={{ color: C.muted }}>+1 (367) 828-8027</a>
+                <p className="text-[12px] leading-relaxed mt-2" style={{ color: C.muted }}>
+                  OrganicSMM (Zyrozo) LLC<br />
+                  8 The Green, Suite #14490<br />
+                  Dover, DE 19901<br />
+                  United States
+                </p>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6" style={{ borderTop: `1px solid ${C.line}` }}>
-            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} OrganicSMM (Zyrozo) — New Delhi, India. All rights reserved.</p>
+            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} OrganicSMM (Zyrozo) LLC — Dover, Delaware, USA. All rights reserved.</p>
             <div className="flex items-center gap-5 text-[12px] font-medium" style={{ color: C.muted }}>
               <span className="flex items-center gap-1"><Shield className="w-3 h-3" style={{ color: '#10b981' }} /> SSL Secured</span>
               <span className="flex items-center gap-1"><Zap className="w-3 h-3" style={{ color: C.orange }} /> 99.9% Uptime</span>
