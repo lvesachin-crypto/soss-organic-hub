@@ -840,9 +840,7 @@ export default function AdminUsers() {
                   <p className="text-3xl font-bold text-success">
                     ₹{((selectedUser.wallet?.balance || 0) * 83.5).toFixed(2)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Current Balance (${(selectedUser.wallet?.balance || 0).toFixed(2)})
-                  </p>
+                  <p className="text-xs text-muted-foreground">Current Balance</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -874,11 +872,7 @@ export default function AdminUsers() {
                     onChange={(e) => setBalanceAmount(e.target.value)}
                     className="h-11 rounded-xl"
                   />
-                  {balanceAmount && parseFloat(balanceAmount) > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      ≈ ${(parseFloat(balanceAmount) / 83.5).toFixed(4)} USD @ ₹83.5/$
-                    </p>
-                  )}
+                  <p className="text-[10px] text-muted-foreground">Wallet credit converted at ₹83.5 / $1</p>
                 </div>
               </div>
             )}
