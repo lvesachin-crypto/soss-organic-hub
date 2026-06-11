@@ -49,18 +49,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const convertFromUSD = useCallback((usdAmount: number): number => {
-    // Read the base currency from env, defaulting to USD since prices/wallets are in USD in DB
-    const baseCode = import.meta.env.VITE_BASE_CURRENCY || 'USD';
-    if (currency === baseCode) return usdAmount; // Prevent unnecessary conversion
-
-    let amountInUsd = usdAmount;
-    if (baseCode !== 'USD') {
-      const baseRate = rates[baseCode] || 1;
-      amountInUsd = usdAmount / baseRate;
-    }
-
-    if (currency === 'USD') return amountInUsd;
-    return amountInUsd * (rates[currency] || 1);
+    // INR-only mode: always convert USD wallet/price values into INR
+    return usdAmount * (rates.INR || 83.5);
   }, [currency, rates]);
 
   const currencyInfo = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
