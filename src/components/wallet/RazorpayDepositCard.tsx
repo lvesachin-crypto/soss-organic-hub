@@ -1,16 +1,41 @@
 import { Send, MessageCircle, Wallet as WalletIcon, Clock, ShieldCheck } from 'lucide-react';
 import supportAvatar from '@/assets/support-avatar.jpg.asset.json';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 // 🚨 Razorpay/WazirX temporarily suspended.
 // Users must contact support directly on Telegram or WhatsApp to add funds.
-const TELEGRAM_URL = 'https://t.me/HenryMiller08';
+const TELEGRAM_USERNAME = 'HenryMiller08';
+const TELEGRAM_URL = `https://t.me/${TELEGRAM_USERNAME}`;
 const WHATSAPP_NUMBER = '255637520201'; // +255 637 520 201
-const WHATSAPP_TEXT = encodeURIComponent(
-  "Hi! Mujhe apne Organic SMM wallet me funds add karne hain. Please help me with the payment process."
-);
-const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_TEXT}`;
+
+function buildSupportMessage(email?: string) {
+  return (
+    `Hi! 👋\n\n` +
+    `Mujhe apne Organic SMM wallet me funds add karne hain.\n` +
+    (email ? `My account email: ${email}\n` : '') +
+    `\nPlease help me with the payment process. 🙏`
+  );
+}
 
 export default function RazorpayDepositCard() {
+  const { user, profile } = useAuth();
+  const userEmail = profile?.email || user?.email || '';
+  const message = buildSupportMessage(userEmail);
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+  const handleTelegramClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Telegram personal chats don't support URL-prefilled text.
+    // Workaround: copy the message to clipboard, then open the chat.
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success('📋 Message copied! Telegram me paste kar dena.', { duration: 4000 });
+    } catch {
+      toast.info('Telegram khul raha hai — apna message type kar dena.');
+    }
+    // let the default <a target="_blank"> navigation continue
+  };
+
   return (
     <div className="max-w-lg mx-auto">
       <div
@@ -114,6 +139,7 @@ export default function RazorpayDepositCard() {
                   href={TELEGRAM_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleTelegramClick}
                   className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-bold transition-all hover:scale-[1.02]"
                   style={{
                     background: 'linear-gradient(135deg, #229ED9, #1d8bc0)',
@@ -126,7 +152,7 @@ export default function RazorpayDepositCard() {
                 </a>
 
                 <a
-                  href={WHATSAPP_URL}
+                  href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-[13px] font-bold transition-all hover:scale-[1.02]"
@@ -141,8 +167,9 @@ export default function RazorpayDepositCard() {
                 </a>
               </div>
 
-              <p className="text-[10px] mt-4" style={{ color: '#71717a' }}>
-                Click karte hi seedhe chat me redirect ho jaoge
+              <p className="text-[10px] mt-4 leading-relaxed" style={{ color: '#a1a1aa' }}>
+                Telegram pe click karte hi message <b style={{ color: '#fff' }}>auto-copy</b> ho
+                jayega — chat me sirf paste karke send karna.
               </p>
             </div>
           </div>
