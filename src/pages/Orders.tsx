@@ -129,70 +129,23 @@ export default function Orders() {
   // Edit run mutation with wallet deduction for increased quantity
   const editRunMutation = useMutation({
     mutationFn: async ({ runId, quantity, scheduledAt }: { runId: string; quantity: number; scheduledAt: string }) => {
-      // Get current run data
-      const { data: currentRun } = await supabase
-        .from('organic_run_schedule')
-        .select('quantity_to_send, order_id')
-        .eq('id', runId)
-        .single();
-      
-      if (!currentRun) throw new Error('Run not found');
-      
-      // Get order & service price for cost calculation
-      const { data: orderData } = await supabase
-        .from('orders')
-        .select('service:services(price)')
-        .eq('id', currentRun.order_id)
-        .single();
-      
-      const pricePerThousand = Number(orderData?.service?.price || 0.1);
-      const quantityDiff = quantity - currentRun.quantity_to_send;
-      const extraCost = quantityDiff > 0 ? (quantityDiff / 1000) * pricePerThousand : 0;
-      
-      // Deduct from wallet if quantity increased
-      if (extraCost > 0) {
-        const currentBalance = wallet?.balance || 0;
-        if (currentBalance < extraCost) {
-          throw new Error('Insufficient balance');
-        }
-        
-        const { error: walletError } = await supabase
-          .from('wallets')
-          .update({
-            balance: currentBalance - extraCost,
-            total_spent: (wallet?.total_spent || 0) + extraCost,
-          })
-          .eq('user_id', user?.id);
-        
-        if (walletError) throw walletError;
-        
-        // Log transaction
-        await supabase.from('transactions').insert({
-          user_id: user!.id,
-          type: 'order',
-          amount: -extraCost,
-          balance_after: currentBalance - extraCost,
-          description: `Edit Run: +${quantityDiff} units`,
-          status: 'completed',
-        });
-      }
-      
-      // Update run
-      const { error } = await supabase
-        .from('organic_run_schedule')
-        .update({
-          quantity_to_send: quantity,
-          scheduled_at: scheduledAt,
-          base_quantity: quantity,
-          variance_applied: 0, // Reset variance on manual edit
-        })
-        .eq('id', runId);
-      
+      // Server-side RPC: validates ownership, charges wallet atomically if qty increased,
+      // then updates the run (bypassing the lock trigger securely).
+      const { data, error } = await supabase.rpc('reschedule_organic_run', {
+        p_run_id: runId,
+        p_quantity: quantity,
+        p_scheduled_at: scheduledAt,
+      });
       if (error) throw error;
-      return { success: true };
+      return data as { success: boolean; extra_charged: number; new_balance: number };
     },
-    onSuccess: () => {
-      toast.success('✅ Run updated successfully!');
+    onSuccess: (data: any) => {
+      const extra = Number(data?.extra_charged || 0);
+      toast.success(
+        extra > 0
+          ? `✅ Rescheduled! ${formatPrice(extra)} charged from wallet.`
+          : '✅ Run rescheduled successfully!'
+      );
       refetchRuns();
       refreshWallet?.();
       setEditingRun(null);
