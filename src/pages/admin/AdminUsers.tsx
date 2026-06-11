@@ -123,7 +123,11 @@ export default function AdminUsers() {
     mutationFn: async () => {
       if (!selectedUser || !balanceAmount) return;
 
-      const amount = parseFloat(balanceAmount);
+      const INR_RATE = 83.5; // Same rate used by Razorpay credit flow
+      const inrAmount = parseFloat(balanceAmount);
+      if (!inrAmount || inrAmount <= 0) throw new Error('Enter a valid INR amount');
+      // Convert INR → USD because wallets are stored in USD internally
+      const amount = Math.trunc((inrAmount / INR_RATE) * 10000) / 10000;
       const currentBalance = selectedUser.wallet?.balance || 0;
       const newBalance =
         balanceAction === 'add' ? currentBalance + amount : currentBalance - amount;
@@ -148,7 +152,7 @@ export default function AdminUsers() {
         type: balanceAction === 'add' ? 'deposit' : 'refund',
         amount: balanceAction === 'add' ? amount : -amount,
         balance_after: newBalance,
-        description: `Admin ${balanceAction === 'add' ? 'deposit' : 'withdrawal'}`,
+        description: `Admin ${balanceAction === 'add' ? 'deposit' : 'withdrawal'} — ₹${inrAmount.toFixed(2)}`,
         status: 'completed',
       });
 
