@@ -694,19 +694,19 @@ export default function AdminUsers() {
                   <div className="grid grid-cols-3 gap-2 mt-3 p-3 rounded-xl bg-muted/50">
                     <div className="text-center">
                       <p className="text-lg font-bold text-success">
-                        ${u.wallet?.balance?.toFixed(2) || '0.00'}
+                        ₹{((u.wallet?.balance || 0) * 83.5).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">Balance</p>
                     </div>
                     <div className="text-center border-x border-border">
                       <p className="text-lg font-bold">
-                        ${u.wallet?.total_spent?.toFixed(2) || '0.00'}
+                        ₹{((u.wallet?.total_spent || 0) * 83.5).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">Spent</p>
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-primary">
-                        ${u.wallet?.total_deposited?.toFixed(2) || '0.00'}
+                        ₹{((u.wallet?.total_deposited || 0) * 83.5).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">Deposited</p>
                     </div>
