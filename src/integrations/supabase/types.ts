@@ -1183,6 +1183,10 @@ export type Database = {
       }
       is_maintenance_mode: { Args: never; Returns: boolean }
       pg_advisory_xact_lock: { Args: { key: number }; Returns: undefined }
+      reschedule_organic_run: {
+        Args: { p_quantity: number; p_run_id: string; p_scheduled_at: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
