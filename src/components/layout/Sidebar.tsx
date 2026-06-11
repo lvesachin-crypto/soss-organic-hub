@@ -122,28 +122,14 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Currency */}
-      <div className="px-3 pb-2 relative">
-        <button onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-[12px] font-medium transition-colors hover:bg-green-50/50" style={{ color: '#888' }}>
+      <div className="px-3 pb-2">
+        <div className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-[12px] font-medium" style={{ color: '#888', background: '#fafafa', border: '1px solid #f0e8ef' }}>
           <div className="flex items-center gap-2">
-            <span className="text-base">{currencyInfo.flag}</span>
-            <span className="uppercase tracking-wider">{currencyInfo.code}</span>
+            <span className="text-base">🇮🇳</span>
+            <span className="uppercase tracking-wider">INR</span>
           </div>
-          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showCurrencyPicker && "rotate-180")} />
-        </button>
-        {showCurrencyPicker && (
-          <div className="absolute bottom-full left-3 right-3 mb-1 rounded-xl overflow-hidden z-50" style={{ background: 'white', border: '1px solid #f0e8ef', boxShadow: '0 8px 30px rgba(0,0,0,.08)' }}>
-            {CURRENCIES.map((c) => (
-              <button key={c.code} onClick={() => { setCurrency(c.code); setShowCurrencyPicker(false); }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12px] font-medium transition-colors"
-                style={{ background: currency === c.code ? '#f0fdf4' : 'white', color: currency === c.code ? '#16a34a' : '#666' }}>
-                <span className="text-base">{c.flag}</span>
-                <span className="flex-1 text-left">{c.code}</span>
-                <span className="text-[10px] opacity-40">{c.symbol}</span>
-              </button>
-            ))}
-          </div>
-        )}
+          <span className="text-[10px] opacity-60">₹</span>
+        </div>
       </div>
 
       {/* Telegram */}

@@ -82,7 +82,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "What payment methods do you accept?",
-    answer: "We accept USDT (TRC20) as our primary payment method. For other payment options, please contact our support team."
+    answer: "We accept INR payments via UPI, Net Banking, Cards and Wallets through Razorpay. All amounts on the platform are shown in Indian Rupees (₹)."
   },
   {
     question: "Can I get a refund?",
