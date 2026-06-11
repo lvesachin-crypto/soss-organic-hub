@@ -49,6 +49,8 @@ export default function Admin() {
       if (error) throw error;
       return data as any;
     },
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
