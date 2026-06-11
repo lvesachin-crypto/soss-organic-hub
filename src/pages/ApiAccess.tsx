@@ -253,7 +253,7 @@ export default function ApiAccess() {
                             label="Check Balance"
                             description="Apna wallet balance check karein"
                             request={`{\n  "key": "YOUR_API_KEY",\n  "action": "balance"\n}`}
-                            response={`{\n  "status": "ok",\n  "balance": "25.40",\n  "currency": "USD"\n}`}
+                            response={`{\n  "status": "ok",\n  "balance": "2120.90",\n  "currency": "INR"\n}`}
                             onCopyRequest={() =>
                                 handleCopy(`{\n  "key": "${apiKey || 'YOUR_API_KEY'}",\n  "action": "balance"\n}`)
                             }
