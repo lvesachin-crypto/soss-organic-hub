@@ -180,7 +180,7 @@ export default function Admin() {
                 </div>
                 <TrendingUp className="h-4 w-4 text-foreground" />
               </div>
-              <p className="text-3xl sm:text-4xl font-bold">${totalRevenue.toFixed(2)}</p>
+              <p className="text-3xl sm:text-4xl font-bold">₹{(totalRevenue * 83.5).toFixed(2)}</p>
               <p className="text-sm text-muted-foreground">Total Revenue</p>
             </CardContent>
           </Card>

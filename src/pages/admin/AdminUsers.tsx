@@ -694,19 +694,19 @@ export default function AdminUsers() {
                   <div className="grid grid-cols-3 gap-2 mt-3 p-3 rounded-xl bg-muted/50">
                     <div className="text-center">
                       <p className="text-lg font-bold text-success">
-                        ${u.wallet?.balance?.toFixed(2) || '0.00'}
+                        ₹{((u.wallet?.balance || 0) * 83.5).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">Balance</p>
                     </div>
                     <div className="text-center border-x border-border">
                       <p className="text-lg font-bold">
-                        ${u.wallet?.total_spent?.toFixed(2) || '0.00'}
+                        ₹{((u.wallet?.total_spent || 0) * 83.5).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">Spent</p>
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-primary">
-                        ${u.wallet?.total_deposited?.toFixed(2) || '0.00'}
+                        ₹{((u.wallet?.total_deposited || 0) * 83.5).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">Deposited</p>
                     </div>
@@ -840,9 +840,7 @@ export default function AdminUsers() {
                   <p className="text-3xl font-bold text-success">
                     ₹{((selectedUser.wallet?.balance || 0) * 83.5).toFixed(2)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Current Balance (${(selectedUser.wallet?.balance || 0).toFixed(2)})
-                  </p>
+                  <p className="text-xs text-muted-foreground">Current Balance</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -874,11 +872,7 @@ export default function AdminUsers() {
                     onChange={(e) => setBalanceAmount(e.target.value)}
                     className="h-11 rounded-xl"
                   />
-                  {balanceAmount && parseFloat(balanceAmount) > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      ≈ ${(parseFloat(balanceAmount) / 83.5).toFixed(4)} USD @ ₹83.5/$
-                    </p>
-                  )}
+                  <p className="text-[10px] text-muted-foreground">Wallet credit converted at ₹83.5 / $1</p>
                 </div>
               </div>
             )}

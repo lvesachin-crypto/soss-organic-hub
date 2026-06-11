@@ -61,7 +61,7 @@ export default function AdminOrders() {
       queryClient.invalidateQueries({ queryKey: ['admin-organic-runs'] });
       toast({
         title: "Order Cancelled",
-        description: `Refunded: $${data.refundAmount?.toFixed(2) || '0.00'} (${data.refundedQuantity || 0} units)`,
+        description: `Refunded: ₹${((data.refundAmount || 0) * 83.5).toFixed(2)} (${data.refundedQuantity || 0} units)`,
       });
     },
     onError: (error: any) => {
@@ -217,7 +217,7 @@ export default function AdminOrders() {
                   <DollarSign className="h-5 w-5 text-foreground" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">${totalRevenue.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">₹{(totalRevenue * 83.5).toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">Revenue</p>
                 </div>
               </div>
@@ -336,7 +336,7 @@ export default function AdminOrders() {
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-primary">
-                            ${Number(order.price).toFixed(2)}
+                            ₹{(Number(order.price) * 83.5).toFixed(2)}
                           </p>
                           <p className="text-xs text-muted-foreground">price</p>
                         </div>
