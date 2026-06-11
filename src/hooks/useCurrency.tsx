@@ -40,36 +40,13 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | null>(null);
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const { user, profile } = useAuth();
-  const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
-    // Load from localStorage first for instant UI. Default = INR (India-first product).
-    const saved = localStorage.getItem('preferred_currency');
-    return (saved as CurrencyCode) || 'INR';
-  });
-
-  // Sync from profile on load
-  useEffect(() => {
-    if (profile?.currency && CURRENCIES.some(c => c.code === profile.currency)) {
-      setCurrencyState(profile.currency as CurrencyCode);
-      localStorage.setItem('preferred_currency', profile.currency);
-    }
-  }, [profile?.currency]);
-
+  // INR-only mode: currency switching disabled platform-wide.
+  const currency: CurrencyCode = 'INR';
   const rates = DEFAULT_RATES;
   const isLoadingRates = false;
-
-  const setCurrency = useCallback(async (code: CurrencyCode) => {
-    setCurrencyState(code);
-    localStorage.setItem('preferred_currency', code);
-
-    // Persist to profile
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ currency: code })
-        .eq('user_id', user.id);
-    }
-  }, [user]);
+  const setCurrency = useCallback(async (_code: CurrencyCode) => {
+    // no-op: platform locked to INR
+  }, []);
 
   const convertFromUSD = useCallback((usdAmount: number): number => {
     // Read the base currency from env, defaulting to USD since prices/wallets are in USD in DB
