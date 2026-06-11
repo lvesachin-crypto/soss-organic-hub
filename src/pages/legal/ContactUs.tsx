@@ -46,8 +46,8 @@ export default function ContactUs() {
                 </div>
                 <h3 className="font-semibold">WhatsApp</h3>
               </div>
-              <a href="https://wa.me/918678809455" target="_blank" rel="noreferrer" className="text-sm text-green-500 hover:underline">
-                +91 86788 09455
+              <a href="https://wa.me/13678288027" target="_blank" rel="noreferrer" className="text-sm text-green-500 hover:underline">
+                +1 (367) 828-8027
               </a>
               <p className="text-xs text-muted-foreground mt-2">Fastest way to reach us. Available 7 days a week.</p>
             </div>
@@ -59,8 +59,8 @@ export default function ContactUs() {
                 </div>
                 <h3 className="font-semibold">Phone</h3>
               </div>
-              <a href="tel:+918678809455" className="text-sm text-blue-500 hover:underline">
-                +91 86788 09455
+              <a href="tel:+13678288027" className="text-sm text-blue-500 hover:underline">
+                +1 (367) 828-8027
               </a>
               <p className="text-xs text-muted-foreground mt-2">Call between business hours for urgent issues.</p>
             </div>
@@ -73,7 +73,7 @@ export default function ContactUs() {
                 <h3 className="font-semibold">Working Hours</h3>
               </div>
               <p className="text-sm">Monday – Saturday</p>
-              <p className="text-sm">10:00 AM – 7:00 PM IST</p>
+              <p className="text-sm">9:00 AM – 6:00 PM EST</p>
               <p className="text-xs text-muted-foreground mt-2">Live chat and email monitored 24/7.</p>
             </div>
           </div>
@@ -86,11 +86,10 @@ export default function ContactUs() {
               <div>
                 <h3 className="font-semibold mb-2">Registered Business Address</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  OrganicSMM (Zyrozo)<br />
-                  H. No. 24, Gali No. 5, Block B,<br />
-                  Sangam Vihar, Wazirabad Road,<br />
-                  New Delhi — 110084,<br />
-                  Delhi, India
+                  OrganicSMM (Zyrozo) LLC<br />
+                  8 The Green, Suite #14490,<br />
+                  Dover, DE 19901,<br />
+                  United States of America
                 </p>
               </div>
             </div>
@@ -98,7 +97,7 @@ export default function ContactUs() {
 
           <div className="mt-10 text-sm text-muted-foreground">
             <p>
-              For grievances, please email <a className="text-orange-500 hover:underline" href="mailto:zyrozoofficial@gmail.com">zyrozoofficial@gmail.com</a> with subject line "Grievance" — our grievance officer will respond within 48 hours as per IT Act, 2000.
+              For grievances, please email <a className="text-orange-500 hover:underline" href="mailto:zyrozoofficial@gmail.com">zyrozoofficial@gmail.com</a> with subject line "Grievance" — our grievance officer will respond within 48 hours.
             </p>
           </div>
         </div>
