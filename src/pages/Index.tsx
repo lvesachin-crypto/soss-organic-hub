@@ -337,6 +337,7 @@ const Index = () => {
                   { to: '/terms', icon: FileText, label: 'Terms of Service' },
                   { to: '/privacy', icon: Lock, label: 'Privacy Policy' },
                   { to: '/refund', icon: FileText, label: 'Refund Policy' },
+                  { to: '/shipping', icon: FileText, label: 'Shipping & Delivery' },
                   { to: '/cookies', icon: FileText, label: 'Cookie Policy' },
                 ].map((l) => (
                   <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>
@@ -349,21 +350,23 @@ const Index = () => {
               <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Support</h4>
               <div className="space-y-2.5">
                 {[
-                  { icon: HelpCircle, label: 'Help Center' },
-                  { icon: Mail, label: 'Contact Us' },
-                  { icon: Code2, label: 'API Documentation' },
-                  { icon: Activity, label: 'Status Page' },
+                  { to: '/about', icon: HelpCircle, label: 'About Us' },
+                  { to: '/contact', icon: Mail, label: 'Contact Us' },
+                  { to: '/support', icon: HelpCircle, label: 'Help Center' },
+                  { to: '/api-access', icon: Code2, label: 'API Documentation' },
                 ].map((l) => (
-                  <span key={l.label} className="flex items-center gap-1.5 text-[13px]" style={{ color: C.ink2 }}>
+                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
-                  </span>
+                  </Link>
                 ))}
+                <a href="mailto:zyrozoofficial@gmail.com" className="block text-[12px] mt-2" style={{ color: C.muted }}>zyrozoofficial@gmail.com</a>
+                <a href="https://wa.me/918678809455" target="_blank" rel="noreferrer" className="block text-[12px]" style={{ color: C.muted }}>+91 86788 09455</a>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6" style={{ borderTop: `1px solid ${C.line}` }}>
-            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} OrganicSMM. All rights reserved.</p>
+            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} OrganicSMM (Zyrozo) — New Delhi, India. All rights reserved.</p>
             <div className="flex items-center gap-5 text-[12px] font-medium" style={{ color: C.muted }}>
               <span className="flex items-center gap-1"><Shield className="w-3 h-3" style={{ color: '#10b981' }} /> SSL Secured</span>
               <span className="flex items-center gap-1"><Zap className="w-3 h-3" style={{ color: C.orange }} /> 99.9% Uptime</span>
