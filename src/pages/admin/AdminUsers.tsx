@@ -123,7 +123,11 @@ export default function AdminUsers() {
     mutationFn: async () => {
       if (!selectedUser || !balanceAmount) return;
 
-      const amount = parseFloat(balanceAmount);
+      const INR_RATE = 83.5; // Same rate used by Razorpay credit flow
+      const inrAmount = parseFloat(balanceAmount);
+      if (!inrAmount || inrAmount <= 0) throw new Error('Enter a valid INR amount');
+      // Convert INR → USD because wallets are stored in USD internally
+      const amount = Math.trunc((inrAmount / INR_RATE) * 10000) / 10000;
       const currentBalance = selectedUser.wallet?.balance || 0;
       const newBalance =
         balanceAction === 'add' ? currentBalance + amount : currentBalance - amount;
@@ -148,7 +152,7 @@ export default function AdminUsers() {
         type: balanceAction === 'add' ? 'deposit' : 'refund',
         amount: balanceAction === 'add' ? amount : -amount,
         balance_after: newBalance,
-        description: `Admin ${balanceAction === 'add' ? 'deposit' : 'withdrawal'}`,
+        description: `Admin ${balanceAction === 'add' ? 'deposit' : 'withdrawal'} — ₹${inrAmount.toFixed(2)}`,
         status: 'completed',
       });
 
@@ -834,9 +838,11 @@ export default function AdminUsers() {
                     {selectedUser.email}
                   </p>
                   <p className="text-3xl font-bold text-success">
-                    ${selectedUser.wallet?.balance?.toFixed(2) || '0.00'}
+                    ₹{((selectedUser.wallet?.balance || 0) * 83.5).toFixed(2)}
                   </p>
-                  <p className="text-xs text-muted-foreground">Current Balance</p>
+                  <p className="text-xs text-muted-foreground">
+                    Current Balance (${(selectedUser.wallet?.balance || 0).toFixed(2)})
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -859,15 +865,20 @@ export default function AdminUsers() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Amount ($)</Label>
+                  <Label>Amount (₹ INR)</Label>
                   <Input
                     type="number"
-                    step="0.01"
-                    placeholder="Enter amount"
+                    step="1"
+                    placeholder="e.g. 500"
                     value={balanceAmount}
                     onChange={(e) => setBalanceAmount(e.target.value)}
                     className="h-11 rounded-xl"
                   />
+                  {balanceAmount && parseFloat(balanceAmount) > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      ≈ ${(parseFloat(balanceAmount) / 83.5).toFixed(4)} USD @ ₹83.5/$
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -880,7 +891,7 @@ export default function AdminUsers() {
                 disabled={updateBalanceMutation.isPending || !balanceAmount}
               >
                 {updateBalanceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {balanceAction === 'add' ? 'Add' : 'Subtract'} ${balanceAmount || '0'}
+                {balanceAction === 'add' ? 'Add' : 'Subtract'} ₹{balanceAmount || '0'}
               </Button>
             </div>
           </DialogContent>
