@@ -29,7 +29,7 @@ export default function AboutUs() {
             <section className="space-y-3">
               <h2 className="text-xl font-semibold text-foreground">Who We Are</h2>
               <p>
-                OrganicSMM (operated by <strong className="text-foreground">Zyrozo</strong>) is a New Delhi based digital marketing platform that helps creators, small businesses and agencies grow their social media presence through natural, organic-style engagement delivery. We have been serving customers across India and globally with reliable, transparent and affordable digital promotion services.
+                OrganicSMM (operated by <strong className="text-foreground">Zyrozo LLC</strong>) is a Delaware, USA based digital marketing platform that helps creators, small businesses and agencies grow their social media presence through natural, organic-style engagement delivery. We serve customers across the United States and globally with reliable, transparent and affordable digital promotion services.
               </p>
             </section>
 
@@ -64,7 +64,7 @@ export default function AboutUs() {
             <section className="space-y-3">
               <h2 className="text-xl font-semibold text-foreground">Our Mission</h2>
               <p>
-                To make professional-grade social media growth tools accessible and affordable for every Indian creator and small business — with full transparency, fair pricing and reliable customer support.
+                To make professional-grade social media growth tools accessible and affordable for every creator and small business worldwide — with full transparency, fair pricing and reliable customer support.
               </p>
             </section>
 
@@ -72,10 +72,10 @@ export default function AboutUs() {
               <h2 className="text-xl font-semibold text-foreground">Business Information</h2>
               <p>
                 <strong className="text-foreground">Brand Name:</strong> OrganicSMM<br />
-                <strong className="text-foreground">Operated By:</strong> Zyrozo<br />
-                <strong className="text-foreground">Address:</strong> H. No. 24, Gali No. 5, Block B, Sangam Vihar, Wazirabad Road, New Delhi — 110084, Delhi, India<br />
+                <strong className="text-foreground">Operated By:</strong> Zyrozo LLC<br />
+                <strong className="text-foreground">Registered Address:</strong> 8 The Green, Suite #14490, Dover, DE 19901, United States<br />
                 <strong className="text-foreground">Email:</strong> zyrozoofficial@gmail.com<br />
-                <strong className="text-foreground">WhatsApp / Phone:</strong> +91 86788 09455<br />
+                <strong className="text-foreground">WhatsApp / Phone:</strong> +1 (367) 828-8027<br />
                 <strong className="text-foreground">Website:</strong> https://organicsmm.online
               </p>
             </section>
