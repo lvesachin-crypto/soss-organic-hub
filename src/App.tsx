@@ -48,6 +48,9 @@ import TermsOfService from "./pages/legal/TermsOfService";
 import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import RefundPolicy from "./pages/legal/RefundPolicy";
 import CookiePolicy from "./pages/legal/CookiePolicy";
+import ContactUs from "./pages/legal/ContactUs";
+import AboutUs from "./pages/legal/AboutUs";
+import ShippingPolicy from "./pages/legal/ShippingPolicy";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -132,6 +135,9 @@ const App = () => {
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/refund" element={<RefundPolicy />} />
                     <Route path="/cookies" element={<CookiePolicy />} />
+                    <Route path="/contact" element={<ContactUs />} />
+                    <Route path="/about" element={<AboutUs />} />
+                    <Route path="/shipping" element={<ShippingPolicy />} />
                   </Routes>
                 
               </BrowserRouter>
