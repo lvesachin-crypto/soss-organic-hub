@@ -442,68 +442,21 @@ export default function EngagementOrderDetail() {
   // Update run mutation with optimistic updates AND wallet charge
   const updateRunMutation = useMutation({
     mutationFn: async ({ runId, quantity, scheduledAt }: { runId: string; quantity: number; scheduledAt: string }) => {
-      // Find the current run to calculate difference
       const currentRun = stats?.allRuns.find((r: any) => r.id === runId);
       if (!currentRun) throw new Error('Run not found');
-      
-      const quantityDifference = quantity - currentRun.quantity_to_send;
-      
-      // If quantity increased, charge wallet
-      if (quantityDifference > 0) {
-        // Find the service price for this item
-        const item = order?.items?.find((i: any) => 
-          i.runs?.some((r: any) => r.id === runId)
-        );
-        const pricePerThousand = item?.service?.price || 0.1;
-        const extraCost = (quantityDifference / 1000) * pricePerThousand;
-        
-        // Check wallet balance
-        if (!wallet || wallet.balance < extraCost) {
-          throw new Error(`Insufficient balance. Need ${formatPrice(extraCost)} but you have ${formatPrice(wallet?.balance || 0)}`);
-        }
-        
-        // Deduct from wallet
-        const newBalance = wallet.balance - extraCost;
-        const { error: walletError } = await supabase
-          .from('wallets')
-          .update({ 
-            balance: newBalance,
-            total_spent: (wallet.total_spent || 0) + extraCost 
-          })
-          .eq('user_id', user?.id);
-        
-        if (walletError) throw walletError;
-        
-        // Create transaction record
-        const { error: txError } = await supabase
-          .from('transactions')
-          .insert({
-            user_id: user?.id,
-            type: 'order',
-            amount: -extraCost,
-            balance_after: newBalance,
-            description: `Run edit: +${quantityDifference} units (Order #${order?.order_number})`,
-            status: 'completed',
-          });
-        
-        if (txError) console.error('Transaction record failed:', txError);
-        
-        // Refresh wallet
-        refreshWallet?.();
-      }
-      
-      // Update the run
-      const { error } = await supabase
-        .from('organic_run_schedule')
-        .update({
-          quantity_to_send: quantity,
-          scheduled_at: scheduledAt,
-          variance_applied: 0, // Reset variance when manually edited
-        })
-        .eq('id', runId)
-        .eq('status', 'pending'); // Only allow editing pending runs
+
+      const { data, error } = await supabase.rpc('reschedule_organic_run', {
+        p_run_id: runId,
+        p_quantity: quantity,
+        p_scheduled_at: scheduledAt,
+      });
 
       if (error) throw error;
+
+      return {
+        currentRun,
+        result: data as { success: boolean; extra_charged?: number },
+      };
     },
     // OPTIMISTIC UPDATE - Update UI immediately before server confirms
     onMutate: async ({ runId, quantity, scheduledAt }) => {
@@ -532,12 +485,17 @@ export default function EngagementOrderDetail() {
       
       return { previousOrder };
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      const extraCharged = Number(data?.result?.extra_charged || 0);
+
       toast({
         title: "✅ Run Updated",
-        description: "Schedule updated and wallet charged if applicable!",
+        description: extraCharged > 0
+          ? `Schedule updated. ${formatPrice(extraCharged)} charged from wallet.`
+          : "Schedule updated successfully.",
       });
       setEditingRun(null);
+      refreshWallet?.();
       
       // Refetch to ensure data consistency
       await refetch();
