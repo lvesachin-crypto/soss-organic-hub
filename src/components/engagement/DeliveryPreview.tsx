@@ -33,6 +33,10 @@ interface DeliveryPreviewProps {
   refreshKey?: number;
   platform?: Platform;
   customCurvePoints?: Record<EngagementType, ControlPoint[]>;
+  onScheduleChange?: (payload: {
+    schedules: FullOrganicConfig[];
+    customQuantities: Record<string, number>;
+  }) => void;
 }
 
 interface TimelineEvent {
@@ -44,7 +48,7 @@ interface TimelineEvent {
   peakLabel: string;
 }
 
-export function DeliveryPreview({ engagements, refreshKey = 0, platform = 'instagram', customCurvePoints }: DeliveryPreviewProps) {
+export function DeliveryPreview({ engagements, refreshKey = 0, platform = 'instagram', customCurvePoints, onScheduleChange }: DeliveryPreviewProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<number>(0);
   const [customQuantities, setCustomQuantities] = useState<Record<string, number>>({});
@@ -255,6 +259,10 @@ export function DeliveryPreview({ engagements, refreshKey = 0, platform = 'insta
       perTypeStats,
     };
   }, [engagements, customQuantities, refreshKey, customCurvePoints]);
+
+  useEffect(() => {
+    onScheduleChange?.({ schedules, customQuantities });
+  }, [schedules, customQuantities, onScheduleChange]);
 
   const handleEdit = (event: TimelineEvent) => {
     setEditingId(event.id);
