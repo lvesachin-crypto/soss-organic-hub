@@ -44,6 +44,101 @@ interface ScheduledRunInput {
   peak_multiplier?: number
 }
 
+function uniquifyScheduledRuns(
+  runs: ScheduledRunInput[],
+  totalTargetQty: number,
+  providerMin: number,
+  maxBatchCap: number
+) {
+  const normalizedRuns = runs
+    .map((run, index) => ({
+      run_number: index + 1,
+      scheduled_at: new Date(run.scheduled_at).toISOString(),
+      quantity_to_send: Math.max(0, Math.round(Number(run.quantity_to_send) || 0)),
+      base_quantity: Math.max(0, Math.round(Number(run.base_quantity ?? run.quantity_to_send) || 0)),
+      variance_applied: Number(run.variance_applied ?? 0),
+      peak_multiplier: Number(run.peak_multiplier ?? 1),
+      status: 'pending'
+    }))
+    .filter((run) => run.quantity_to_send > 0)
+
+  const used = new Set<number>()
+
+  normalizedRuns.forEach((run, index) => {
+    const previous = index > 0 ? normalizedRuns[index - 1].quantity_to_send : null
+    let candidate = run.quantity_to_send
+    let fallback = candidate
+
+    for (let step = 0; step <= Math.max(1, maxBatchCap - providerMin); step++) {
+      const options = step === 0 ? [candidate] : [candidate + step, candidate - step]
+      let applied = false
+
+      for (const option of options) {
+        if (option < providerMin || option > maxBatchCap) continue
+        if (used.has(option)) continue
+        if (previous !== null && Math.abs(option - previous) < 2) continue
+        if (option % 5 === 0 && option !== providerMin) continue
+
+        run.quantity_to_send = option
+        run.base_quantity = option
+        applied = true
+        break
+      }
+
+      if (applied) break
+
+      for (const option of options) {
+        if (option < providerMin || option > maxBatchCap) continue
+        if (used.has(option)) continue
+        fallback = option
+      }
+    }
+
+    run.quantity_to_send = fallback
+    run.base_quantity = fallback
+    used.add(run.quantity_to_send)
+  })
+
+  let drift = totalTargetQty - normalizedRuns.reduce((sum, run) => sum + run.quantity_to_send, 0)
+  let guard = 0
+
+  while (drift !== 0 && guard < 10000) {
+    let changed = false
+    const indexes = normalizedRuns
+      .map((run, index) => ({ index, quantity: run.quantity_to_send }))
+      .sort((a, b) => drift > 0 ? a.quantity - b.quantity : b.quantity - a.quantity)
+      .map((item) => item.index)
+
+    for (const index of indexes) {
+      const step = drift > 0 ? 1 : -1
+      const nextQty = normalizedRuns[index].quantity_to_send + step
+      const previous = index > 0 ? normalizedRuns[index - 1].quantity_to_send : null
+
+      if (nextQty < providerMin || nextQty > maxBatchCap) continue
+      if (normalizedRuns.some((run, runIndex) => runIndex !== index && run.quantity_to_send === nextQty)) continue
+      if (previous !== null && Math.abs(nextQty - previous) < 2) continue
+
+      normalizedRuns[index].quantity_to_send = nextQty
+      normalizedRuns[index].base_quantity = nextQty
+      drift += drift > 0 ? -1 : 1
+      changed = true
+
+      if (drift === 0) break
+    }
+
+    if (!changed) break
+    guard++
+  }
+
+  if (drift !== 0 && normalizedRuns.length > 0) {
+    const lastRun = normalizedRuns[normalizedRuns.length - 1]
+    lastRun.quantity_to_send = Math.max(providerMin, Math.min(maxBatchCap, lastRun.quantity_to_send + drift))
+    lastRun.base_quantity = lastRun.quantity_to_send
+  }
+
+  return normalizedRuns
+}
+
 // COMPLETE SERVICE-SPECIFIC CONFIGS
 const MAX_BATCH_CAPS: Record<string, number> = {
   views: 200, likes: 35, comments: 3, saves: 20, shares: 25,
