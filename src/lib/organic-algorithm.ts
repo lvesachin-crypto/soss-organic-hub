@@ -393,8 +393,22 @@ export function generateOrganicSchedule(
   peakEnabled: boolean,
   startTime: Date,
   serviceMinimum?: number,
-  timeLimitHours?: number // NEW: Optional time limit in hours
+  timeLimitHours?: number, // NEW: Optional time limit in hours
+  forcedRunCount?: number   // NEW: User-specified exact run count
 ): FullOrganicConfig {
+  // FORCED RUN COUNT BRANCH: user explicitly chose how many runs
+  if (forcedRunCount && forcedRunCount > 0) {
+    return generateForcedRunCountSchedule(
+      engagementType,
+      totalQuantity,
+      forcedRunCount,
+      variancePercent,
+      startTime,
+      serviceMinimum,
+      timeLimitHours,
+    );
+  }
+
   const runs: OrganicRunConfig[] = [];
   const warnings: string[] = [];
   let patternBreakCount = 0;
@@ -1341,4 +1355,118 @@ export function calculateTotalDuration(
   unit: 'minutes' | 'hours'
 ): number {
   return (runs - 1) * intervalToMs(interval, unit);
+}
+
+/**
+ * FORCED RUN COUNT: Generate schedule with exact user-chosen run count.
+ * Distributes total quantity across N runs with ±variance, ensuring each
+ * run >= providerMin. Spreads times across timeLimitHours window (or default).
+ */
+export function generateForcedRunCountSchedule(
+  engagementType: string,
+  totalQuantity: number,
+  requestedRunCount: number,
+  variancePercent: number,
+  startTime: Date,
+  serviceMinimum?: number,
+  timeLimitHours?: number,
+): FullOrganicConfig {
+  const providerMin = serviceMinimum || PROVIDER_MINIMUMS[engagementType] || 10;
+  const warnings: string[] = [];
+
+  // Clamp run count: cannot exceed quantity / providerMin
+  const maxAllowedRuns = Math.max(1, Math.floor(totalQuantity / providerMin));
+  const runCount = Math.max(1, Math.min(requestedRunCount, maxAllowedRuns));
+
+  if (requestedRunCount > maxAllowedRuns) {
+    warnings.push(
+      `Requested ${requestedRunCount} runs exceeds max ${maxAllowedRuns} (quantity ${totalQuantity} / min ${providerMin}). Clamped.`
+    );
+  }
+
+  // Time window: use timeLimitHours if set, else estimate from default intervals
+  const intervalCfg = TYPE_BASE_INTERVALS[engagementType] || { min: 15, max: 60, jitter: 10, chaosMultiplier: 2 };
+  const totalWindowMs = timeLimitHours && timeLimitHours > 0
+    ? timeLimitHours * 60 * 60 * 1000
+    : Math.max(runCount, 1) * ((intervalCfg.min + intervalCfg.max) / 2) * 60 * 1000;
+
+  // Distribute quantity: each run gets at least providerMin, then random share of remainder
+  const baseQty = Math.floor(totalQuantity / runCount);
+  const variance = Math.max(0, Math.min(variancePercent ?? 25, 80)) / 100;
+
+  // Generate raw weighted quantities respecting min
+  const quantities: number[] = new Array(runCount);
+  let remaining = totalQuantity;
+  for (let i = 0; i < runCount; i++) {
+    const isLast = i === runCount - 1;
+    if (isLast) {
+      quantities[i] = Math.max(providerMin, remaining);
+      continue;
+    }
+    // Random multiplier in [1-variance, 1+variance]
+    const mult = 1 + (Math.random() * 2 - 1) * variance;
+    let q = Math.max(providerMin, Math.round(baseQty * mult));
+    // Don't take so much that remaining runs can't get providerMin each
+    const runsLeft = runCount - i - 1;
+    const reserveForRest = runsLeft * providerMin;
+    const maxThisRun = Math.max(providerMin, remaining - reserveForRest);
+    if (q > maxThisRun) q = maxThisRun;
+    quantities[i] = q;
+    remaining -= q;
+  }
+
+  // Final balance pass to ensure sum === totalQuantity
+  let sum = quantities.reduce((a, b) => a + b, 0);
+  let drift = totalQuantity - sum;
+  let guard = 0;
+  while (drift !== 0 && guard < 10000) {
+    const idx = Math.floor(Math.random() * runCount);
+    const step = drift > 0 ? 1 : -1;
+    const next = quantities[idx] + step;
+    if (next >= providerMin) {
+      quantities[idx] = next;
+      drift -= step;
+    }
+    guard++;
+  }
+
+  // Spread scheduled times across the window with jitter
+  const runs: OrganicRunConfig[] = [];
+  const jitterMs = Math.min(totalWindowMs / Math.max(runCount * 4, 4), 5 * 60 * 1000);
+  for (let i = 0; i < runCount; i++) {
+    const ratio = runCount === 1 ? 0 : i / (runCount - 1);
+    const baseOffset = ratio * totalWindowMs;
+    const jitter = (Math.random() * 2 - 1) * jitterMs;
+    const scheduledAt = new Date(startTime.getTime() + Math.max(0, baseOffset + jitter));
+    runs.push({
+      runNumber: i + 1,
+      scheduledAt,
+      quantity: quantities[i],
+      baseQuantity: quantities[i],
+      varianceApplied: 0,
+      peakMultiplier: 1,
+      dayOfWeek: scheduledAt.getDay(),
+      hourOfDay: scheduledAt.getHours(),
+      sessionType: 'normal',
+      humanBehaviorScore: 85,
+      patternBreaker: false,
+    });
+  }
+  runs.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  runs.forEach((r, i) => { r.runNumber = i + 1; });
+
+  const totalDuration = runs.length > 1
+    ? runs[runs.length - 1].scheduledAt.getTime() - runs[0].scheduledAt.getTime()
+    : 0;
+
+  return {
+    engagementType,
+    totalQuantity,
+    runs,
+    totalDuration,
+    warnings,
+    patternBreakCount: 0,
+    avgHumanScore: 85,
+    varietyIndex: 0.8,
+  };
 }
