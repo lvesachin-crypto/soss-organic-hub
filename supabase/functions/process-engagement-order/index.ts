@@ -450,27 +450,17 @@ serve(async (req) => {
           const totalTargetQty = engagement.quantity
 
           if (previewRuns.length > 0) {
-            validatedEntries = previewRuns
-              .map((run, index) => ({
+            validatedEntries = uniquifyScheduledRuns(previewRuns, totalTargetQty, providerMin, maxBatchCap)
+              .map((run) => ({
                 engagement_order_item_id: itemId,
-                run_number: index + 1,
-                scheduled_at: new Date(run.scheduled_at).toISOString(),
-                quantity_to_send: Math.max(0, Math.round(Number(run.quantity_to_send) || 0)),
-                base_quantity: Math.max(0, Math.round(Number(run.base_quantity ?? run.quantity_to_send) || 0)),
-                variance_applied: Number(run.variance_applied ?? 0),
-                peak_multiplier: Number(run.peak_multiplier ?? 1),
+                run_number: run.run_number,
+                scheduled_at: run.scheduled_at,
+                quantity_to_send: run.quantity_to_send,
+                base_quantity: run.base_quantity,
+                variance_applied: run.variance_applied,
+                peak_multiplier: run.peak_multiplier,
                 status: 'pending'
               }))
-              .filter((run) => run.quantity_to_send > 0)
-
-            const scheduledSum = validatedEntries.reduce((sum, run) => sum + run.quantity_to_send, 0)
-            if (validatedEntries.length > 0 && scheduledSum !== totalTargetQty) {
-              const diff = totalTargetQty - scheduledSum
-              validatedEntries[validatedEntries.length - 1].quantity_to_send += diff
-              validatedEntries[validatedEntries.length - 1].base_quantity = validatedEntries[validatedEntries.length - 1].quantity_to_send
-            }
-
-            validatedEntries = validatedEntries.filter((run) => run.quantity_to_send > 0)
           }
 
           if (validatedEntries.length === 0) {
