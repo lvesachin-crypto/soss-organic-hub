@@ -286,7 +286,12 @@ export default function EngagementOrder() {
     const inrRate = rates?.INR || 83.5;
     const viewsUsdPerK = 2 / inrRate;
     if (prices['views']) {
-      prices['views'] = { ...prices['views'], pricePerK: viewsUsdPerK };
+      prices['views'] = {
+        ...prices['views'],
+        pricePerK: viewsUsdPerK,
+        // Enforce platform minimum of 100 for views regardless of provider
+        minQuantity: Math.max(100, prices['views'].minQuantity || 0),
+      };
     }
     return prices;
   }, [bundles, applyMarkup, allServices, platform, rates]);

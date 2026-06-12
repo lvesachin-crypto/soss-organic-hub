@@ -255,6 +255,8 @@ serve(async (req) => {
 
         let viewsStartTime: Date | null = null
         let viewsFirstRunScheduled = false
+        let viewsEndTime: Date | null = null
+        let viewsDurationMinutes = 0
 
         for (const { type: engType, itemId, engagement, finalServiceId } of sortedItems) {
           const config = getServiceConfig(engType)
@@ -263,6 +265,9 @@ serve(async (req) => {
             const { data: s } = await supabase.from('services').select('min_quantity').eq('id', finalServiceId).single()
             if (s?.min_quantity) providerMin = s.min_quantity
           }
+          // Enforce platform minimum floors (e.g. views must be >= 100)
+          const floorMin = PROVIDER_MINIMUMS[engType] || 0
+          if (floorMin > 0) providerMin = Math.max(providerMin, floorMin)
 
           const isViewType = ['views', 'impressions', 'reach', 'plays', 'watch_hours'].includes(engType)
           const stagger = platformStagger[engType] || platformStagger.generic
@@ -274,8 +279,10 @@ serve(async (req) => {
             viewsStartTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
             viewsFirstRunScheduled = true
           } else if (viewsStartTime) {
-            const stepDelay = Math.max(30, (priority - 1) * 45)
-            initialDelayMinutes = stepDelay + Math.random() * stagger.variance
+            // Non-view types start shortly AFTER views start so they ramp together,
+            // not all-at-once before views begin.
+            const stepDelay = 5 + (priority - 1) * 8
+            initialDelayMinutes = stepDelay + Math.random() * Math.min(stagger.variance, 15)
           } else {
             initialDelayMinutes = (priority - 1) * 60 + 20 + Math.random() * stagger.variance
           }
@@ -286,6 +293,14 @@ serve(async (req) => {
           if (aiOrganicEnabled && timeLimitHours === 0) {
             const options = [0, 0, 0, 4, 6, 8, 12]
             timeLimitHours = options[Math.floor(Math.random() * options.length)]
+          }
+
+          // ORGANIC SYNC: Non-view engagements MUST span the same total window as views.
+          // This prevents likes/saves/shares from finishing before views have arrived.
+          if (!isViewType && viewsDurationMinutes > 0) {
+            const viewsHours = viewsDurationMinutes / 60
+            // Always match views window (override any auto time limit)
+            timeLimitHours = Math.max(viewsHours, 0.25)
           }
 
           let baseInterval = config.baseIntervalMinutes
@@ -456,6 +471,17 @@ serve(async (req) => {
             } else {
                const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
                console.log(`✅ [${engType}] Scheduled ${validatedEntries.length} runs. (Sum: ${scheduledSum}, Target: ${totalTargetQty})`)
+            }
+            // Capture the views window so non-view types can mirror it
+            if (isViewType && !viewsEndTime) {
+              const lastAt = validatedEntries.reduce((max, e) => {
+                const t = new Date(e.scheduled_at).getTime()
+                return t > max ? t : max
+              }, 0)
+              if (lastAt > 0) {
+                viewsEndTime = new Date(lastAt)
+                viewsDurationMinutes = Math.max(0, (lastAt - startTime.getTime()) / 60000)
+              }
             }
           } else {
             console.warn(`⚠️ [${engType}] No schedule entries created (qty: ${totalTargetQty})`)
