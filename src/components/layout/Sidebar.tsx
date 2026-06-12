@@ -12,8 +12,6 @@ const userNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Rocket, label: 'Full Engagement', path: '/engagement-order', highlight: true },
   { icon: Sparkles, label: 'Engagement Orders', path: '/engagement-orders' },
-  { icon: ShoppingCart, label: 'Single Order', path: '/order' },
-  { icon: ListOrdered, label: 'Single Orders', path: '/orders' },
   { icon: Package, label: 'Services', path: '/services' },
   { icon: Wallet, label: 'Wallet', path: '/wallet' },
   { icon: Code2, label: 'API Access', path: '/api-access' },
