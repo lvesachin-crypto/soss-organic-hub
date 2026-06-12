@@ -572,6 +572,7 @@ export function EngagementTypeCard({
                     </div>
                   )}
                 </div>
+                </div>
 
                 {/* Variance Slider */}
                 <div className="space-y-2">
