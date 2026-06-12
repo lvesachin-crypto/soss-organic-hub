@@ -100,6 +100,24 @@ export default function AdminBundles() {
   const [deleteBundle, setDeleteBundle] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Realtime sync: instantly reflect admin pricing edits everywhere.
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-bundle-pricing-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bundle_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'engagement_bundles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-services-active'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   // Fetch bundles
   const { data: bundles, isLoading } = useQuery({
     queryKey: ['admin-bundles'],
@@ -328,6 +346,22 @@ export default function AdminBundles() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
     },
+  });
+
+  // Update item manual price (INR/1K → USD/1K stored in DB)
+  const updateItemPriceMutation = useMutation({
+    mutationFn: async ({ id, price_per_k }: { id: string; price_per_k: number | null }) => {
+      const { error } = await supabase
+        .from('bundle_items')
+        .update({ price_per_k })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      toast({ title: 'Price updated' });
+    },
+    onError: (e: any) => toast({ title: 'Price update failed', description: e.message, variant: 'destructive' }),
   });
 
   // Toggle custom ratios mode
@@ -560,6 +594,9 @@ export default function AdminBundles() {
                   }
                   onUpdateRatio={(id, ratio_percent) =>
                     updateItemRatioMutation.mutate({ id, ratio_percent })
+                  }
+                  onUpdatePrice={(id, price_per_k) =>
+                    updateItemPriceMutation.mutate({ id, price_per_k })
                   }
                 />
               ))
