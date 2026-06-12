@@ -399,8 +399,9 @@ export function EngagementTypeCard({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-2 pt-2 border-t border-border space-y-3">
-                {/* Time Limit */}
-                <div className="space-y-1.5">
+                {/* Time Limit + Number of Runs side-by-side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-[10px] font-bold flex items-center gap-1.5 text-foreground uppercase tracking-widest">
                     <Timer className="h-3 w-3 text-foreground" />
                     Delivery Time
@@ -474,7 +475,7 @@ export function EngagementTypeCard({
                 </div>
 
                 {/* Number of Runs */}
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-[10px] font-bold flex flex-wrap items-center justify-between gap-1 text-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1.5">
                       <List className="h-3 w-3 text-foreground" />
@@ -546,9 +547,6 @@ export function EngagementTypeCard({
                         }}
                         className="w-20 sm:w-24 h-7 text-xs text-center bg-secondary border-2 border-border text-foreground font-bold px-1.5"
                       />
-                      <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
-                        runs
-                      </span>
                     </div>
                   </div>
 
@@ -570,6 +568,7 @@ export function EngagementTypeCard({
                       <span>Max {maxAllowedRuns} runs allowed ({config.quantity.toLocaleString()} ÷ {providerMin})</span>
                     </div>
                   )}
+                </div>
                 </div>
 
                 {/* Variance Slider */}
