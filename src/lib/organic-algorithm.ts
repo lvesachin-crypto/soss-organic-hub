@@ -583,18 +583,20 @@ export function generateOrganicSchedule(
       if (remainingForSmall <= 0) break;
     }
 
-    const totalDurationSmall = runs.length > 1
-      ? runs[runs.length - 1].scheduledAt.getTime() - runs[0].scheduledAt.getTime()
+    const finalizedRuns = finalizeUniqueRuns(runs, totalQuantity, providerMin, Math.max(providerMin + numRuns + 10, typeRunSize.max));
+
+    const totalDurationSmall = finalizedRuns.length > 1
+      ? finalizedRuns[finalizedRuns.length - 1].scheduledAt.getTime() - finalizedRuns[0].scheduledAt.getTime()
       : 0;
 
     return {
       engagementType,
       totalQuantity,
-      runs,
+      runs: finalizedRuns,
       totalDuration: totalDurationSmall,
       warnings,
       patternBreakCount: 0,
-      avgHumanScore: Math.round(runs.reduce((s, r) => s + r.humanBehaviorScore, 0) / runs.length),
+      avgHumanScore: Math.round(finalizedRuns.reduce((s, r) => s + r.humanBehaviorScore, 0) / finalizedRuns.length),
       varietyIndex: 45,
     };
   }
@@ -789,6 +791,25 @@ export function generateOrganicSchedule(
       quantities[quantities.length - 1] = Math.max(minQty, quantities[quantities.length - 1]);
     }
 
+    const uniqueQuantities = finalizeUniqueRuns(
+      quantities.map((qty, index) => ({
+        runNumber: index + 1,
+        scheduledAt: new Date(times[index]),
+        quantity: qty,
+        baseQuantity: qty,
+        varianceApplied: 0,
+        peakMultiplier: 1,
+        dayOfWeek: 0,
+        hourOfDay: 0,
+        sessionType: 'normal',
+        humanBehaviorScore: 0,
+        patternBreaker: false,
+      })),
+      totalQuantity,
+      minQty,
+      maxForTimeLimit
+    ).map((run) => run.quantity);
+
     for (let i = 0; i < targetRuns; i++) {
       const scheduledAt = new Date(times[i]);
       const istTime = new Date(times[i] + istOffset);
@@ -796,7 +817,7 @@ export function generateOrganicSchedule(
       const dayOfWeek = istTime.getUTCDay();
 
       const intervalMinutes = i === 0 ? Math.round(stepMs / 60000) : Math.round((times[i] - times[i - 1]) / 60000);
-      const qty = quantities[i];
+      const qty = uniqueQuantities[i];
 
       const humanScore = calculateHumanScore(
         qty,
@@ -1157,23 +1178,23 @@ export function generateOrganicSchedule(
     }
   }
 
-  const totalDuration = runs.length > 1
-    ? runs[runs.length - 1].scheduledAt.getTime() - runs[0].scheduledAt.getTime()
+  const finalizedRuns = finalizeUniqueRuns(runs, totalQuantity, providerMin, ULTRA_MAX_PER_RUN[engagementType] || scaled.ultraMax || scaled.max || providerMin + totalQuantity);
+
+  const totalDuration = finalizedRuns.length > 1
+    ? finalizedRuns[finalizedRuns.length - 1].scheduledAt.getTime() - finalizedRuns[0].scheduledAt.getTime()
     : 0;
 
-  // Calculate variety index (how varied the delivery is)
-  const quantities = runs.map(r => r.quantity);
+  const quantities = finalizedRuns.map(r => r.quantity);
   const avgQty = quantities.reduce((a, b) => a + b, 0) / quantities.length;
   const variance = quantities.reduce((sum, q) => sum + Math.pow(q - avgQty, 2), 0) / quantities.length;
   const varietyIndex = Math.min(100, Math.round((Math.sqrt(variance) / avgQty) * 100));
 
-  // Calculate average human score
-  const avgHumanScore = Math.round(runs.reduce((sum, r) => sum + r.humanBehaviorScore, 0) / runs.length);
+  const avgHumanScore = Math.round(finalizedRuns.reduce((sum, r) => sum + r.humanBehaviorScore, 0) / finalizedRuns.length);
 
   return {
     engagementType,
     totalQuantity,
-    runs,
+    runs: finalizedRuns,
     totalDuration,
     warnings,
     patternBreakCount,
