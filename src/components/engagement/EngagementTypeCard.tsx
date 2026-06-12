@@ -474,17 +474,19 @@ export function EngagementTypeCard({
                 </div>
 
                 {/* Number of Runs */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold flex items-center justify-between text-foreground uppercase tracking-widest">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold flex flex-wrap items-center justify-between gap-1 text-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1.5">
                       <List className="h-3 w-3 text-foreground" />
                       Number of Runs
                     </span>
                     <span className="text-[9px] text-muted-foreground normal-case tracking-normal font-medium">
-                      Max {maxAllowedRuns} (min {providerMin}/run)
+                      Max {maxAllowedRuns.toLocaleString()} · min {providerMin}/run
                     </span>
                   </Label>
-                  <div className="flex flex-wrap gap-1">
+
+                  {/* Presets + custom input on one responsive row */}
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {[
                       { value: 0, label: 'Auto' },
                       { value: 50, label: '50' },
@@ -494,18 +496,20 @@ export function EngagementTypeCard({
                       const isSelected = preset.value === 0
                         ? !config.runCount
                         : config.runCount === preset.value;
-                      const disabled = preset.value > maxAllowedRuns;
+                      const disabled = preset.value > 0 && preset.value > maxAllowedRuns;
                       return (
                         <Button
                           key={preset.value}
+                          type="button"
                           variant={isSelected ? "default" : "outline"}
                           size="sm"
                           disabled={disabled}
                           className={cn(
-                            "h-6 text-[10px] px-2 font-bold",
+                            "h-7 min-w-[42px] px-2.5 text-[11px] font-bold rounded-md",
                             isSelected
-                              ? "bg-foreground text-background"
-                              : "bg-secondary text-foreground border border-border hover:bg-muted"
+                              ? "bg-foreground text-background border-foreground"
+                              : "bg-secondary text-foreground border border-border hover:bg-muted",
+                            disabled && "opacity-40 cursor-not-allowed"
                           )}
                           onClick={() => handleRunCountChange(preset.value || undefined)}
                         >
@@ -513,43 +517,55 @@ export function EngagementTypeCard({
                         </Button>
                       );
                     })}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="Custom runs"
-                      value={customRunsInput}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setCustomRunsInput(val);
-                        const n = parseInt(val, 10);
-                        if (Number.isFinite(n) && n > 0) {
+
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="Custom"
+                        value={customRunsInput}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setCustomRunsInput(val);
+                          const n = parseInt(val, 10);
+                          if (Number.isFinite(n) && n > 0) {
+                            handleRunCountChange(n);
+                          } else if (val === '') {
+                            onChange({ ...config, runCount: undefined });
+                          }
+                        }}
+                        onBlur={() => {
+                          const n = parseInt(customRunsInput, 10);
+                          if (!Number.isFinite(n) || n <= 0) {
+                            setCustomRunsInput('');
+                            onChange({ ...config, runCount: undefined });
+                            return;
+                          }
                           handleRunCountChange(n);
-                        } else if (val === '') {
-                          onChange({ ...config, runCount: undefined });
-                        }
-                      }}
-                      onBlur={() => {
-                        const n = parseInt(customRunsInput, 10);
-                        if (!Number.isFinite(n) || n <= 0) {
-                          setCustomRunsInput('');
-                          onChange({ ...config, runCount: undefined });
-                          return;
-                        }
-                        handleRunCountChange(n);
-                      }}
-                      className="w-24 h-8 text-xs bg-secondary border-2 border-border text-foreground font-bold"
-                    />
-                    {config.runCount && config.runCount > 0 && (
-                      <span className="text-[10px] text-muted-foreground">
-                        ~{Math.round(config.quantity / config.runCount).toLocaleString()} / run
+                        }}
+                        className="w-20 sm:w-24 h-7 text-xs text-center bg-secondary border-2 border-border text-foreground font-bold px-1.5"
+                      />
+                      <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
+                        runs
                       </span>
-                    )}
+                    </div>
                   </div>
+
+                  {/* Per-run hint */}
+                  {config.runCount && config.runCount > 0 && config.quantity > 0 && (
+                    <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md bg-secondary/60 border border-border/60">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                        Per run
+                      </span>
+                      <span className="text-[11px] font-bold text-foreground font-mono">
+                        ~{Math.round(config.quantity / config.runCount).toLocaleString()} {engagementConfig?.label.toLowerCase()}
+                      </span>
+                    </div>
+                  )}
+
                   {customRunsInput && parseInt(customRunsInput, 10) > maxAllowedRuns && (
-                    <div className="flex items-start gap-1 text-[10px] text-red-500 font-bold mt-1">
+                    <div className="flex items-start gap-1.5 text-[10px] text-red-500 font-bold p-2 rounded-md bg-red-500/10 border border-red-500/30">
                       <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
                       <span>Max {maxAllowedRuns} runs allowed ({config.quantity.toLocaleString()} ÷ {providerMin})</span>
                     </div>
