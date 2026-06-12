@@ -147,39 +147,6 @@ export default function Admin() {
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-accent/20 to-transparent rounded-full blur-3xl" />
         </div>
 
-        {/* Total User Deposits — Hero Stat */}
-        <Card className="glass-card relative overflow-hidden border-2 border-success/30">
-          <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-success/5" />
-          <CardContent className="p-5 sm:p-6 relative">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-success to-success/60 flex items-center justify-center shadow-xl shadow-success/20 shrink-0">
-                  <CreditCard className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total User Deposits (All Time)</p>
-                  <p className="text-3xl sm:text-4xl font-extrabold text-success">
-                    ₹{(totalDepositsUsd * 83.5).toFixed(2)}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    {depositsCount} successful deposits · auto-refresh every 15s
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 min-w-[220px]">
-                <div className="p-3 rounded-xl bg-success/5 border border-success/20">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Today</p>
-                  <p className="text-lg font-bold text-success">₹{(depositsTodayUsd * 83.5).toFixed(2)}</p>
-                </div>
-                <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Balance</p>
-                  <p className="text-lg font-bold text-primary">₹{(totalWalletUsd * 83.5).toFixed(2)}</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
