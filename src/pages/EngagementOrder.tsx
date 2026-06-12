@@ -307,15 +307,12 @@ export default function EngagementOrder() {
         };
       }
     });
-    // FIXED PRICE OVERRIDE: Views are always ₹2 per 1000 (regardless of provider cost)
-    // Convert ₹2 → USD using live INR rate (DB/wallet are in USD base)
-    const inrRate = rates?.INR || 83.5;
-    const viewsUsdPerK = 2 / inrRate;
+    // Enforce platform minimum of 100 for views regardless of provider.
+    // Pricing for views (and every other type) comes from bundle_items.price_per_k
+    // set by the admin — no hardcoded overrides.
     if (prices['views']) {
       prices['views'] = {
         ...prices['views'],
-        pricePerK: viewsUsdPerK,
-        // Enforce platform minimum of 100 for views regardless of provider
         minQuantity: Math.max(100, prices['views'].minQuantity || 0),
       };
     }
