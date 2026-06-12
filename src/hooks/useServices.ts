@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useGlobalMarkup } from './useGlobalMarkup';
 import type { Service } from '@/lib/supabase';
 
 const SERVICES_CACHE_KEY = 'whopautopilot_services_cache';
@@ -35,8 +34,6 @@ function setCachedServices(data: Service[]) {
  * Uses a 30-min localStorage cache to drastically reduce Supabase DB queries.
  */
 export function useServices() {
-  const { applyMarkup, markupPercent, isLoading: markupLoading } = useGlobalMarkup();
-
   const { data: rawServices, isLoading: servicesLoading, ...rest } = useQuery({
     queryKey: ['services'],
     queryFn: async () => {
@@ -61,18 +58,13 @@ export function useServices() {
     refetchOnMount: false,
   });
 
-  // Apply dynamic markup from admin panel settings to raw provider costs
-  const services = useMemo(() => {
-    return rawServices?.map(s => ({
-      ...s,
-      price: applyMarkup(s.price),
-    }));
-  }, [rawServices, applyMarkup]);
+  // Global markup removed — services.price is the final per-1000 USD price.
+  const services = useMemo(() => rawServices, [rawServices]);
 
   return { 
     services, 
-    isLoading: servicesLoading || markupLoading,
-    markupPercent,
+    isLoading: servicesLoading,
+    markupPercent: 0,
     ...rest 
   };
 }

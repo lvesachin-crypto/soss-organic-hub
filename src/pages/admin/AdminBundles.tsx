@@ -100,6 +100,24 @@ export default function AdminBundles() {
   const [deleteBundle, setDeleteBundle] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Realtime sync: instantly reflect admin pricing edits everywhere.
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-bundle-pricing-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bundle_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'engagement_bundles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-services-active'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   // Fetch bundles
   const { data: bundles, isLoading } = useQuery({
     queryKey: ['admin-bundles'],
@@ -328,6 +346,22 @@ export default function AdminBundles() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
     },
+  });
+
+  // Update item manual price (INR/1K → USD/1K stored in DB)
+  const updateItemPriceMutation = useMutation({
+    mutationFn: async ({ id, price_per_k }: { id: string; price_per_k: number | null }) => {
+      const { error } = await supabase
+        .from('bundle_items')
+        .update({ price_per_k })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-bundles'] });
+      toast({ title: 'Price updated' });
+    },
+    onError: (e: any) => toast({ title: 'Price update failed', description: e.message, variant: 'destructive' }),
   });
 
   // Toggle custom ratios mode
@@ -561,6 +595,9 @@ export default function AdminBundles() {
                   onUpdateRatio={(id, ratio_percent) =>
                     updateItemRatioMutation.mutate({ id, ratio_percent })
                   }
+                  onUpdatePrice={(id, price_per_k) =>
+                    updateItemPriceMutation.mutate({ id, price_per_k })
+                  }
                 />
               ))
             )}
@@ -676,6 +713,7 @@ function BundleCard({
   onDeleteItem,
   onUpdateItem,
   onUpdateRatio,
+  onUpdatePrice,
 }: {
   bundle: any;
   services: any[];
@@ -693,8 +731,11 @@ function BundleCard({
   onDeleteItem: (id: string) => void;
   onUpdateItem: (id: string, service_id: string | null) => void;
   onUpdateRatio: (id: string, ratio_percent: number) => void;
+  onUpdatePrice: (id: string, price_per_k: number | null) => void;
 }) {
   const [editingRatios, setEditingRatios] = useState<Record<string, string>>({});
+  const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
+  const INR_RATE = 83.5;
   const existingTypes = new Set(
     bundle.items?.map((i: any) => i.engagement_type) || []
   );
@@ -935,6 +976,46 @@ function BundleCard({
                     </div>
                   </div>
                 )}
+
+                {/* Manual Price (INR per 1K) — overrides linked service price */}
+                <div className="flex items-center gap-2 pl-12">
+                  <span className="text-xs text-muted-foreground shrink-0">INR / 1K:</span>
+                  <div className="relative flex-1 max-w-[160px]">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="auto"
+                      value={
+                        editingPrices[item.id] ??
+                        (item.price_per_k != null && item.price_per_k > 0
+                          ? (Number(item.price_per_k) * INR_RATE).toFixed(2)
+                          : '')
+                      }
+                      onChange={(e) =>
+                        setEditingPrices(prev => ({ ...prev, [item.id]: e.target.value }))
+                      }
+                      onBlur={(e) => {
+                        const raw = e.target.value.trim();
+                        const inr = raw === '' ? null : parseFloat(raw);
+                        if (inr !== null && (isNaN(inr) || inr < 0)) {
+                          setEditingPrices(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                          return;
+                        }
+                        const usd = inr === null ? null : Number((inr / INR_RATE).toFixed(6));
+                        onUpdatePrice(item.id, usd);
+                        setEditingPrices(prev => { const n = { ...prev }; delete n[item.id]; return n; });
+                      }}
+                      className="h-8 pl-6 text-sm rounded-lg"
+                    />
+                  </div>
+                  {item.price_per_k != null && item.price_per_k > 0 ? (
+                    <Badge className="bg-primary/15 text-primary text-[10px] border border-primary/30">FIXED</Badge>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground italic">fallback: service price</span>
+                  )}
+                </div>
 
                 {/* Service Info + Provider Config */}
                 <div className="flex items-center gap-2 pl-12">

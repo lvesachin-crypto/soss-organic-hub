@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/hooks/useCurrency";
-import { useGlobalMarkup } from "@/hooks/useGlobalMarkup";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +58,27 @@ export default function EngagementOrder() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { formatPrice, rates } = useCurrency();
-  const { applyMarkup } = useGlobalMarkup();
+  // Pricing now comes from bundle_items.price_per_k (admin-controlled per type).
+
+  // Realtime: when admin changes bundle/service pricing, refresh user view instantly.
+  useEffect(() => {
+    const channel = supabase
+      .channel('pricing-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bundle_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['bundles'] });
+        queryClient.invalidateQueries({ queryKey: ['all-bundles-with-items'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'engagement_bundles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['bundles'] });
+        queryClient.invalidateQueries({ queryKey: ['all-bundles-with-items'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['bundles'] });
+        queryClient.invalidateQueries({ queryKey: ['all-active-services'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   // Form State
   const [platform, setPlatform] = useState('instagram');
@@ -246,10 +265,15 @@ export default function EngagementOrder() {
       const positiveMins = matchingServices.map(s => s.min_quantity ?? 0).filter(n => n > 0);
       const lowestMatchedMin = positiveMins.length > 0 ? Math.min(...positiveMins) : undefined;
 
+      // PRIORITY 0: admin-set per-bundle-item price overrides everything
+      const manualPricePerK = typeof item.price_per_k === 'number' && item.price_per_k > 0
+        ? Number(item.price_per_k)
+        : null;
+
       // 1) Try the linked service first, but show the lowest provider minimum across the rotation pool
-      if (item.service && item.service.price > 0) {
+      if (item.service && (manualPricePerK !== null || item.service.price > 0)) {
         prices[item.engagement_type] = {
-          pricePerK: applyMarkup(item.service.price),
+          pricePerK: manualPricePerK ?? item.service.price,
           serviceId: item.service.id,
           minQuantity: lowestMatchedMin ?? item.service.min_quantity,
         };
@@ -266,7 +290,7 @@ export default function EngagementOrder() {
           // Lowest min across all matching providers (router can rotate)
           const lowestMin = Math.min(...matches.map(s => s.min_quantity ?? 0).filter(n => n > 0));
           prices[item.engagement_type] = {
-            pricePerK: applyMarkup(match.price),
+            pricePerK: manualPricePerK ?? match.price,
             serviceId: match.id,
             minQuantity: Number.isFinite(lowestMin) ? lowestMin : match.min_quantity,
           };
@@ -277,7 +301,7 @@ export default function EngagementOrder() {
       // 3) Even if linked but price=0, still register the service for order routing
       if (item.service) {
         prices[item.engagement_type] = {
-          pricePerK: applyMarkup(item.service.price),
+          pricePerK: manualPricePerK ?? item.service.price,
           serviceId: item.service.id,
           minQuantity: lowestMatchedMin ?? item.service.min_quantity,
         };
@@ -296,7 +320,7 @@ export default function EngagementOrder() {
       };
     }
     return prices;
-  }, [bundles, applyMarkup, allServices, platform, rates]);
+  }, [bundles, allServices, platform, rates]);
 
   // Update engagement configs when bundle or base quantity changes
   // Use debounced value to prevent excessive recalculations
