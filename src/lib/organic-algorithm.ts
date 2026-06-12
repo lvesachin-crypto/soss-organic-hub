@@ -393,8 +393,22 @@ export function generateOrganicSchedule(
   peakEnabled: boolean,
   startTime: Date,
   serviceMinimum?: number,
-  timeLimitHours?: number // NEW: Optional time limit in hours
+  timeLimitHours?: number, // NEW: Optional time limit in hours
+  forcedRunCount?: number   // NEW: User-specified exact run count
 ): FullOrganicConfig {
+  // FORCED RUN COUNT BRANCH: user explicitly chose how many runs
+  if (forcedRunCount && forcedRunCount > 0) {
+    return generateForcedRunCountSchedule(
+      engagementType,
+      totalQuantity,
+      forcedRunCount,
+      variancePercent,
+      startTime,
+      serviceMinimum,
+      timeLimitHours,
+    );
+  }
+
   const runs: OrganicRunConfig[] = [];
   const warnings: string[] = [];
   let patternBreakCount = 0;
