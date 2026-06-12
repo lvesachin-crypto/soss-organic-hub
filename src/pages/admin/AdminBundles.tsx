@@ -713,6 +713,7 @@ function BundleCard({
   onDeleteItem,
   onUpdateItem,
   onUpdateRatio,
+  onUpdatePrice,
 }: {
   bundle: any;
   services: any[];
@@ -730,8 +731,11 @@ function BundleCard({
   onDeleteItem: (id: string) => void;
   onUpdateItem: (id: string, service_id: string | null) => void;
   onUpdateRatio: (id: string, ratio_percent: number) => void;
+  onUpdatePrice: (id: string, price_per_k: number | null) => void;
 }) {
   const [editingRatios, setEditingRatios] = useState<Record<string, string>>({});
+  const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
+  const INR_RATE = 83.5;
   const existingTypes = new Set(
     bundle.items?.map((i: any) => i.engagement_type) || []
   );
