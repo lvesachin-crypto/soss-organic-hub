@@ -147,65 +147,40 @@ export default function Admin() {
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-accent/20 to-transparent rounded-full blur-3xl" />
         </div>
 
+        {/* Total User Deposits — Hero Stat */}
+        <Card className="glass-card relative overflow-hidden border-2 border-success/30">
+          <div className="absolute inset-0 bg-gradient-to-br from-success/10 via-transparent to-success/5" />
+          <CardContent className="p-5 sm:p-6 relative">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-success to-success/60 flex items-center justify-center shadow-xl shadow-success/20 shrink-0">
+                  <CreditCard className="h-7 w-7 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total User Deposits (All Time)</p>
+                  <p className="text-3xl sm:text-4xl font-extrabold text-success">
+                    ₹{(totalDepositsUsd * 83.5).toFixed(2)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {depositsCount} successful deposits · auto-refresh every 15s
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 min-w-[220px]">
+                <div className="p-3 rounded-xl bg-success/5 border border-success/20">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Today</p>
+                  <p className="text-lg font-bold text-success">₹{(depositsTodayUsd * 83.5).toFixed(2)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Balance</p>
+                  <p className="text-lg font-bold text-primary">₹{(totalWalletUsd * 83.5).toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
-            <div className="absolute inset-0 bg-gradient-to-br from-foreground/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-4 sm:p-6 relative">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center shadow-lg shadow-foreground/20">
-                  <Users className="h-6 w-6 text-background" />
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-foreground" />
-              </div>
-              <p className="text-3xl sm:text-4xl font-bold">{userCount || 0}</p>
-              <p className="text-sm text-muted-foreground">Total Users</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
-            <div className="absolute inset-0 bg-gradient-to-br from-foreground/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-4 sm:p-6 relative">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-foreground/90 flex items-center justify-center shadow-lg shadow-foreground/20">
-                  <ShoppingCart className="h-6 w-6 text-background" />
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-foreground" />
-              </div>
-              <p className="text-3xl sm:text-4xl font-bold">{totalOrders}</p>
-              <p className="text-sm text-muted-foreground">Total Orders</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
-            <div className="absolute inset-0 bg-gradient-to-br from-foreground/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-4 sm:p-6 relative">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-foreground/80 flex items-center justify-center shadow-lg shadow-foreground/20">
-                  <DollarSign className="h-6 w-6 text-background" />
-                </div>
-                <TrendingUp className="h-4 w-4 text-foreground" />
-              </div>
-              <p className="text-3xl sm:text-4xl font-bold">₹{(totalRevenue * 83.5).toFixed(2)}</p>
-              <p className="text-sm text-muted-foreground">Total Revenue</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card relative overflow-hidden group hover:border-primary/30 transition-all">
-            <div className="absolute inset-0 bg-gradient-to-br from-foreground/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CardContent className="p-4 sm:p-6 relative">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-foreground/70 flex items-center justify-center shadow-lg shadow-foreground/20">
-                  <Package className="h-6 w-6 text-background" />
-                </div>
-                <Zap className="h-4 w-4 text-foreground" />
-              </div>
-              <p className="text-3xl sm:text-4xl font-bold">{serviceCount || 0}</p>
-              <p className="text-sm text-muted-foreground">Active Services</p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Global Markup Control */}
         <Card className="glass-card border-2 border-primary/30 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
