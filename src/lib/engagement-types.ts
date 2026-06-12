@@ -21,6 +21,8 @@ export interface BundleItem {
   engagement_type: EngagementType;
   ratio_percent: number;
   is_base: boolean;
+  /** Admin-set per-1000 price in USD. Overrides service.price when present. */
+  price_per_k?: number | null;
   default_drip_qty_per_run: number;
   default_drip_interval: number;
   default_drip_interval_unit: 'minutes' | 'hours';
