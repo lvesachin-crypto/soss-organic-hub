@@ -78,6 +78,9 @@ export function EngagementTypeCard({
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [editingRunIndex, setEditingRunIndex] = useState<number | null>(null);
   const [customRunQuantities, setCustomRunQuantities] = useState<Record<number, number>>({});
+  const [customRunsInput, setCustomRunsInput] = useState<string>(
+    config.runCount ? String(config.runCount) : ''
+  );
 
   // Local quantity input state for smooth typing
   const [localQtyValue, setLocalQtyValue] = useState(config.quantity.toString());
@@ -275,6 +278,19 @@ export function EngagementTypeCard({
     onChange({ ...config, peakHoursEnabled: enabled });
   };
 
+  // Number-of-runs control
+  const maxAllowedRuns = Math.max(1, Math.floor((config.quantity || 0) / providerMin));
+  const handleRunCountChange = (value: number | undefined) => {
+    if (!value || value <= 0) {
+      onChange({ ...config, runCount: undefined });
+      setCustomRunsInput('');
+      return;
+    }
+    const clamped = Math.max(1, Math.min(value, maxAllowedRuns));
+    onChange({ ...config, runCount: clamped });
+    setCustomRunsInput(String(clamped));
+  };
+
   // Validation
   const isBelowMin = config.enabled && config.quantity < providerMin;
   const isAboveMax = config.enabled && config.quantity > providerMax;
@@ -451,6 +467,89 @@ export function EngagementTypeCard({
                         className="w-20 sm:w-24 h-9 sm:h-10 text-sm sm:text-base bg-secondary border-2 border-border text-foreground font-bold"
                       />
                       <span className="text-xs sm:text-sm text-muted-foreground font-medium">hours</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Number of Runs */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold flex items-center justify-between text-foreground uppercase tracking-widest">
+                    <span className="flex items-center gap-1.5">
+                      <List className="h-3 w-3 text-foreground" />
+                      Number of Runs
+                    </span>
+                    <span className="text-[9px] text-muted-foreground normal-case tracking-normal font-medium">
+                      Max {maxAllowedRuns} (min {providerMin}/run)
+                    </span>
+                  </Label>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { value: 0, label: 'Auto' },
+                      { value: 50, label: '50' },
+                      { value: 100, label: '100' },
+                      { value: 200, label: '200' },
+                    ].map(preset => {
+                      const isSelected = preset.value === 0
+                        ? !config.runCount
+                        : config.runCount === preset.value;
+                      const disabled = preset.value > maxAllowedRuns;
+                      return (
+                        <Button
+                          key={preset.value}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          disabled={disabled}
+                          className={cn(
+                            "h-6 text-[10px] px-2 font-bold",
+                            isSelected
+                              ? "bg-foreground text-background"
+                              : "bg-secondary text-foreground border border-border hover:bg-muted"
+                          )}
+                          onClick={() => handleRunCountChange(preset.value || undefined)}
+                        >
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Custom runs"
+                      value={customRunsInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setCustomRunsInput(val);
+                        const n = parseInt(val, 10);
+                        if (Number.isFinite(n) && n > 0) {
+                          handleRunCountChange(n);
+                        } else if (val === '') {
+                          onChange({ ...config, runCount: undefined });
+                        }
+                      }}
+                      onBlur={() => {
+                        const n = parseInt(customRunsInput, 10);
+                        if (!Number.isFinite(n) || n <= 0) {
+                          setCustomRunsInput('');
+                          onChange({ ...config, runCount: undefined });
+                          return;
+                        }
+                        handleRunCountChange(n);
+                      }}
+                      className="w-24 h-8 text-xs bg-secondary border-2 border-border text-foreground font-bold"
+                    />
+                    {config.runCount && config.runCount > 0 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        ~{Math.round(config.quantity / config.runCount).toLocaleString()} / run
+                      </span>
+                    )}
+                  </div>
+                  {customRunsInput && parseInt(customRunsInput, 10) > maxAllowedRuns && (
+                    <div className="flex items-start gap-1 text-[10px] text-red-500 font-bold mt-1">
+                      <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                      <span>Max {maxAllowedRuns} runs allowed ({config.quantity.toLocaleString()} ÷ {providerMin})</span>
                     </div>
                   )}
                 </div>
