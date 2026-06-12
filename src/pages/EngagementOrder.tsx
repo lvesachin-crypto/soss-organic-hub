@@ -37,6 +37,7 @@ import {
 import { Loader2, Rocket, Link as LinkIcon, Wallet, RefreshCw, Brain, Percent } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useDebounce } from "@/hooks/useDebounce";
+import { FullOrganicConfig } from "@/lib/organic-algorithm";
 
 type EngagementConfigs = Record<string, EngagementConfig>;
 
@@ -67,6 +68,7 @@ export default function EngagementOrder() {
   // Debounce base quantity for expensive recalculations
   const debouncedBaseQuantity = useDebounce(baseQuantity, 200);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [previewSchedules, setPreviewSchedules] = useState<Record<string, { scheduled_at: string; quantity_to_send: number; base_quantity: number; variance_applied: number; peak_multiplier: number }[]>>({});
 
   // Draw mode state for custom curve editing
   const [drawModeState, setDrawModeState] = useState<DrawModeState>({
@@ -409,6 +411,30 @@ export default function EngagementOrder() {
     setPreviewRefreshKey(k => k + 1);
   }, []);
 
+  const handleScheduleChange = useCallback((payload: {
+    schedules: FullOrganicConfig[];
+    customQuantities: Record<string, number>;
+  }) => {
+    const nextSchedules = payload.schedules.reduce((acc, schedule) => {
+      acc[schedule.engagementType] = schedule.runs.map((run) => {
+        const runId = `${schedule.engagementType}-${run.runNumber}`;
+        const quantity = payload.customQuantities[runId] ?? run.quantity;
+
+        return {
+          scheduled_at: run.scheduledAt.toISOString(),
+          quantity_to_send: quantity,
+          base_quantity: quantity,
+          variance_applied: run.varianceApplied,
+          peak_multiplier: run.peakMultiplier,
+        };
+      });
+
+      return acc;
+    }, {} as Record<string, { scheduled_at: string; quantity_to_send: number; base_quantity: number; variance_applied: number; peak_multiplier: number }[]>);
+
+    setPreviewSchedules(nextSchedules);
+  }, []);
+
   // Calculate totals
   const totalPrice = useMemo(() => {
     return Object.values(engagements)
@@ -484,6 +510,11 @@ export default function EngagementOrder() {
                 effectiveTimeLimit = 0;
               }
 
+              const scheduledRuns = previewSchedules[type]?.map((run, index) => ({
+                ...run,
+                run_number: index + 1,
+              }));
+
               return {
                 type,
                 quantity: config.quantity,
@@ -493,6 +524,7 @@ export default function EngagementOrder() {
                 time_limit_hours: effectiveTimeLimit,
                 variance_percent: config.variancePercent,
                 peak_hours_enabled: config.peakHoursEnabled,
+                scheduled_runs: scheduledRuns,
               };
             }),
         },
@@ -888,6 +920,7 @@ export default function EngagementOrder() {
             refreshKey={previewRefreshKey}
             platform={platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook'}
             customCurvePoints={drawModeState.isEnabled ? drawModeState.points : undefined}
+            onScheduleChange={handleScheduleChange}
           />
         )}
 
