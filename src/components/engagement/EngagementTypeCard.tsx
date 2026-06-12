@@ -547,9 +547,6 @@ export function EngagementTypeCard({
                         }}
                         className="w-20 sm:w-24 h-7 text-xs text-center bg-secondary border-2 border-border text-foreground font-bold px-1.5"
                       />
-                      <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap">
-                        runs
-                      </span>
                     </div>
                   </div>
 
