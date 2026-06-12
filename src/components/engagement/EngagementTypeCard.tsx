@@ -399,8 +399,9 @@ export function EngagementTypeCard({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-2 pt-2 border-t border-border space-y-3">
-                {/* Time Limit */}
-                <div className="space-y-1.5">
+                {/* Time Limit + Number of Runs side-by-side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
                   <Label className="text-[10px] font-bold flex items-center gap-1.5 text-foreground uppercase tracking-widest">
                     <Timer className="h-3 w-3 text-foreground" />
                     Delivery Time
