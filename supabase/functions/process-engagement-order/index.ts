@@ -35,6 +35,15 @@ interface OrganicServiceConfig {
   defaultMinQty: number
 }
 
+interface ScheduledRunInput {
+  run_number?: number
+  scheduled_at: string
+  quantity_to_send: number
+  base_quantity?: number
+  variance_applied?: number
+  peak_multiplier?: number
+}
+
 // COMPLETE SERVICE-SPECIFIC CONFIGS
 const MAX_BATCH_CAPS: Record<string, number> = {
   views: 200, likes: 35, comments: 3, saves: 20, shares: 25,
@@ -338,131 +347,154 @@ serve(async (req) => {
             if (targetRuns < 2 && engagement.quantity >= providerMin * 2) targetRuns = 2
           }
 
-          let remaining = engagement.quantity
-          let currentTime: Date
-          if (isViewType && viewsStartTime) currentTime = new Date(viewsStartTime.getTime())
-          else if (viewsStartTime) currentTime = new Date(viewsStartTime.getTime() + initialDelayMinutes * 60 * 1000)
-          else currentTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
+          const previewRuns = Array.isArray(engagement.scheduled_runs)
+            ? (engagement.scheduled_runs as ScheduledRunInput[])
+            : []
 
-          let runNumber = 1
-          const scheduleEntries = []
-
-          while (remaining > 0 && (!timeLimitApplied || runNumber <= targetRuns)) {
-            const interval = (baseInterval + (Math.random() * 2 - 1) * intervalRange) * (timeLimitApplied ? 1 : (Math.random() < 0.2 ? 1.5 : 1))
-            const scheduledAt = new Date(currentTime.getTime() + (Math.random() * 2 - 1) * 2 * 60 * 1000)
-            if (scheduledAt < new Date(startTime.getTime() + 5*60*1000)) scheduledAt.setTime(startTime.getTime() + 5*60*1000)
-
-            const istHour = new Date(scheduledAt.getTime() + 5.5*3600000).getUTCHours()
-            const multiplier = peakHoursEnabled ? (platformDailyPattern[istHour] || 1) : (0.9 + Math.random()*0.2)
-            
-            const runsLeft = Math.max(1, targetRuns - runNumber + 1)
-            let qty = Math.round((remaining / runsLeft) * (0.8 + Math.random() * 0.4) * multiplier)
-            
-            // ATOMIC CLAMP: Each run must be at least providerMin if possible
-            qty = Math.max(providerMin, Math.min(qty, remaining, maxBatchCap))
-            
-            // Final adjustments: if last run or remaining too small, take it all
-            if (runNumber === targetRuns || remaining <= providerMin) {
-              qty = remaining
-            }
-
-            // HARD STOP: Don't create more runs than absoluteMaxRuns (prevents too many small runs)
-            if (!timeLimitApplied && runNumber > absoluteMaxRuns && remaining > 0) {
-              qty = remaining // Dump all remaining into this last run
-            }
-
-            scheduleEntries.push({
-              engagement_order_item_id: itemId,
-              run_number: runNumber,
-              scheduled_at: scheduledAt.toISOString(),
-              quantity_to_send: qty,
-              base_quantity: qty,
-              status: 'pending'
-            })
-
-            remaining -= qty
-            runNumber++
-            currentTime = new Date(currentTime.getTime() + Math.max(5, interval) * 60000)
-            if (runNumber > 1000) break
-          }
-
-          if (remaining > 0 && scheduleEntries.length > 0) {
-            scheduleEntries[scheduleEntries.length - 1].quantity_to_send += remaining
-            scheduleEntries[scheduleEntries.length - 1].base_quantity += remaining
-          }
-          
-          // Re-normalize and ensure providerMin is respected for ALL runs
-          let carry = 0
-          const validatedEntries = []
+          let validatedEntries: any[] = []
           const totalTargetQty = engagement.quantity
 
-          for (let i = 0; i < scheduleEntries.length; i++) {
-            const e = scheduleEntries[i]
-            e.quantity_to_send += carry
-            e.base_quantity = e.quantity_to_send
-            carry = 0
-            
-            // If run is below minimum AND we have more runs to come, carry it forward
-            if (e.quantity_to_send < providerMin && i < scheduleEntries.length - 1) {
-              carry = e.quantity_to_send
-            } else {
-              if (e.quantity_to_send > 0) validatedEntries.push(e)
+          if (previewRuns.length > 0) {
+            validatedEntries = previewRuns
+              .map((run, index) => ({
+                engagement_order_item_id: itemId,
+                run_number: index + 1,
+                scheduled_at: new Date(run.scheduled_at).toISOString(),
+                quantity_to_send: Math.max(0, Math.round(Number(run.quantity_to_send) || 0)),
+                base_quantity: Math.max(0, Math.round(Number(run.base_quantity ?? run.quantity_to_send) || 0)),
+                variance_applied: Number(run.variance_applied ?? 0),
+                peak_multiplier: Number(run.peak_multiplier ?? 1),
+                status: 'pending'
+              }))
+              .filter((run) => run.quantity_to_send > 0)
+
+            const scheduledSum = validatedEntries.reduce((sum, run) => sum + run.quantity_to_send, 0)
+            if (validatedEntries.length > 0 && scheduledSum !== totalTargetQty) {
+              const diff = totalTargetQty - scheduledSum
+              validatedEntries[validatedEntries.length - 1].quantity_to_send += diff
+              validatedEntries[validatedEntries.length - 1].base_quantity = validatedEntries[validatedEntries.length - 1].quantity_to_send
             }
+
+            validatedEntries = validatedEntries.filter((run) => run.quantity_to_send > 0)
           }
 
-          // FINAL FIX: If the last validated entry is below providerMin, merge it into the previous one
-          if (validatedEntries.length >= 2) {
-            const lastEntry = validatedEntries[validatedEntries.length - 1]
-            if (lastEntry.quantity_to_send < providerMin) {
-              const prevEntry = validatedEntries[validatedEntries.length - 2]
-              prevEntry.quantity_to_send += lastEntry.quantity_to_send
-              prevEntry.base_quantity = prevEntry.quantity_to_send
-              validatedEntries.pop()
-            }
-          }
-          
-          // Final safety net: If no runs created but quantity exists, create one massive run
-          if (validatedEntries.length === 0 && totalTargetQty > 0) {
-            validatedEntries.push({
-              engagement_order_item_id: itemId,
-              run_number: 1,
-              scheduled_at: new Date(startTime.getTime() + 10 * 60 * 1000).toISOString(),
-              quantity_to_send: Math.max(carry, totalTargetQty),
-              base_quantity: Math.max(carry, totalTargetQty),
-              status: 'pending'
-            })
-          }
-          
-          validatedEntries.forEach((e, i) => e.run_number = i + 1)
+          if (validatedEntries.length === 0) {
+            let remaining = engagement.quantity
+            let currentTime: Date
+            if (isViewType && viewsStartTime) currentTime = new Date(viewsStartTime.getTime())
+            else if (viewsStartTime) currentTime = new Date(viewsStartTime.getTime() + initialDelayMinutes * 60 * 1000)
+            else currentTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
 
-          // SAFETY NET: If total scheduled qty < target, top up with extra runs
-          // This prevents under-delivery bugs where loop terminates early
-          {
-            const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
-            const shortfall = totalTargetQty - scheduledSum
-            if (shortfall >= providerMin && validatedEntries.length > 0) {
-              const perRun = Math.max(providerMin, Math.min(maxBatchCap, Math.ceil(shortfall / Math.max(5, Math.ceil(shortfall / maxBatchCap)))))
-              const extraRuns = Math.max(1, Math.ceil(shortfall / perRun))
-              const lastTime = new Date(validatedEntries[validatedEntries.length - 1].scheduled_at).getTime()
-              let leftover = shortfall
-              for (let k = 0; k < extraRuns && leftover > 0; k++) {
-                const qty = (k === extraRuns - 1) ? leftover : Math.min(perRun, leftover)
-                if (qty <= 0) break
-                const t = new Date(lastTime + (k + 1) * (baseInterval * 60 * 1000) + (Math.random() * 2 - 1) * 60 * 1000)
-                validatedEntries.push({
-                  engagement_order_item_id: itemId,
-                  run_number: validatedEntries.length + 1,
-                  scheduled_at: t.toISOString(),
-                  quantity_to_send: qty,
-                  base_quantity: qty,
-                  status: 'pending'
-                })
-                leftover -= qty
+            let runNumber = 1
+            const scheduleEntries = []
+
+            while (remaining > 0 && (!timeLimitApplied || runNumber <= targetRuns)) {
+              const interval = (baseInterval + (Math.random() * 2 - 1) * intervalRange) * (timeLimitApplied ? 1 : (Math.random() < 0.2 ? 1.5 : 1))
+              const scheduledAt = new Date(currentTime.getTime() + (Math.random() * 2 - 1) * 2 * 60 * 1000)
+              if (scheduledAt < new Date(startTime.getTime() + 5*60*1000)) scheduledAt.setTime(startTime.getTime() + 5*60*1000)
+
+              const istHour = new Date(scheduledAt.getTime() + 5.5*3600000).getUTCHours()
+              const multiplier = peakHoursEnabled ? (platformDailyPattern[istHour] || 1) : (0.9 + Math.random()*0.2)
+              
+              const runsLeft = Math.max(1, targetRuns - runNumber + 1)
+              let qty = Math.round((remaining / runsLeft) * (0.8 + Math.random() * 0.4) * multiplier)
+              
+              qty = Math.max(providerMin, Math.min(qty, remaining, maxBatchCap))
+              
+              if (runNumber === targetRuns || remaining <= providerMin) {
+                qty = remaining
               }
-              console.log(`🛟 [${engType}] Top-up: scheduled ${scheduledSum}/${totalTargetQty}, added ${extraRuns} runs for shortfall ${shortfall}`)
+
+              if (!timeLimitApplied && runNumber > absoluteMaxRuns && remaining > 0) {
+                qty = remaining
+              }
+
+              scheduleEntries.push({
+                engagement_order_item_id: itemId,
+                run_number: runNumber,
+                scheduled_at: scheduledAt.toISOString(),
+                quantity_to_send: qty,
+                base_quantity: qty,
+                status: 'pending'
+              })
+
+              remaining -= qty
+              runNumber++
+              currentTime = new Date(currentTime.getTime() + Math.max(5, interval) * 60000)
+              if (runNumber > 1000) break
             }
+
+            if (remaining > 0 && scheduleEntries.length > 0) {
+              scheduleEntries[scheduleEntries.length - 1].quantity_to_send += remaining
+              scheduleEntries[scheduleEntries.length - 1].base_quantity += remaining
+            }
+            
+            let carry = 0
+            validatedEntries = []
+
+            for (let i = 0; i < scheduleEntries.length; i++) {
+              const e = scheduleEntries[i]
+              e.quantity_to_send += carry
+              e.base_quantity = e.quantity_to_send
+              carry = 0
+              
+              if (e.quantity_to_send < providerMin && i < scheduleEntries.length - 1) {
+                carry = e.quantity_to_send
+              } else {
+                if (e.quantity_to_send > 0) validatedEntries.push(e)
+              }
+            }
+
+            if (validatedEntries.length >= 2) {
+              const lastEntry = validatedEntries[validatedEntries.length - 1]
+              if (lastEntry.quantity_to_send < providerMin) {
+                const prevEntry = validatedEntries[validatedEntries.length - 2]
+                prevEntry.quantity_to_send += lastEntry.quantity_to_send
+                prevEntry.base_quantity = prevEntry.quantity_to_send
+                validatedEntries.pop()
+              }
+            }
+            
+            if (validatedEntries.length === 0 && totalTargetQty > 0) {
+              validatedEntries.push({
+                engagement_order_item_id: itemId,
+                run_number: 1,
+                scheduled_at: new Date(startTime.getTime() + 10 * 60 * 1000).toISOString(),
+                quantity_to_send: Math.max(carry, totalTargetQty),
+                base_quantity: Math.max(carry, totalTargetQty),
+                status: 'pending'
+              })
+            }
+            
+            validatedEntries.forEach((e, i) => e.run_number = i + 1)
+
+            {
+              const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
+              const shortfall = totalTargetQty - scheduledSum
+              if (shortfall >= providerMin && validatedEntries.length > 0) {
+                const perRun = Math.max(providerMin, Math.min(maxBatchCap, Math.ceil(shortfall / Math.max(5, Math.ceil(shortfall / maxBatchCap)))))
+                const extraRuns = Math.max(1, Math.ceil(shortfall / perRun))
+                const lastTime = new Date(validatedEntries[validatedEntries.length - 1].scheduled_at).getTime()
+                let leftover = shortfall
+                for (let k = 0; k < extraRuns && leftover > 0; k++) {
+                  const qty = (k === extraRuns - 1) ? leftover : Math.min(perRun, leftover)
+                  if (qty <= 0) break
+                  const t = new Date(lastTime + (k + 1) * (baseInterval * 60 * 1000) + (Math.random() * 2 - 1) * 60 * 1000)
+                  validatedEntries.push({
+                    engagement_order_item_id: itemId,
+                    run_number: validatedEntries.length + 1,
+                    scheduled_at: t.toISOString(),
+                    quantity_to_send: qty,
+                    base_quantity: qty,
+                    status: 'pending'
+                  })
+                  leftover -= qty
+                }
+                console.log(`🛟 [${engType}] Top-up: scheduled ${scheduledSum}/${totalTargetQty}, added ${extraRuns} runs for shortfall ${shortfall}`)
+              }
+            }
+            validatedEntries.forEach((e, i) => e.run_number = i + 1)
           }
-          validatedEntries.forEach((e, i) => e.run_number = i + 1)
 
           if (validatedEntries.length > 0) {
             const { error: schedErr } = await supabase.from('organic_run_schedule').insert(validatedEntries)
