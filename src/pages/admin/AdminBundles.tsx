@@ -977,10 +977,6 @@ function BundleCard({
                   </div>
                 )}
 
-                {/* Service Info + Provider Config */}
-                <div className="flex items-center gap-2 pl-12">
-                </div>
-
                 {/* Manual Price (INR per 1K) — overrides linked service price */}
                 <div className="flex items-center gap-2 pl-12">
                   <span className="text-xs text-muted-foreground shrink-0">INR / 1K:</span>
