@@ -475,7 +475,7 @@ export function EngagementTypeCard({
                 </div>
 
                 {/* Number of Runs */}
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label className="text-[10px] font-bold flex flex-wrap items-center justify-between gap-1 text-foreground uppercase tracking-widest">
                     <span className="flex items-center gap-1.5">
                       <List className="h-3 w-3 text-foreground" />
