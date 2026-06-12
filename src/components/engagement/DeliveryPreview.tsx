@@ -193,7 +193,8 @@ export function DeliveryPreview({ engagements, refreshKey = 0, platform = 'insta
         peakHoursEnabled,
         typeStartTime,
         serviceMinimum,
-        timeLimitHours > 0 ? timeLimitHours : undefined
+        timeLimitHours > 0 ? timeLimitHours : undefined,
+        config.runCount && config.runCount > 0 ? config.runCount : undefined
       );
       
       // Capture views first run time for anchoring other types
