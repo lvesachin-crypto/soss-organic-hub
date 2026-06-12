@@ -279,6 +279,107 @@ function calculateHumanScore(
   return Math.min(100, Math.max(0, score));
 }
 
+function pickUniqueQuantity(
+  preferredQuantity: number,
+  minQuantity: number,
+  maxQuantity: number,
+  usedQuantities: Set<number>,
+  previousQuantity?: number | null
+): number {
+  const safeMin = Math.round(Math.min(minQuantity, maxQuantity));
+  const safeMax = Math.round(Math.max(minQuantity, maxQuantity));
+  const preferred = Math.round(Math.max(safeMin, Math.min(safeMax, preferredQuantity)));
+  const minGap = previousQuantity != null
+    ? Math.max(2, Math.floor(Math.max(safeMin, previousQuantity) * 0.02))
+    : 0;
+
+  let fallback = preferred;
+
+  for (let step = 0; step <= safeMax - safeMin; step++) {
+    const candidates = step === 0 ? [preferred] : [preferred + step, preferred - step];
+
+    for (const candidate of candidates) {
+      if (candidate < safeMin || candidate > safeMax) continue;
+
+      const isDuplicate = usedQuantities.has(candidate);
+      const isTooClose = previousQuantity != null && Math.abs(candidate - previousQuantity) < minGap;
+      const isRoundNumber = candidate % 5 === 0 && candidate !== safeMin;
+
+      if (!isDuplicate && !isTooClose && !isRoundNumber) {
+        return candidate;
+      }
+
+      if (!isDuplicate && !isTooClose && fallback === preferred) {
+        fallback = candidate;
+      } else if (!isDuplicate && fallback === preferred) {
+        fallback = candidate;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function finalizeUniqueRuns(
+  runs: OrganicRunConfig[],
+  totalQuantity: number,
+  minQuantity: number,
+  maxQuantity: number
+): OrganicRunConfig[] {
+  if (runs.length <= 1) return runs;
+
+  const adjustedRuns = runs.map((run) => ({ ...run }));
+  const hardMax = Math.max(minQuantity, maxQuantity);
+  const usedQuantities = new Set<number>();
+
+  adjustedRuns.forEach((run, index) => {
+    const previousQuantity = index > 0 ? adjustedRuns[index - 1].quantity : undefined;
+    run.quantity = pickUniqueQuantity(run.quantity, minQuantity, hardMax, usedQuantities, previousQuantity);
+    usedQuantities.add(run.quantity);
+  });
+
+  let drift = totalQuantity - adjustedRuns.reduce((sum, run) => sum + run.quantity, 0);
+  let guard = 0;
+
+  while (drift !== 0 && guard < 10000) {
+    let changed = false;
+    const candidateIndexes = adjustedRuns
+      .map((run, index) => ({ index, quantity: run.quantity }))
+      .sort((a, b) => (drift > 0 ? a.quantity - b.quantity : b.quantity - a.quantity))
+      .map((item) => item.index);
+
+    for (const index of candidateIndexes) {
+      const step = drift > 0 ? 1 : -1;
+      const candidateQuantity = adjustedRuns[index].quantity + step;
+      const previousQuantity = index > 0 ? adjustedRuns[index - 1].quantity : undefined;
+
+      if (candidateQuantity < minQuantity || candidateQuantity > hardMax) continue;
+      if (adjustedRuns.some((run, runIndex) => runIndex !== index && run.quantity === candidateQuantity)) continue;
+      if (previousQuantity != null && Math.abs(candidateQuantity - previousQuantity) < 2) continue;
+
+      adjustedRuns[index].quantity = candidateQuantity;
+      drift += drift > 0 ? -1 : 1;
+      changed = true;
+
+      if (drift === 0) break;
+    }
+
+    if (!changed) break;
+    guard++;
+  }
+
+  if (drift !== 0 && adjustedRuns.length > 0) {
+    adjustedRuns[adjustedRuns.length - 1].quantity += drift;
+  }
+
+  adjustedRuns.forEach((run) => {
+    run.baseQuantity = run.quantity;
+    run.varianceApplied = 0;
+  });
+
+  return adjustedRuns;
+}
+
 /**
  * Generate fully organic schedule for a single engagement type
  * Each type has completely independent, randomized timing
@@ -482,18 +583,20 @@ export function generateOrganicSchedule(
       if (remainingForSmall <= 0) break;
     }
 
-    const totalDurationSmall = runs.length > 1
-      ? runs[runs.length - 1].scheduledAt.getTime() - runs[0].scheduledAt.getTime()
+    const finalizedRuns = finalizeUniqueRuns(runs, totalQuantity, providerMin, Math.max(providerMin + numRuns + 10, typeRunSize.max));
+
+    const totalDurationSmall = finalizedRuns.length > 1
+      ? finalizedRuns[finalizedRuns.length - 1].scheduledAt.getTime() - finalizedRuns[0].scheduledAt.getTime()
       : 0;
 
     return {
       engagementType,
       totalQuantity,
-      runs,
+      runs: finalizedRuns,
       totalDuration: totalDurationSmall,
       warnings,
       patternBreakCount: 0,
-      avgHumanScore: Math.round(runs.reduce((s, r) => s + r.humanBehaviorScore, 0) / runs.length),
+      avgHumanScore: Math.round(finalizedRuns.reduce((s, r) => s + r.humanBehaviorScore, 0) / finalizedRuns.length),
       varietyIndex: 45,
     };
   }
@@ -688,6 +791,25 @@ export function generateOrganicSchedule(
       quantities[quantities.length - 1] = Math.max(minQty, quantities[quantities.length - 1]);
     }
 
+    const uniqueQuantities = finalizeUniqueRuns(
+      quantities.map((qty, index) => ({
+        runNumber: index + 1,
+        scheduledAt: new Date(times[index]),
+        quantity: qty,
+        baseQuantity: qty,
+        varianceApplied: 0,
+        peakMultiplier: 1,
+        dayOfWeek: 0,
+        hourOfDay: 0,
+        sessionType: 'normal',
+        humanBehaviorScore: 0,
+        patternBreaker: false,
+      })),
+      totalQuantity,
+      minQty,
+      maxForTimeLimit
+    ).map((run) => run.quantity);
+
     for (let i = 0; i < targetRuns; i++) {
       const scheduledAt = new Date(times[i]);
       const istTime = new Date(times[i] + istOffset);
@@ -695,7 +817,7 @@ export function generateOrganicSchedule(
       const dayOfWeek = istTime.getUTCDay();
 
       const intervalMinutes = i === 0 ? Math.round(stepMs / 60000) : Math.round((times[i] - times[i - 1]) / 60000);
-      const qty = quantities[i];
+      const qty = uniqueQuantities[i];
 
       const humanScore = calculateHumanScore(
         qty,
@@ -1056,23 +1178,23 @@ export function generateOrganicSchedule(
     }
   }
 
-  const totalDuration = runs.length > 1
-    ? runs[runs.length - 1].scheduledAt.getTime() - runs[0].scheduledAt.getTime()
+  const finalizedRuns = finalizeUniqueRuns(runs, totalQuantity, providerMin, ULTRA_MAX_PER_RUN[engagementType] || scaled.ultraMax || scaled.max || providerMin + totalQuantity);
+
+  const totalDuration = finalizedRuns.length > 1
+    ? finalizedRuns[finalizedRuns.length - 1].scheduledAt.getTime() - finalizedRuns[0].scheduledAt.getTime()
     : 0;
 
-  // Calculate variety index (how varied the delivery is)
-  const quantities = runs.map(r => r.quantity);
+  const quantities = finalizedRuns.map(r => r.quantity);
   const avgQty = quantities.reduce((a, b) => a + b, 0) / quantities.length;
   const variance = quantities.reduce((sum, q) => sum + Math.pow(q - avgQty, 2), 0) / quantities.length;
   const varietyIndex = Math.min(100, Math.round((Math.sqrt(variance) / avgQty) * 100));
 
-  // Calculate average human score
-  const avgHumanScore = Math.round(runs.reduce((sum, r) => sum + r.humanBehaviorScore, 0) / runs.length);
+  const avgHumanScore = Math.round(finalizedRuns.reduce((sum, r) => sum + r.humanBehaviorScore, 0) / finalizedRuns.length);
 
   return {
     engagementType,
     totalQuantity,
-    runs,
+    runs: finalizedRuns,
     totalDuration,
     warnings,
     patternBreakCount,

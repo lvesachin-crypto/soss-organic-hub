@@ -109,15 +109,20 @@ export function DeliveryPreview({ engagements, refreshKey = 0, platform = 'insta
       (TYPE_PRIORITY[a.type] ?? 10) - (TYPE_PRIORITY[b.type] ?? 10)
     );
     
-    // Track when views actually start (first run)
+    // Track when views actually start/end so other engagement types can follow the same window
     let viewsStartTime = baseStartTime;
+    let viewsDurationHours = 0;
     
     // Generate individual schedule for each type with SEQUENCED start times
     const schedules: FullOrganicConfig[] = sortedTypes.map(({ type, config }) => {
-      const timeLimitHours = config.timeLimitHours ?? DEFAULT_ORGANIC_SETTINGS.timeLimitHours;
+      const rawTimeLimitHours = config.timeLimitHours ?? DEFAULT_ORGANIC_SETTINGS.timeLimitHours;
       const variancePercent = config.variancePercent ?? DEFAULT_ORGANIC_SETTINGS.variancePercent;
       const peakHoursEnabled = config.peakHoursEnabled ?? DEFAULT_ORGANIC_SETTINGS.peakHoursEnabled;
       const serviceMinimum = config.minQuantity || PROVIDER_MINIMUMS[type] || 10;
+      const isViewType = type === 'views';
+      const timeLimitHours = !isViewType && viewsDurationHours > 0
+        ? Math.max(viewsDurationHours, 0.25)
+        : rawTimeLimitHours;
       
       // Calculate start time based on type priority and views anchor
       let typeStartTime: Date;
@@ -194,6 +199,11 @@ export function DeliveryPreview({ engagements, refreshKey = 0, platform = 'insta
       // Capture views first run time for anchoring other types
       if (type === 'views' && schedule.runs.length > 0) {
         viewsStartTime = schedule.runs[0].scheduledAt;
+        const lastViewRun = schedule.runs[schedule.runs.length - 1];
+        viewsDurationHours = Math.max(
+          (lastViewRun.scheduledAt.getTime() - schedule.runs[0].scheduledAt.getTime()) / (1000 * 60 * 60),
+          0.25
+        );
       }
       
       return schedule;
