@@ -1,11 +1,11 @@
 import { Send, MessageCircle, Wallet as WalletIcon, Clock, ShieldCheck } from 'lucide-react';
-import supportAvatar from '@/assets/support-avatar.jpg.asset.json';
+import supportAvatar from '@/assets/organicsmm-logo.jpg.asset.json';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
 // 🚨 Razorpay/WazirX temporarily suspended.
 // Users must contact support directly on Telegram or WhatsApp to add funds.
-const TELEGRAM_USERNAME = 'HenryMiller08';
+const TELEGRAM_USERNAME = 'Organicsmmcashier';
 const TELEGRAM_URL = `https://t.me/${TELEGRAM_USERNAME}`;
 const WHATSAPP_NUMBER = '255637520201'; // +255 637 520 201
 
