@@ -279,6 +279,107 @@ function calculateHumanScore(
   return Math.min(100, Math.max(0, score));
 }
 
+function pickUniqueQuantity(
+  preferredQuantity: number,
+  minQuantity: number,
+  maxQuantity: number,
+  usedQuantities: Set<number>,
+  previousQuantity?: number | null
+): number {
+  const safeMin = Math.round(Math.min(minQuantity, maxQuantity));
+  const safeMax = Math.round(Math.max(minQuantity, maxQuantity));
+  const preferred = Math.round(Math.max(safeMin, Math.min(safeMax, preferredQuantity)));
+  const minGap = previousQuantity != null
+    ? Math.max(2, Math.floor(Math.max(safeMin, previousQuantity) * 0.02))
+    : 0;
+
+  let fallback = preferred;
+
+  for (let step = 0; step <= safeMax - safeMin; step++) {
+    const candidates = step === 0 ? [preferred] : [preferred + step, preferred - step];
+
+    for (const candidate of candidates) {
+      if (candidate < safeMin || candidate > safeMax) continue;
+
+      const isDuplicate = usedQuantities.has(candidate);
+      const isTooClose = previousQuantity != null && Math.abs(candidate - previousQuantity) < minGap;
+      const isRoundNumber = candidate % 5 === 0 && candidate !== safeMin;
+
+      if (!isDuplicate && !isTooClose && !isRoundNumber) {
+        return candidate;
+      }
+
+      if (!isDuplicate && !isTooClose && fallback === preferred) {
+        fallback = candidate;
+      } else if (!isDuplicate && fallback === preferred) {
+        fallback = candidate;
+      }
+    }
+  }
+
+  return fallback;
+}
+
+function finalizeUniqueRuns(
+  runs: OrganicRunConfig[],
+  totalQuantity: number,
+  minQuantity: number,
+  maxQuantity: number
+): OrganicRunConfig[] {
+  if (runs.length <= 1) return runs;
+
+  const adjustedRuns = runs.map((run) => ({ ...run }));
+  const hardMax = Math.max(minQuantity, maxQuantity);
+  const usedQuantities = new Set<number>();
+
+  adjustedRuns.forEach((run, index) => {
+    const previousQuantity = index > 0 ? adjustedRuns[index - 1].quantity : undefined;
+    run.quantity = pickUniqueQuantity(run.quantity, minQuantity, hardMax, usedQuantities, previousQuantity);
+    usedQuantities.add(run.quantity);
+  });
+
+  let drift = totalQuantity - adjustedRuns.reduce((sum, run) => sum + run.quantity, 0);
+  let guard = 0;
+
+  while (drift !== 0 && guard < 10000) {
+    let changed = false;
+    const candidateIndexes = adjustedRuns
+      .map((run, index) => ({ index, quantity: run.quantity }))
+      .sort((a, b) => (drift > 0 ? a.quantity - b.quantity : b.quantity - a.quantity))
+      .map((item) => item.index);
+
+    for (const index of candidateIndexes) {
+      const step = drift > 0 ? 1 : -1;
+      const candidateQuantity = adjustedRuns[index].quantity + step;
+      const previousQuantity = index > 0 ? adjustedRuns[index - 1].quantity : undefined;
+
+      if (candidateQuantity < minQuantity || candidateQuantity > hardMax) continue;
+      if (adjustedRuns.some((run, runIndex) => runIndex !== index && run.quantity === candidateQuantity)) continue;
+      if (previousQuantity != null && Math.abs(candidateQuantity - previousQuantity) < 2) continue;
+
+      adjustedRuns[index].quantity = candidateQuantity;
+      drift += drift > 0 ? -1 : 1;
+      changed = true;
+
+      if (drift === 0) break;
+    }
+
+    if (!changed) break;
+    guard++;
+  }
+
+  if (drift !== 0 && adjustedRuns.length > 0) {
+    adjustedRuns[adjustedRuns.length - 1].quantity += drift;
+  }
+
+  adjustedRuns.forEach((run) => {
+    run.baseQuantity = run.quantity;
+    run.varianceApplied = 0;
+  });
+
+  return adjustedRuns;
+}
+
 /**
  * Generate fully organic schedule for a single engagement type
  * Each type has completely independent, randomized timing
