@@ -181,7 +181,8 @@ export function EngagementTypeCard({
       peakHoursEnabled,
       startTime,
       providerMin,
-      timeLimitArg
+      timeLimitArg,
+      config.runCount && config.runCount > 0 ? config.runCount : undefined
     );
 
     const avgInterval =
@@ -208,6 +209,7 @@ export function EngagementTypeCard({
     peakHoursEnabled,
     type,
     providerMin,
+    config.runCount,
     customCurvePoints,
   ]);
 
