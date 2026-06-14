@@ -532,22 +532,22 @@ export default function EngagementOrderDetail() {
     const startedRuns = allRuns.filter((r: any) => r.status === 'started');
     const failedRuns = allRuns.filter((r: any) => r.status === 'failed');
     
-    // Calculate ACTUAL delivered from provider data (provider_status + remains)
-    // IMPORTANT: do NOT trust local `status === 'completed'` when the run was "auto-completed"
+    // Calculate ACTUAL delivered using provider truth without double-counting.
+    // Some providers return cumulative start_count for the post/link, so summing each run
+    // can inflate totals (e.g. 6k sent but reel shows 10k+). We therefore use the larger of:
+    // 1) asked quantity already sent by our system, and
+    // 2) provider cumulative delta from the earliest observed start_count.
     const normalizeProviderStatus = (s: any): string => (s ?? '').toString().toLowerCase().trim();
 
-    const calculateActualDelivered = (run: any): number => {
+    const calculateRunDelivered = (run: any): number => {
       const ps = normalizeProviderStatus(run.provider_status);
 
-      // Provider-confirmed completion
       if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
 
-      // Partial/in-progress where remains is meaningful
       if (run.provider_remains !== null && run.provider_remains !== undefined) {
         return Math.max(0, run.quantity_to_send - run.provider_remains);
       }
 
-      // Fallback for legacy rows without provider tracking
       if (run.status === 'completed') return run.quantity_to_send;
 
       return 0;
@@ -564,9 +564,16 @@ export default function EngagementOrderDetail() {
       // Calculate scheduled (NO capping, just sum all non-failed runs)
       const totalScheduled = itemRuns.reduce((sum: number, r: any) => sum + r.quantity_to_send, 0);
       
-      // Calculate delivered (provider truth)
+      // Calculate delivered (provider truth, deduped against cumulative provider counts)
       const allItemRuns = item.runs || [];
-      const totalDelivered = allItemRuns.reduce((sum: number, r: any) => sum + calculateActualDelivered(r), 0);
+      const askedDelivered = allItemRuns.reduce((sum: number, r: any) => sum + calculateRunDelivered(r), 0);
+      const startCounts = allItemRuns
+        .map((r: any) => Number(r.provider_start_count))
+        .filter((value: number) => Number.isFinite(value) && value > 0);
+      const providerDeltaDelivered = startCounts.length > 0
+        ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
+        : 0;
+      const totalDelivered = Math.max(askedDelivered, providerDeltaDelivered);
       
       return {
         type: item.engagement_type,
@@ -847,15 +854,24 @@ export default function EngagementOrderDetail() {
               provider_remains: run.provider_remains ?? null,
               last_status_check: run.last_status_check || null,
             }));
-            // Calculate ACTUAL delivered from provider data
-            const itemDelivered = itemRuns.reduce((sum: number, r: any) => {
-              if (r.status === 'completed') {
+            // Dedup live delivered count against cumulative provider start_count.
+            const askedDelivered = itemRuns.reduce((sum: number, r: any) => {
+              const ps = (r.provider_status ?? '').toString().toLowerCase().trim();
+              if (ps === 'completed' || ps === 'complete' || r.status === 'completed') {
                 return sum + r.quantity_to_send;
-              } else if ((r.status === 'started' || r.status === 'failed') && r.provider_remains !== null && r.provider_remains !== undefined) {
+              }
+              if ((r.status === 'started' || r.status === 'failed') && r.provider_remains !== null && r.provider_remains !== undefined) {
                 return sum + Math.max(0, r.quantity_to_send - r.provider_remains);
               }
               return sum;
             }, 0);
+            const startCounts = itemRuns
+              .map((r: any) => Number(r.provider_start_count))
+              .filter((value: number) => Number.isFinite(value) && value > 0);
+            const providerDeltaDelivered = startCounts.length > 0
+              ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
+              : 0;
+            const itemDelivered = Math.max(askedDelivered, providerDeltaDelivered);
 
             return (
               <div key={item.id} id={`type-history-${item.engagement_type}`}>
