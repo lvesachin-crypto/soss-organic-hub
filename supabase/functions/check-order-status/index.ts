@@ -304,6 +304,7 @@ Deno.serve(async (req) => {
                   retry_count: 99 // Set high to prevent further retries
                 }).eq('id', run.id)
                 failed++
+                await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
                 await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
               }
             }
@@ -381,6 +382,7 @@ Deno.serve(async (req) => {
             remains: 0
           })
 
+          await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
           await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
 
         } else if (providerStatus === 'partial') {
@@ -435,6 +437,7 @@ Deno.serve(async (req) => {
             delivered: run.quantity_to_send - remains,
             remains: remains
           })
+          await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
           await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
 
         } else if (providerStatus === 'cancelled' || providerStatus === 'canceled' || providerStatus === 'refunded' || providerStatus === 'refund' || providerStatus === 'canscelled') {
