@@ -478,6 +478,7 @@ Deno.serve(async (req) => {
                 retry_count: 99
               }).eq('id', run.id)
               failed++
+              await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
               await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
             }
           }
@@ -499,6 +500,7 @@ Deno.serve(async (req) => {
             delivered: run.quantity_to_send,
             remains: 0
           })
+          await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
           await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
         } else {
           await supabase.from('organic_run_schedule').update(trackingUpdate).eq('id', run.id)
