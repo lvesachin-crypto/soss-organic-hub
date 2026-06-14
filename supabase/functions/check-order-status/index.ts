@@ -11,6 +11,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+// Stop future runs when public delivery already reached the target, even if a provider over-delivers.
 function calculateObservedRunDelivery(run: any): number {
   const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
 
