@@ -771,8 +771,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     })
 
     const retryableFailedRuns = activeFailedRuns.filter((run: any) => {
-      if (!run.provider_order_id) return true
-      return isTerminalProviderStatus(run.provider_status)
+      // Hard stop: once a provider order id exists, never place that same run again.
+      // A retry here can create duplicate external orders for one scheduled run.
+      if (run.provider_order_id) return false
+      return true
     })
 
     const retryRunsLimitedPerItem = retryableFailedRuns.filter((run: any) => {
