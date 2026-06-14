@@ -186,9 +186,9 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const totalRuns = allRuns.length;
   const progressPercent = totalRuns > 0 ? (completedRuns / totalRuns) * 100 : 0;
 
-  // Calculate delivered using provider truth (matches Live Stats on detail page)
+  // Calculate delivered using provider truth without double-counting cumulative provider start_count.
   const normalizeProviderStatus = (s: any): string => (s ?? '').toString().toLowerCase().trim();
-  const calculateActualDelivered = (run: any): number => {
+  const calculateRunDelivered = (run: any): number => {
     const ps = normalizeProviderStatus(run.provider_status);
     if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
     if (run.provider_remains !== null && run.provider_remains !== undefined) {
@@ -197,7 +197,14 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
     if (run.status === 'completed') return run.quantity_to_send;
     return 0;
   };
-  const totalDelivered = allRuns.reduce((sum: number, r: any) => sum + calculateActualDelivered(r), 0);
+  const askedDelivered = allRuns.reduce((sum: number, r: any) => sum + calculateRunDelivered(r), 0);
+  const startCounts = allRuns
+    .map((r: any) => Number(r.provider_start_count))
+    .filter((value: number) => Number.isFinite(value) && value > 0);
+  const providerDeltaDelivered = startCounts.length > 0
+    ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
+    : 0;
+  const totalDelivered = Math.max(askedDelivered, providerDeltaDelivered);
 
   const totalQuantity = order.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
