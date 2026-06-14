@@ -186,9 +186,9 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const totalRuns = allRuns.length;
   const progressPercent = totalRuns > 0 ? (completedRuns / totalRuns) * 100 : 0;
 
-  // Calculate delivered using provider truth without double-counting cumulative provider start_count.
+  // Calculate delivered using provider truth (matches Live Stats on detail page)
   const normalizeProviderStatus = (s: any): string => (s ?? '').toString().toLowerCase().trim();
-  const calculateRunDelivered = (run: any): number => {
+  const calculateActualDelivered = (run: any): number => {
     const ps = normalizeProviderStatus(run.provider_status);
     if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
     if (run.provider_remains !== null && run.provider_remains !== undefined) {
@@ -197,14 +197,7 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
     if (run.status === 'completed') return run.quantity_to_send;
     return 0;
   };
-  const askedDelivered = allRuns.reduce((sum: number, r: any) => sum + calculateRunDelivered(r), 0);
-  const startCounts = allRuns
-    .map((r: any) => Number(r.provider_start_count))
-    .filter((value: number) => Number.isFinite(value) && value > 0);
-  const providerDeltaDelivered = startCounts.length > 0
-    ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
-    : 0;
-  const totalDelivered = Math.max(askedDelivered, providerDeltaDelivered);
+  const totalDelivered = allRuns.reduce((sum: number, r: any) => sum + calculateActualDelivered(r), 0);
 
   const totalQuantity = order.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
@@ -325,17 +318,10 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
             const Icon = ENGAGEMENT_ICONS[item.engagement_type as keyof typeof ENGAGEMENT_ICONS] || Eye;
             const itemRuns = item.runs || [];
             const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed').length;
-            const askedDelivered = itemRuns.reduce(
-              (sum: number, r: any) => sum + calculateRunDelivered(r),
+            const itemDelivered = itemRuns.reduce(
+              (sum: number, r: any) => sum + calculateActualDelivered(r),
               0
             );
-            const itemStartCounts = itemRuns
-              .map((r: any) => Number(r.provider_start_count))
-              .filter((value: number) => Number.isFinite(value) && value > 0);
-            const providerDeltaItemDelivered = itemStartCounts.length > 0
-              ? Math.max(0, Math.max(...itemStartCounts) - Math.min(...itemStartCounts))
-              : 0;
-            const itemDelivered = Math.max(askedDelivered, providerDeltaItemDelivered);
 
             return (
               <Badge 
