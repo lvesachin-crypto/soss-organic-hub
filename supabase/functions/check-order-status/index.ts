@@ -11,6 +11,77 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+function calculateObservedRunDelivery(run: any): number {
+  const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
+
+  if (providerStatus === 'completed' || providerStatus === 'complete' || run?.status === 'completed') {
+    return Number(run?.quantity_to_send || 0)
+  }
+
+  if (run?.provider_remains !== null && run?.provider_remains !== undefined) {
+    return Math.max(0, Number(run?.quantity_to_send || 0) - Number(run?.provider_remains || 0))
+  }
+
+  return 0
+}
+
+async function syncObservedOverdeliveryGuard(supabase: any, itemId?: string | null) {
+  if (!itemId) return
+
+  const { data: item } = await supabase
+    .from('engagement_order_items')
+    .select('id, quantity, status')
+    .eq('id', itemId)
+    .maybeSingle()
+
+  if (!item || item.status === 'cancelled') return
+
+  const orderedQty = Number(item.quantity || 0)
+  if (orderedQty <= 0) return
+
+  const { data: runs } = await supabase
+    .from('organic_run_schedule')
+    .select('id, quantity_to_send, status, provider_start_count, provider_remains, provider_status')
+    .eq('engagement_order_item_id', itemId)
+    .in('status', ['pending', 'started', 'completed', 'failed'])
+
+  if (!runs?.length) return
+
+  const askedSent = runs.reduce((sum: number, run: any) => {
+    if (run.status === 'started' || run.status === 'completed') {
+      return sum + Number(run.quantity_to_send || 0)
+    }
+    return sum
+  }, 0)
+
+  const observedByRuns = runs.reduce(
+    (sum: number, run: any) => sum + calculateObservedRunDelivery(run),
+    0,
+  )
+
+  const startCounts = runs
+    .map((run: any) => Number(run.provider_start_count))
+    .filter((value: number) => Number.isFinite(value) && value > 0)
+
+  const publicCountDelta = startCounts.length > 0
+    ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
+    : 0
+
+  const delivered = Math.max(askedSent, observedByRuns, publicCountDelta)
+  if (delivered < orderedQty) return
+
+  await supabase.from('organic_run_schedule').update({
+    status: 'cancelled',
+    completed_at: new Date().toISOString(),
+    error_message: `Target met (asked=${askedSent}, observed=${observedByRuns}, public_delta=${publicCountDelta}, target=${orderedQty}) — cancelling remaining runs`,
+  }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
+
+  await supabase.from('engagement_order_items').update({
+    status: 'completed',
+    updated_at: new Date().toISOString(),
+  }).eq('id', itemId).neq('status', 'completed')
+}
+
 // This function checks provider order status and marks runs as complete
 // Supports BOTH legacy orders AND new engagement orders
 // Stores real-time provider data (start_count, remains, status) for live tracking
