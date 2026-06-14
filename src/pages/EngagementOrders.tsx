@@ -325,10 +325,17 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
             const Icon = ENGAGEMENT_ICONS[item.engagement_type as keyof typeof ENGAGEMENT_ICONS] || Eye;
             const itemRuns = item.runs || [];
             const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed').length;
-            const itemDelivered = itemRuns.reduce(
-              (sum: number, r: any) => sum + calculateActualDelivered(r),
+            const askedDelivered = itemRuns.reduce(
+              (sum: number, r: any) => sum + calculateRunDelivered(r),
               0
             );
+            const itemStartCounts = itemRuns
+              .map((r: any) => Number(r.provider_start_count))
+              .filter((value: number) => Number.isFinite(value) && value > 0);
+            const providerDeltaItemDelivered = itemStartCounts.length > 0
+              ? Math.max(0, Math.max(...itemStartCounts) - Math.min(...itemStartCounts))
+              : 0;
+            const itemDelivered = Math.max(askedDelivered, providerDeltaItemDelivered);
 
             return (
               <Badge 
