@@ -260,8 +260,10 @@ Deno.serve(async (req) => {
 
         if (result.error) {
           console.error(`Status check failed for ${run.provider_order_id}:`, result.error)
+          const providerError = String(result.error || '')
+          const providerErrorLower = providerError.toLowerCase()
           
-          if (result.error.includes('not found') || result.error.includes('cancelled') || result.error.includes('Incorrect order')) {
+          if (providerErrorLower.includes('not found') || providerErrorLower.includes('cancelled') || providerErrorLower.includes('incorrect order')) {
             const orderStatus = run.engagement_order_item?.engagement_order?.status
             const itemStatus = run.engagement_order_item?.status
 
@@ -274,45 +276,33 @@ Deno.serve(async (req) => {
                 last_status_check: new Date().toISOString(),
               }).eq('id', run.id)
             } else {
-              // Check if we can retry this run - AGGRESSIVE retries (up to 15)
-              const currentRetryCount = run.retry_count || 0
-              if (currentRetryCount < 15) {
-                // Mark for retry - don't mark as failed, just reset to failed so execute-all-runs will retry
-                console.log(`🔄 Marking run for retry (attempt ${currentRetryCount + 1}/15)`)
-                const triedSet = new Set<string>(
-                  Array.isArray(run.provider_response?.tried_providers) ? run.provider_response.tried_providers : []
-                )
-                if (run.provider_account_id) triedSet.add(run.provider_account_id)
-                const mergedResp = { ...(run.provider_response || {}), tried_providers: Array.from(triedSet) }
-                await supabase.from('organic_run_schedule').update({
-                  status: 'failed',
-                  error_message: `Auto-retry: ${result.error}`,
-                  completed_at: new Date().toISOString(),
-                  provider_status: 'error',
-                  last_status_check: new Date().toISOString(),
-                  provider_response: mergedResp,
-                }).eq('id', run.id)
-                failed++
-              } else {
-                // Max retries reached - mark as permanently failed
-                console.log(`❌ Max retries reached for run, marking as permanently failed`)
-                await supabase.from('organic_run_schedule').update({
-                  status: 'failed',
-                  error_message: `Max retries (15) reached: ${result.error}`,
-                  completed_at: new Date().toISOString(),
-                  provider_status: 'error',
-                  last_status_check: new Date().toISOString(),
-                  retry_count: 99 // Set high to prevent further retries
-                }).eq('id', run.id)
-                failed++
-                await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-                await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
-              }
+              // Provider order already exists for this run.
+              // Never recycle it into the placement queue, otherwise one scheduled run can create multiple external orders.
+              await supabase.from('organic_run_schedule').update({
+                status: 'failed',
+                error_message: `Repeat blocked after provider order creation: ${providerError}`,
+                completed_at: new Date().toISOString(),
+                provider_status: 'error',
+                last_status_check: new Date().toISOString(),
+                retry_count: 99,
+                provider_response: {
+                  ...(run.provider_response || {}),
+                  last_status_error: providerError,
+                  repeat_retry_blocked: true,
+                },
+              }).eq('id', run.id)
+              failed++
+              await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
+              await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
             }
           } else {
             // Update last check time even for errors
             await supabase.from('organic_run_schedule').update({
-              last_status_check: new Date().toISOString()
+              last_status_check: new Date().toISOString(),
+              provider_response: {
+                ...(run.provider_response || {}),
+                last_status_error: providerError,
+              }
             }).eq('id', run.id)
             stillProcessing++
           }
@@ -457,26 +447,14 @@ Deno.serve(async (req) => {
             // Keep this run terminal instead of recycling it into retry placement.
             await supabase.from('organic_run_schedule').update({
               ...trackingUpdate,
-              status: 'cancelled',
+              status: 'failed',
               completed_at: new Date().toISOString(),
-              error_message: `Provider ${providerStatus} existing order`
+              error_message: `Repeat blocked after provider ${providerStatus}`,
+              retry_count: 99
             }).eq('id', run.id)
             failed++
             await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
             await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
-          }
-              console.log(`❌ Max retries reached for cancelled run`)
-              await supabase.from('organic_run_schedule').update({
-                ...trackingUpdate,
-                status: 'failed',
-                completed_at: new Date().toISOString(),
-                error_message: `Max retries (15) reached: ${providerStatus} by provider`,
-                retry_count: 99
-              }).eq('id', run.id)
-              failed++
-              await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-              await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
-            }
           }
         } else if (deliveredAll) {
           await supabase.from('organic_run_schedule').update({
