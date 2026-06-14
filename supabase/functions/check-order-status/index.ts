@@ -453,23 +453,18 @@ Deno.serve(async (req) => {
               error_message: 'Order cancelled by user'
             }).eq('id', run.id)
           } else {
-            const currentRetryCount = run.retry_count || 0
-            if (currentRetryCount < 15) {
-              console.log(`🔄 Marking cancelled/refunded run for retry (attempt ${currentRetryCount + 1}/15)`)
-              const triedSet = new Set<string>(
-                Array.isArray(run.provider_response?.tried_providers) ? run.provider_response.tried_providers : []
-              )
-              if (run.provider_account_id) triedSet.add(run.provider_account_id)
-              const mergedResp = { ...(trackingUpdate.provider_response || {}), tried_providers: Array.from(triedSet) }
-              await supabase.from('organic_run_schedule').update({
-                ...trackingUpdate,
-                provider_response: mergedResp,
-                status: 'failed',
-                completed_at: new Date().toISOString(),
-                error_message: `Auto-retry: ${providerStatus} by provider`
-              }).eq('id', run.id)
-              failed++
-            } else {
+            // Provider explicitly cancelled/refunded this existing provider order.
+            // Keep this run terminal instead of recycling it into retry placement.
+            await supabase.from('organic_run_schedule').update({
+              ...trackingUpdate,
+              status: 'cancelled',
+              completed_at: new Date().toISOString(),
+              error_message: `Provider ${providerStatus} existing order`
+            }).eq('id', run.id)
+            failed++
+            await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
+            await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+          }
               console.log(`❌ Max retries reached for cancelled run`)
               await supabase.from('organic_run_schedule').update({
                 ...trackingUpdate,
