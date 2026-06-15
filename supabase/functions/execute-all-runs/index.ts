@@ -55,6 +55,13 @@ interface ServiceMapping {
   provider_account: ProviderAccount
 }
 
+type ProviderCandidate = {
+  account: ProviderAccount
+  providerServiceId: string
+  minQuantity: number
+  sortOrder: number
+}
+
 // Module-level caches
 const balanceCache = new Map<string, { balance: number; checkedAt: number }>()
 
@@ -68,9 +75,9 @@ const supabaseModule = createClient(
 // Avoids repeated DB queries for same service
 // ==========================================
 class MappingCache {
-  private cache = new Map<string, { account: ProviderAccount; providerServiceId: string; minQuantity: number }[]>()
+  private cache = new Map<string, ProviderCandidate[]>()
   
-  async getForService(supabase: any, serviceId: string, excludeIds: string[], executionId: string): Promise<{ account: ProviderAccount; providerServiceId: string; minQuantity: number }[]> {
+  async getForService(supabase: any, serviceId: string, excludeIds: string[], executionId: string): Promise<ProviderCandidate[]> {
     // Fetch once per service per invocation
     if (!this.cache.has(serviceId)) {
       const { data: mappings, error } = await supabase
@@ -112,7 +119,7 @@ class MappingCache {
           }
         }
 
-        const accounts: { account: ProviderAccount; providerServiceId: string; minQuantity: number }[] = []
+        const accounts: ProviderCandidate[] = []
         for (const mapping of sorted) {
           const account = mapping.provider_account as ProviderAccount
           if (account && account.is_active && isValidHttpUrl(account.api_url)) {
@@ -121,6 +128,7 @@ class MappingCache {
               account,
               providerServiceId: mapping.provider_service_id,
               minQuantity: minByKey.get(key) || 0,
+              sortOrder: Number(mapping.sort_order || 999),
             })
           } else if (account && account.is_active && !isValidHttpUrl(account.api_url)) {
             console.log(`⚠️ Skipping provider ${account.name}: invalid api_url`)
@@ -309,6 +317,28 @@ const isValidHttpUrl = (value?: string | null) => {
 }
 
 const normalizeLink = (value?: string | null) => (value || '').toLowerCase().trim().replace(/\/$/, '')
+
+function isZeroDeliveryProviderFailure(run: any) {
+  const message = (run?.error_message || '').toLowerCase()
+  const status = (run?.provider_status || '').toLowerCase()
+  const qty = Number(run?.quantity_to_send || 0)
+  const remains = typeof run?.provider_remains === 'number' ? run.provider_remains : Number(run?.provider_remains || 0)
+  const startCount = typeof run?.provider_start_count === 'number' ? run.provider_start_count : Number(run?.provider_start_count || 0)
+
+  return Boolean(
+    run?.provider_order_id &&
+    qty > 0 &&
+    (message.includes('0 delivered') || message.includes('auto-retry')) &&
+    (status.includes('pending') || status.includes('progress') || status.includes('processing') || status.includes('unknown')) &&
+    remains >= qty &&
+    startCount <= 0,
+  )
+}
+
+function providerNameLooksUnhealthy(name?: string | null) {
+  const normalized = (name || '').toLowerCase().trim()
+  return ['justyoy', 'firgip', 'goup'].includes(normalized)
+}
 
 // Strip Instagram/social tracking params (igsh, igshid, utm_*, si, feature, etc.)
 // Some SMM providers fail silently or refuse to deliver when the link contains
@@ -797,7 +827,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const retryableFailedRuns = activeFailedRuns.filter((run: any) => {
       // Hard stop: once a provider order id exists, never place that same run again.
       // A retry here can create duplicate external orders for one scheduled run.
-      if (run.provider_order_id) return false
+      // Exception: provider accepted the order but delivered 0 for 45+ min. Treat it
+      // as a dead provider slot and place the same scheduled chunk on another provider.
+      if (run.provider_order_id && !isZeroDeliveryProviderFailure(run)) return false
       return true
     })
 
@@ -1198,17 +1230,23 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         }
       }
       
-      const accountsToTry: { account: ProviderAccount; providerServiceId: string; minQuantity: number }[] = [...availableAccounts]
+      const zeroDeliveryRetry = isRetry && isZeroDeliveryProviderFailure(run)
+      const accountsToTry: ProviderCandidate[] = [...availableAccounts]
       accountsToTry.sort((a, b) => {
+        const aUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(a.account.name) ? 1 : 0
+        const bUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(b.account.name) ? 1 : 0
+        if (aUnhealthy !== bUnhealthy) return aUnhealthy - bUnhealthy
         const aRecent = recentCompletedAccountIds.has(a.account.id) ? 1 : 0
         const bRecent = recentCompletedAccountIds.has(b.account.id) ? 1 : 0
-        return aRecent - bRecent
+        if (aRecent !== bRecent) return aRecent - bRecent
+        return (a.sortOrder || 999) - (b.sortOrder || 999)
       })
       if (defaultProvider && !accountsToTry.some(a => a.account.id === defaultProvider!.id)) {
         accountsToTry.push({
           account: defaultProvider,
           providerServiceId: item.service.provider_service_id,
           minQuantity: Number(item.service.min_quantity || 0),
+          sortOrder: 999,
         })
       }
       
