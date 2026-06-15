@@ -1778,7 +1778,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           formData.append('key', provider.api_key)
           formData.append('action', 'add')
           formData.append('service', order.service.provider_service_id)
-          formData.append('link', order.link)
+          formData.append('link', sanitizeProviderLink(order.link))
           formData.append('quantity', run.quantity_to_send.toString())
 
           const controller = new AbortController()
