@@ -122,41 +122,20 @@ export default function AdminUsers() {
   const updateBalanceMutation = useMutation({
     mutationFn: async () => {
       if (!selectedUser || !balanceAmount) return;
-
-      const INR_RATE = 83.5; // Same rate used by Razorpay credit flow
       const inrAmount = parseFloat(balanceAmount);
       if (!inrAmount || inrAmount <= 0) throw new Error('Enter a valid INR amount');
-      // Convert INR → USD because wallets are stored in USD internally
-      const amount = Math.trunc((inrAmount / INR_RATE) * 10000) / 10000;
-      const currentBalance = selectedUser.wallet?.balance || 0;
-      const newBalance =
-        balanceAction === 'add' ? currentBalance + amount : currentBalance - amount;
 
-      if (newBalance < 0) throw new Error('Balance cannot be negative');
-
-      const { error: walletError } = await supabase
-        .from('wallets')
-        .update({
-          balance: newBalance,
-          total_deposited:
-            balanceAction === 'add'
-              ? (selectedUser.wallet?.total_deposited || 0) + amount
-              : selectedUser.wallet?.total_deposited || 0,
-        })
-        .eq('user_id', selectedUser.user_id);
-
-      if (walletError) throw walletError;
-
-      const { error: txError } = await supabase.from('transactions').insert({
-        user_id: selectedUser.user_id,
-        type: balanceAction === 'add' ? 'deposit' : 'refund',
-        amount: balanceAction === 'add' ? amount : -amount,
-        balance_after: newBalance,
-        description: `Admin ${balanceAction === 'add' ? 'deposit' : 'withdrawal'} — ₹${inrAmount.toFixed(2)}`,
-        status: 'completed',
+      // All admin wallet changes go through the audited edge function.
+      // Direct client-side wallet/transaction writes are blocked at the RLS layer.
+      const { data, error } = await supabase.functions.invoke('admin-wallet-action', {
+        body: {
+          target_user_id: selectedUser.user_id,
+          action: balanceAction, // 'add' | 'subtract'
+          inr_amount: inrAmount,
+        },
       });
-
-      if (txError) throw txError;
+      if (error) throw new Error(error.message || 'Action failed');
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       toast.success('Balance updated successfully!');
