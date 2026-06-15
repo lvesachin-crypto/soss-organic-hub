@@ -1230,17 +1230,23 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         }
       }
       
-      const accountsToTry: { account: ProviderAccount; providerServiceId: string; minQuantity: number }[] = [...availableAccounts]
+      const zeroDeliveryRetry = isRetry && isZeroDeliveryProviderFailure(run)
+      const accountsToTry: ProviderCandidate[] = [...availableAccounts]
       accountsToTry.sort((a, b) => {
+        const aUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(a.account.name) ? 1 : 0
+        const bUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(b.account.name) ? 1 : 0
+        if (aUnhealthy !== bUnhealthy) return aUnhealthy - bUnhealthy
         const aRecent = recentCompletedAccountIds.has(a.account.id) ? 1 : 0
         const bRecent = recentCompletedAccountIds.has(b.account.id) ? 1 : 0
-        return aRecent - bRecent
+        if (aRecent !== bRecent) return aRecent - bRecent
+        return (a.sortOrder || 999) - (b.sortOrder || 999)
       })
       if (defaultProvider && !accountsToTry.some(a => a.account.id === defaultProvider!.id)) {
         accountsToTry.push({
           account: defaultProvider,
           providerServiceId: item.service.provider_service_id,
           minQuantity: Number(item.service.min_quantity || 0),
+          sortOrder: 999,
         })
       }
       
