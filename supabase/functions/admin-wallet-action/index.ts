@@ -36,7 +36,77 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: "Forbidden — admins only" }, 403);
 
     const body = await req.json();
-    const { target_user_id, action, inr_amount, notes } = body ?? {};
+    const { target_user_id, action, inr_amount, notes, transaction_id } = body ?? {};
+
+    // IP / UA (used by all branches)
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
+    const ua = req.headers.get("user-agent") || "unknown";
+
+    // ===== Branch: approve / reject a pending deposit transaction =====
+    if (action === "approve_pending" || action === "reject_pending") {
+      if (!transaction_id) return json({ error: "transaction_id required" }, 400);
+
+      const { data: tx, error: txFetchErr } = await admin
+        .from("transactions")
+        .select("id, user_id, amount, status, type, description")
+        .eq("id", transaction_id)
+        .maybeSingle();
+      if (txFetchErr || !tx) return json({ error: "Transaction not found" }, 404);
+      if (tx.status !== "pending") {
+        return json({ error: `Already ${tx.status}` }, 400);
+      }
+      if (tx.type !== "deposit") {
+        return json({ error: "Only deposit transactions can be approved here" }, 400);
+      }
+
+      const txUsd = Number(tx.amount) || 0;
+      const { data: tProfile } = await admin
+        .from("profiles").select("email").eq("user_id", tx.user_id).maybeSingle();
+
+      if (action === "reject_pending") {
+        await admin.from("transactions").update({ status: "failed" }).eq("id", tx.id);
+        await admin.from("admin_audit_log").insert({
+          actor_id: user.id, actor_email: user.email,
+          target_user_id: tx.user_id, target_email: tProfile?.email ?? null,
+          action: "deposit_rejected", amount_usd: txUsd, amount_inr: null,
+          notes: notes ?? null, ip_address: ip, user_agent: ua,
+          metadata: { transaction_id: tx.id },
+        });
+        return json({ success: true, status: "failed" });
+      }
+
+      // Approve: credit wallet
+      const { data: w, error: wE } = await admin
+        .from("wallets").select("balance, total_deposited").eq("user_id", tx.user_id).single();
+      if (wE || !w) return json({ error: "Wallet not found" }, 404);
+
+      const newBal = (Number(w.balance) || 0) + txUsd;
+      const newDep = (Number(w.total_deposited) || 0) + txUsd;
+      const { error: uE } = await admin.from("wallets")
+        .update({ balance: newBal, total_deposited: newDep })
+        .eq("user_id", tx.user_id);
+      if (uE) throw uE;
+
+      await admin.from("transactions")
+        .update({ status: "completed", balance_after: newBal })
+        .eq("id", tx.id);
+
+      await admin.from("admin_audit_log").insert({
+        actor_id: user.id, actor_email: user.email,
+        target_user_id: tx.user_id, target_email: tProfile?.email ?? null,
+        action: "deposit_approved", amount_usd: txUsd, amount_inr: null,
+        notes: notes ?? null, ip_address: ip, user_agent: ua,
+        metadata: { transaction_id: tx.id, new_balance: newBal },
+      });
+
+      return json({ success: true, status: "completed", new_balance: newBal });
+    }
+
+    // ===== Branch: direct add/subtract by INR amount =====
     if (!target_user_id || !["add", "subtract"].includes(action)) {
       return json({ error: "Invalid payload" }, 400);
     }
@@ -45,14 +115,6 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid amount" }, 400);
     }
     const usd = Math.trunc((inr / INR_RATE) * 10000) / 10000;
-
-    // IP / UA
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("cf-connecting-ip") ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
-    const ua = req.headers.get("user-agent") || "unknown";
 
     // Fetch target wallet + email
     const { data: wallet, error: wErr } = await admin
