@@ -29,6 +29,7 @@ import {
   Save,
   Loader2,
   TrendingDown,
+  ShieldAlert,
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -376,6 +377,28 @@ export default function Admin() {
                     <p className="text-xs text-muted-foreground">Approve Razorpay payments</p>
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-amber-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/admin/audit-log">
+            <Card className="glass-card h-full hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all cursor-pointer group border-2 border-red-500/30">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500/30 to-red-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ShieldAlert className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold group-hover:text-red-500 transition-colors">
+                        Admin Audit Log
+                      </h3>
+                      <Badge className="text-[10px] h-4 px-1.5 bg-red-500 text-white">NEW</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">IP + actor for every wallet action</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-red-500 transition-colors" />
                 </div>
               </CardContent>
             </Card>
