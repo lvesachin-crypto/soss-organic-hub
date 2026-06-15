@@ -84,53 +84,16 @@ export default function AdminDeposits() {
 
     const updateStatusMutation = useMutation({
         mutationFn: async ({ id, status, userId, amount }: { id: string, status: 'completed' | 'failed', userId: string, amount: number }) => {
-
-            if (status === 'completed') {
-                // 1. Get current wallet
-                const { data: wallet } = await supabase
-                    .from('wallets')
-                    .select('balance, total_deposited')
-                    .eq('user_id', userId)
-                    .single();
-
-                if (!wallet) throw new Error('Wallet not found');
-
-                const newBalance = Number(wallet.balance) + amount;
-                const newTotal = Number(wallet.total_deposited) + amount;
-
-                // 2. Update wallet
-                const { error: walletError } = await supabase
-                    .from('wallets')
-                    .update({
-                        balance: newBalance,
-                        total_deposited: newTotal,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('user_id', userId);
-
-                if (walletError) throw walletError;
-
-                // 3. Update transaction
-                const { error: txError } = await supabase
-                    .from('transactions')
-                    .update({
-                        status: 'completed',
-                        balance_after: newBalance,
-                    })
-                    .eq('id', id);
-
-                if (txError) throw txError;
-            } else {
-                // Just fail the transaction
-                const { error: txError } = await supabase
-                    .from('transactions')
-                    .update({
-                        status: 'failed',
-                    })
-                    .eq('id', id);
-
-                if (txError) throw txError;
-            }
+            // All approvals/rejections go through the audited edge function.
+            // Direct wallet/transaction writes are blocked by RLS.
+            const { data, error } = await supabase.functions.invoke('admin-wallet-action', {
+                body: {
+                    action: status === 'completed' ? 'approve_pending' : 'reject_pending',
+                    transaction_id: id,
+                },
+            });
+            if (error) throw new Error(error.message || 'Action failed');
+            if (data?.error) throw new Error(data.error);
         },
         onSuccess: async (_, variables) => {
             const statusText = variables.status === 'completed' ? '✅ APPROVED' : '❌ REJECTED';
