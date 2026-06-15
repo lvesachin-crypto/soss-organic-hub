@@ -55,6 +55,13 @@ interface ServiceMapping {
   provider_account: ProviderAccount
 }
 
+type ProviderCandidate = {
+  account: ProviderAccount
+  providerServiceId: string
+  minQuantity: number
+  sortOrder: number
+}
+
 // Module-level caches
 const balanceCache = new Map<string, { balance: number; checkedAt: number }>()
 
@@ -68,9 +75,9 @@ const supabaseModule = createClient(
 // Avoids repeated DB queries for same service
 // ==========================================
 class MappingCache {
-  private cache = new Map<string, { account: ProviderAccount; providerServiceId: string; minQuantity: number }[]>()
+  private cache = new Map<string, ProviderCandidate[]>()
   
-  async getForService(supabase: any, serviceId: string, excludeIds: string[], executionId: string): Promise<{ account: ProviderAccount; providerServiceId: string; minQuantity: number }[]> {
+  async getForService(supabase: any, serviceId: string, excludeIds: string[], executionId: string): Promise<ProviderCandidate[]> {
     // Fetch once per service per invocation
     if (!this.cache.has(serviceId)) {
       const { data: mappings, error } = await supabase
@@ -112,7 +119,7 @@ class MappingCache {
           }
         }
 
-        const accounts: { account: ProviderAccount; providerServiceId: string; minQuantity: number }[] = []
+        const accounts: ProviderCandidate[] = []
         for (const mapping of sorted) {
           const account = mapping.provider_account as ProviderAccount
           if (account && account.is_active && isValidHttpUrl(account.api_url)) {
@@ -121,6 +128,7 @@ class MappingCache {
               account,
               providerServiceId: mapping.provider_service_id,
               minQuantity: minByKey.get(key) || 0,
+              sortOrder: Number(mapping.sort_order || 999),
             })
           } else if (account && account.is_active && !isValidHttpUrl(account.api_url)) {
             console.log(`⚠️ Skipping provider ${account.name}: invalid api_url`)
