@@ -1428,7 +1428,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           formData.append('key', selectedAccount.api_key)
           formData.append('action', 'add')
           formData.append('service', providerServiceId)
-          formData.append('link', item.engagement_order.link)
+          formData.append('link', sanitizeProviderLink(item.engagement_order.link))
           // OVER-DELIVERY GUARD: if admin configured this provider to over-deliver (e.g. 2.0 = sends 2x),
           // divide the scheduled qty so the user's video ultimately receives the correct amount.
           const deliveryMultiplier = Math.max(Number(selectedAccount.delivery_multiplier || 1), 0.5)
