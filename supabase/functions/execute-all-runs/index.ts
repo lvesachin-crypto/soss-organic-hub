@@ -310,6 +310,30 @@ const isValidHttpUrl = (value?: string | null) => {
 
 const normalizeLink = (value?: string | null) => (value || '').toLowerCase().trim().replace(/\/$/, '')
 
+// Strip Instagram/social tracking params (igsh, igshid, utm_*, si, feature, etc.)
+// Some SMM providers fail silently or refuse to deliver when the link contains
+// share/tracking query strings — sending the clean canonical URL fixes this.
+const sanitizeProviderLink = (raw?: string | null): string => {
+  const link = (raw || '').trim()
+  if (!link) return ''
+  try {
+    const u = new URL(link)
+    const stripKeys = ['igsh', 'igshid', 'si', 'feature', 'fbclid', 'gclid', 'mc_cid', 'mc_eid']
+    const keys = Array.from(u.searchParams.keys())
+    for (const k of keys) {
+      if (stripKeys.includes(k.toLowerCase()) || k.toLowerCase().startsWith('utm_')) {
+        u.searchParams.delete(k)
+      }
+    }
+    let out = u.origin + u.pathname.replace(/\/+$/, '/') 
+    const qs = u.searchParams.toString()
+    if (qs) out += '?' + qs
+    return out
+  } catch {
+    return link
+  }
+}
+
 const isTerminalProviderStatus = (status?: string | null) => {
   const normalized = (status || '').toLowerCase().trim()
   return ['completed', 'complete', 'partial', 'refunded', 'canceled', 'cancelled', 'error', 'failed', 'success', 'refund', 'canscelled'].includes(normalized)
@@ -1404,7 +1428,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           formData.append('key', selectedAccount.api_key)
           formData.append('action', 'add')
           formData.append('service', providerServiceId)
-          formData.append('link', item.engagement_order.link)
+          formData.append('link', sanitizeProviderLink(item.engagement_order.link))
           // OVER-DELIVERY GUARD: if admin configured this provider to over-deliver (e.g. 2.0 = sends 2x),
           // divide the scheduled qty so the user's video ultimately receives the correct amount.
           const deliveryMultiplier = Math.max(Number(selectedAccount.delivery_multiplier || 1), 0.5)
@@ -1754,7 +1778,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           formData.append('key', provider.api_key)
           formData.append('action', 'add')
           formData.append('service', order.service.provider_service_id)
-          formData.append('link', order.link)
+          formData.append('link', sanitizeProviderLink(order.link))
           formData.append('quantity', run.quantity_to_send.toString())
 
           const controller = new AbortController()
