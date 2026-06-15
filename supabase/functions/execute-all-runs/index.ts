@@ -318,6 +318,28 @@ const isValidHttpUrl = (value?: string | null) => {
 
 const normalizeLink = (value?: string | null) => (value || '').toLowerCase().trim().replace(/\/$/, '')
 
+function isZeroDeliveryProviderFailure(run: any) {
+  const message = (run?.error_message || '').toLowerCase()
+  const status = (run?.provider_status || '').toLowerCase()
+  const qty = Number(run?.quantity_to_send || 0)
+  const remains = typeof run?.provider_remains === 'number' ? run.provider_remains : Number(run?.provider_remains || 0)
+  const startCount = typeof run?.provider_start_count === 'number' ? run.provider_start_count : Number(run?.provider_start_count || 0)
+
+  return Boolean(
+    run?.provider_order_id &&
+    qty > 0 &&
+    (message.includes('0 delivered') || message.includes('auto-retry')) &&
+    (status.includes('pending') || status.includes('progress') || status.includes('processing') || status.includes('unknown')) &&
+    remains >= qty &&
+    startCount <= 0,
+  )
+}
+
+function providerNameLooksUnhealthy(name?: string | null) {
+  const normalized = (name || '').toLowerCase().trim()
+  return ['justyoy', 'firgip', 'goup'].includes(normalized)
+}
+
 // Strip Instagram/social tracking params (igsh, igshid, utm_*, si, feature, etc.)
 // Some SMM providers fail silently or refuse to deliver when the link contains
 // share/tracking query strings — sending the clean canonical URL fixes this.
