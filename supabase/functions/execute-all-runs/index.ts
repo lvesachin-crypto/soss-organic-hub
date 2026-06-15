@@ -827,7 +827,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const retryableFailedRuns = activeFailedRuns.filter((run: any) => {
       // Hard stop: once a provider order id exists, never place that same run again.
       // A retry here can create duplicate external orders for one scheduled run.
-      if (run.provider_order_id) return false
+      // Exception: provider accepted the order but delivered 0 for 45+ min. Treat it
+      // as a dead provider slot and place the same scheduled chunk on another provider.
+      if (run.provider_order_id && !isZeroDeliveryProviderFailure(run)) return false
       return true
     })
 
