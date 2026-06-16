@@ -9,15 +9,30 @@ const corsHeaders = {
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 2000
 const MAX_RUN_RETRIES = 9999
-const ACTIVE_ORDER_RETRY_MS = 60 * 1000
+const ACTIVE_ORDER_RETRY_MS = 5 * 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
+
+// Substrings (lowercase) that indicate the provider rejected the order because
+// another order for the same link is still active/processing on their side.
+const ACTIVE_ORDER_PATTERNS = [
+  'active order', 'wait until order', 'already has an order',
+  'order in progress', 'in progress', 'link currently active',
+  'processing previous order', 'wait for completion',
+  'same link', 'cannot start a new order', 'active processing',
+  'active processing order', 'duplicate order', 'duplicate link',
+  'link is being processed', 'link is processing',
+]
+
+function isActiveOrderErrorMsg(msg: string | null | undefined): boolean {
+  if (!msg) return false
+  const m = msg.toLowerCase()
+  return ACTIVE_ORDER_PATTERNS.some(p => m.includes(p))
+}
 
 const TEMPORARY_ERRORS = [
   'balance', 'not have enough', 'processing another transaction',
-  'active order with this link', 'wait until order being completed',
   'rate limit', 'timeout', 'temporarily', 'too many requests',
-  'already has an order', 'order in progress', 'link currently active',
-  'processing previous order', 'wait for completion',
+  ...ACTIVE_ORDER_PATTERNS,
 ]
 
 const ACCOUNT_SPECIFIC_ERRORS = [
