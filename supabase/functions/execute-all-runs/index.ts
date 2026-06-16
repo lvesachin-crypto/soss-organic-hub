@@ -9,15 +9,30 @@ const corsHeaders = {
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 2000
 const MAX_RUN_RETRIES = 9999
-const ACTIVE_ORDER_RETRY_MS = 60 * 1000
+const ACTIVE_ORDER_RETRY_MS = 5 * 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
+
+// Substrings (lowercase) that indicate the provider rejected the order because
+// another order for the same link is still active/processing on their side.
+const ACTIVE_ORDER_PATTERNS = [
+  'active order', 'wait until order', 'already has an order',
+  'order in progress', 'in progress', 'link currently active',
+  'processing previous order', 'wait for completion',
+  'same link', 'cannot start a new order', 'active processing',
+  'active processing order', 'duplicate order', 'duplicate link',
+  'link is being processed', 'link is processing',
+]
+
+function isActiveOrderErrorMsg(msg: string | null | undefined): boolean {
+  if (!msg) return false
+  const m = msg.toLowerCase()
+  return ACTIVE_ORDER_PATTERNS.some(p => m.includes(p))
+}
 
 const TEMPORARY_ERRORS = [
   'balance', 'not have enough', 'processing another transaction',
-  'active order with this link', 'wait until order being completed',
   'rate limit', 'timeout', 'temporarily', 'too many requests',
-  'already has an order', 'order in progress', 'link currently active',
-  'processing previous order', 'wait for completion',
+  ...ACTIVE_ORDER_PATTERNS,
 ]
 
 const ACCOUNT_SPECIFIC_ERRORS = [
@@ -867,10 +882,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     if (recentlyBusyRuns && recentlyBusyRuns.length > 0) {
       for (const rbr of recentlyBusyRuns) {
         if (!rbr.provider_account_id) continue
-        const err = (rbr.error_message || '').toLowerCase()
-        const isBusyError = err.includes('active order') || err.includes('already has an order') || 
-          err.includes('wait until') || err.includes('processing previous') || err.includes('in progress')
-        if (isBusyError) {
+        if (isActiveOrderErrorMsg(rbr.error_message)) {
           const rbrLink = normalizeLink(getNestedEngagementOrderLink(rbr.engagement_order_item))
           const rbrType = (rbr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
           const busyKey = `${rbrLink}|${rbrType}`
@@ -1504,8 +1516,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             if (typeof lastError !== 'string') lastError = JSON.stringify(lastError)
             providerResult = result
             
-            const isActiveOrderError = lastError.toLowerCase().includes('active order') || 
-              lastError.toLowerCase().includes('wait until order')
+            const isActiveOrderError = isActiveOrderErrorMsg(lastError)
             if (isActiveOrderError) {
               await new Promise(resolve => setTimeout(resolve, 200))
               continue
@@ -1651,8 +1662,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       } else if (lastError !== null) {
         const retryCount = (run.retry_count || 0) + 1
         const lastErr = (lastError || '').toLowerCase()
-        const isActiveOrderError = lastErr.includes('active order') || lastErr.includes('wait until order') || 
-          lastErr.includes('already has an order') || lastErr.includes('in progress')
+        const isActiveOrderError = isActiveOrderErrorMsg(lastErr)
         
         const postponeMs = isActiveOrderError ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
         const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
@@ -1871,7 +1881,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const isTemporaryError = lastError?.startsWith('TEMP_ERROR:')
         if (isTemporaryError) {
           const cleanError = lastError?.replace('TEMP_ERROR: ', '') || ''
-          const isActiveOrder = cleanError.toLowerCase().includes('active order') || cleanError.toLowerCase().includes('wait until order')
+          const isActiveOrder = isActiveOrderErrorMsg(cleanError)
           const postponeMs = isActiveOrder ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
           await supabase.from('organic_run_schedule').update({
             status: 'pending', started_at: null,
