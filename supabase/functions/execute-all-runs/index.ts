@@ -882,10 +882,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     if (recentlyBusyRuns && recentlyBusyRuns.length > 0) {
       for (const rbr of recentlyBusyRuns) {
         if (!rbr.provider_account_id) continue
-        const err = (rbr.error_message || '').toLowerCase()
-        const isBusyError = err.includes('active order') || err.includes('already has an order') || 
-          err.includes('wait until') || err.includes('processing previous') || err.includes('in progress')
-        if (isBusyError) {
+        if (isActiveOrderErrorMsg(rbr.error_message)) {
           const rbrLink = normalizeLink(getNestedEngagementOrderLink(rbr.engagement_order_item))
           const rbrType = (rbr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
           const busyKey = `${rbrLink}|${rbrType}`
