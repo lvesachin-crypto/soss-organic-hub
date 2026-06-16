@@ -1519,8 +1519,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             if (typeof lastError !== 'string') lastError = JSON.stringify(lastError)
             providerResult = result
             
-            const isActiveOrderError = lastError.toLowerCase().includes('active order') || 
-              lastError.toLowerCase().includes('wait until order')
+            const isActiveOrderError = isActiveOrderErrorMsg(lastError)
             if (isActiveOrderError) {
               await new Promise(resolve => setTimeout(resolve, 200))
               continue
@@ -1666,8 +1665,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       } else if (lastError !== null) {
         const retryCount = (run.retry_count || 0) + 1
         const lastErr = (lastError || '').toLowerCase()
-        const isActiveOrderError = lastErr.includes('active order') || lastErr.includes('wait until order') || 
-          lastErr.includes('already has an order') || lastErr.includes('in progress')
+        const isActiveOrderError = isActiveOrderErrorMsg(lastErr)
         
         const postponeMs = isActiveOrderError ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
         const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
@@ -1886,7 +1884,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const isTemporaryError = lastError?.startsWith('TEMP_ERROR:')
         if (isTemporaryError) {
           const cleanError = lastError?.replace('TEMP_ERROR: ', '') || ''
-          const isActiveOrder = cleanError.toLowerCase().includes('active order') || cleanError.toLowerCase().includes('wait until order')
+          const isActiveOrder = isActiveOrderErrorMsg(cleanError)
           const postponeMs = isActiveOrder ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
           await supabase.from('organic_run_schedule').update({
             status: 'pending', started_at: null,
