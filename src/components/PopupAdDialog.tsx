@@ -347,12 +347,9 @@ export function PopupAdDialog() {
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
-                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-extrabold tracking-[0.15em] sm:tracking-[0.18em] uppercase bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm shadow-orange-500/40">
-                      <Sparkles className="w-2.5 h-2.5" /> <span className="hidden xs:inline">Featured</span><span className="xs:hidden">Ad</span>
-                    </span>
-                    <span className="hidden sm:inline text-[9px] font-bold tracking-[0.18em] uppercase text-orange-300/70">
-                      Sponsored
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold tracking-[0.18em] uppercase bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm shadow-orange-500/40">
+                      <Sparkles className="w-2.5 h-2.5" /> Featured
                     </span>
                   </div>
                   <h3 className="text-[13px] sm:text-lg font-extrabold text-white leading-tight truncate tracking-tight">
