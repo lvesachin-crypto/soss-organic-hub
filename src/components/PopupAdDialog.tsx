@@ -20,6 +20,26 @@ type PopupAd = {
 const SEEN_KEY = "popup_ad_seen_v1";
 const FORCE_KEY = "popup_ad_force_seen_v1";
 const SESSION_KEY = "popup_ad_session_shown_v1";
+const DAILY_KEY = "popup_ad_daily_v1"; // { date: 'YYYY-MM-DD', count: number }
+const DAILY_LIMIT = 2; // max auto-shows per day per browser
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function getDailyCount(): number {
+  try {
+    const raw = localStorage.getItem(DAILY_KEY);
+    if (!raw) return 0;
+    const obj = JSON.parse(raw) as { date: string; count: number };
+    if (obj.date !== todayStr()) return 0;
+    return obj.count || 0;
+  } catch { return 0; }
+}
+function bumpDailyCount() {
+  const next = getDailyCount() + 1;
+  localStorage.setItem(DAILY_KEY, JSON.stringify({ date: todayStr(), count: next }));
+}
 
 /** Accepts either a raw YouTube ID or a full URL (watch?v=, youtu.be/, shorts/, embed/). */
 function parseYouTubeId(input: string): string {
@@ -161,8 +181,11 @@ export function PopupAdDialog() {
         const sessionShown = sessionStorage.getItem(SESSION_KEY);
         if (sessionShown) return;
         if (seenVersion === String(row.version)) return;
+        // Daily cap: at most DAILY_LIMIT auto-shows per browser per day
+        if (getDailyCount() >= DAILY_LIMIT) return;
         sessionStorage.setItem(SESSION_KEY, "1");
         localStorage.setItem(SEEN_KEY, String(row.version));
+        bumpDailyCount();
         setOpen(true);
       }
     };
