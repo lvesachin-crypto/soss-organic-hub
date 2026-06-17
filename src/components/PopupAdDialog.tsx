@@ -21,7 +21,7 @@ const DAILY_KEY    = "popup_ad_daily_v2"; // { date, count, triggers: string[] }
 const SESSION_KEY  = "popup_ad_session_trigger_v2"; // last force trigger shown in this tab session
 const DAILY_LIMIT  = 2; // max popups per browser per day (admin-force only)
 const SCHEDULE_KEY = "popup_ad_schedule_v1"; // { triggerId, slots: number[] } — randomized 24h slot plan
-const SHOWS_PER_TRIGGER = 2; // 2 random shows spread across the next 24h
+const SHOWS_PER_TRIGGER = 2; // total shows per trigger per 24h (1 immediate + 1 random)
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 const FIRST_SLOT_MIN_MS = 2 * 60 * 1000;  // earliest first slot: ~2 min from now
 
@@ -221,11 +221,15 @@ export function PopupAdDialog() {
       // fires next time we poll.
       let plan = getSchedule();
       if (!plan || plan.triggerId !== force) {
+        // Slot 1 = immediate (fires on this very evaluation — the moment user
+        // opens the app after admin Force). Slot 2 = a random time within
+        // the next 24h. After both fire, auto-block until next Force.
+        const immediate = now; // fires right away
         const fromMs = Math.max(now + FIRST_SLOT_MIN_MS, startsAt ?? 0);
         let toMs = now + WINDOW_MS;
         if (endsAt !== null) toMs = Math.min(toMs, endsAt - 5_000);
-        const slots = pickRandomSlots(SHOWS_PER_TRIGGER, fromMs, toMs);
-        plan = { triggerId: force, slots };
+        const randomSlots = pickRandomSlots(Math.max(0, SHOWS_PER_TRIGGER - 1), fromMs, toMs);
+        plan = { triggerId: force, slots: [immediate, ...randomSlots].sort((a, b) => a - b) };
         setSchedule(plan);
       }
 
