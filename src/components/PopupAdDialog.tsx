@@ -166,7 +166,14 @@ export function PopupAdDialog() {
       }}
     >
       <DialogContent
-        className="max-w-3xl p-0 overflow-hidden border-0 bg-transparent shadow-none [&>button.absolute]:hidden"
+        className="w-[calc(100vw-1rem)] sm:w-[92vw] max-w-3xl max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] overflow-y-auto p-0 border-0 bg-transparent shadow-none rounded-3xl [&>button.absolute]:hidden"
+        style={{
+          // Respect iOS notch / Android gesture bar
+          paddingTop: "max(env(safe-area-inset-top), 0px)",
+          paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
+          paddingLeft: "max(env(safe-area-inset-left), 0px)",
+          paddingRight: "max(env(safe-area-inset-right), 0px)",
+        }}
         onPointerDownOutside={(e) => {
           if (!canSkip) e.preventDefault();
         }}
@@ -178,18 +185,18 @@ export function PopupAdDialog() {
         <div className="relative">
           <div
             aria-hidden
-            className="absolute -inset-[2px] rounded-[26px] opacity-90 blur-[6px] animate-pulse"
+            className="absolute -inset-[2px] rounded-[22px] sm:rounded-[26px] opacity-90 blur-[6px] animate-pulse"
             style={{
               background:
                 "conic-gradient(from 0deg, #f97316, #ef4444, #fb923c, #f59e0b, #f97316)",
             }}
           />
           {/* Card */}
-          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0b0b14] via-[#11131f] to-[#0b0b14] ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(249,115,22,0.45)]">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-[#0b0b14] via-[#11131f] to-[#0b0b14] ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(249,115,22,0.45)]">
             {/* Top glossy highlight */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-60"
+              className="pointer-events-none absolute inset-x-0 top-0 h-24 sm:h-32 opacity-60"
               style={{
                 background:
                   "radial-gradient(60% 100% at 50% 0%, rgba(249,115,22,0.25), transparent 70%)",
@@ -197,29 +204,29 @@ export function PopupAdDialog() {
             />
 
             {/* Header */}
-            <div className="relative flex items-center justify-between gap-3 px-4 sm:px-6 pt-5 pb-4">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="relative flex items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 pt-3.5 sm:pt-5 pb-3 sm:pb-4">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                 {/* Logo badge */}
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 blur-md opacity-70 animate-pulse" />
-                  <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/40 ring-1 ring-white/20">
-                    <Play className="w-5 h-5 text-white fill-white drop-shadow" />
+                  <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/40 ring-1 ring-white/20">
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white drop-shadow" />
                   </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-[0.18em] uppercase bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm shadow-orange-500/40">
-                      <Sparkles className="w-2.5 h-2.5" /> Featured
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-extrabold tracking-[0.15em] sm:tracking-[0.18em] uppercase bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm shadow-orange-500/40">
+                      <Sparkles className="w-2.5 h-2.5" /> <span className="hidden xs:inline">Featured</span><span className="xs:hidden">Ad</span>
                     </span>
-                    <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-orange-300/70">
+                    <span className="hidden sm:inline text-[9px] font-bold tracking-[0.18em] uppercase text-orange-300/70">
                       Sponsored
                     </span>
                   </div>
-                  <h3 className="text-[15px] sm:text-lg font-extrabold text-white leading-tight truncate tracking-tight">
+                  <h3 className="text-[13px] sm:text-lg font-extrabold text-white leading-tight truncate tracking-tight">
                     {ad.title || "Watch this video"}
                   </h3>
                   {ad.description ? (
-                    <p className="text-[11px] sm:text-[12px] text-slate-300/80 mt-0.5 line-clamp-1 sm:line-clamp-2">
+                    <p className="hidden sm:block text-[11px] sm:text-[12px] text-slate-300/80 mt-0.5 line-clamp-2">
                       {ad.description}
                     </p>
                   ) : null}
@@ -232,7 +239,7 @@ export function PopupAdDialog() {
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="group relative flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider text-white bg-white/10 hover:bg-white/20 backdrop-blur-md ring-1 ring-white/20 transition-all hover:scale-[1.03] active:scale-95 shadow-lg"
+                    className="group relative flex items-center gap-1.5 pl-3 sm:pl-3.5 pr-2 sm:pr-2.5 h-10 sm:h-auto sm:py-2 rounded-full text-[11px] font-bold uppercase tracking-wider text-white bg-white/10 hover:bg-white/20 backdrop-blur-md ring-1 ring-white/20 transition-all hover:scale-[1.03] active:scale-95 shadow-lg min-w-[44px]"
                   >
                     <span>Skip Ad</span>
                     <span className="w-5 h-5 rounded-full bg-white/15 group-hover:bg-white/25 flex items-center justify-center transition-colors">
@@ -240,7 +247,7 @@ export function PopupAdDialog() {
                     </span>
                   </button>
                 ) : (
-                  <div className="relative w-12 h-12 flex items-center justify-center">
+                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center">
                     {/* Progress ring */}
                     <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
                       <circle
@@ -270,7 +277,7 @@ export function PopupAdDialog() {
                         </linearGradient>
                       </defs>
                     </svg>
-                    <span className="relative text-[12px] font-extrabold text-white tabular-nums drop-shadow">
+                    <span className="relative text-[11px] sm:text-[12px] font-extrabold text-white tabular-nums drop-shadow">
                       {secondsLeft}
                     </span>
                   </div>
@@ -279,17 +286,17 @@ export function PopupAdDialog() {
             </div>
 
             {/* Divider */}
-            <div className="mx-4 sm:mx-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            <div className="mx-3 sm:mx-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
             {/* Video frame with inner glow */}
-            <div className="p-3 sm:p-4">
+            <div className="p-2 sm:p-4">
               <div
-                className="relative w-full rounded-2xl overflow-hidden bg-black ring-1 ring-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]"
+                className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black ring-1 ring-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]"
                 style={{ aspectRatio: "16 / 9" }}
               >
                 {/* corner accents */}
-                <div className="pointer-events-none absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-orange-400/40 rounded-tl-2xl z-10" />
-                <div className="pointer-events-none absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-red-500/40 rounded-br-2xl z-10" />
+                <div className="pointer-events-none absolute top-0 left-0 w-10 h-10 sm:w-16 sm:h-16 border-t-2 border-l-2 border-orange-400/40 rounded-tl-xl sm:rounded-tl-2xl z-10" />
+                <div className="pointer-events-none absolute bottom-0 right-0 w-10 h-10 sm:w-16 sm:h-16 border-b-2 border-r-2 border-red-500/40 rounded-br-xl sm:rounded-br-2xl z-10" />
                 <iframe
                   key={videoId + (ad.last_force_trigger || "")}
                   src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
@@ -302,17 +309,17 @@ export function PopupAdDialog() {
             </div>
 
             {/* Footer */}
-            <div className="relative px-5 sm:px-6 pb-4 pt-1 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            <div className="relative px-3 sm:px-6 pb-3 sm:pb-4 pt-1 flex items-center justify-between gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-slate-400 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
-                <span className="font-semibold tracking-wider uppercase">OrganicSMM Promo</span>
+                <span className="font-semibold tracking-wider uppercase truncate">OrganicSMM Promo</span>
               </div>
-              <span className="text-[11px] font-medium text-slate-300">
+              <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 shrink-0">
                 {canSkip ? (
-                  <span className="text-emerald-400">You can close this now ✓</span>
+                  <span className="text-emerald-400">Close now ✓</span>
                 ) : (
                   <span>
-                    Skip available in{" "}
+                    Skip in{" "}
                     <span className="text-orange-300 font-bold tabular-nums">
                       {secondsLeft}s
                     </span>
