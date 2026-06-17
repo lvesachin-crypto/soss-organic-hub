@@ -439,8 +439,8 @@ export default function AdminPopupAd() {
                   <p><strong>How it works (admin-controlled):</strong></p>
                   <p>• Popup is <strong>fully manual</strong> — it only shows after you click <strong>Force Show Now</strong>.</p>
                   <p>• <strong>Enable popup</strong> is the master kill switch. If it's OFF, even Force Show won't fire.</p>
-                  <p>• Once you click Force, every user gets exactly <strong>2 shows in the next 24h</strong>: <strong>1st show fires immediately</strong> the next time they open the app, and the <strong>2nd show is a random time within 24h</strong>. After both are consumed, the popup is auto-blocked until you Force again.</p>
-                  <p>• Hard cap: <strong>max 2 popups / 24h / user</strong>. Clicking Force again resets the plan (fresh immediate + new random slot).</p>
+                  <p>• Every Force Show = <strong>1 popup per user</strong>. Jitni baar Force karoge, utni baar har user ko popup dikhega (next time they open the app).</p>
+                  <p>• No daily cap — admin fully controls frequency by clicking Force.</p>
                   <p>• Only fires inside the schedule window (Starts at / Ends at). Outside the window nothing shows.</p>
                   <p>• Users can only skip after the delay you set above.</p>
                 </div>
