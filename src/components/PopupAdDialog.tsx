@@ -79,9 +79,9 @@ export function PopupAdDialog() {
       }
       if (force) lastSeenForceRef.current = force;
 
-      // Outside schedule window → never auto-show, and auto-close if open
+      // Outside schedule window → never auto-show, and auto-close if currently open
       if (!withinWindow) {
-        if (open) setOpen(true === false ? true : false);
+        setOpen(false);
         return;
       }
 
