@@ -655,6 +655,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          video_layout: string
           youtube_video_id: string
         }
         Insert: {
@@ -669,6 +670,7 @@ export type Database = {
           title?: string
           updated_at?: string
           version?: number
+          video_layout?: string
           youtube_video_id?: string
         }
         Update: {
@@ -683,6 +685,7 @@ export type Database = {
           title?: string
           updated_at?: string
           version?: number
+          video_layout?: string
           youtube_video_id?: string
         }
         Relationships: []
