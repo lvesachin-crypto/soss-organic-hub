@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Play, Sparkles, GripHorizontal } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { X, Play, Sparkles } from "lucide-react";
 
 type PopupAd = {
   id: string;
@@ -17,28 +16,37 @@ type PopupAd = {
   ends_at: string | null;
 };
 
-const SEEN_KEY = "popup_ad_seen_v1";
-const FORCE_KEY = "popup_ad_force_seen_v1";
-const SESSION_KEY = "popup_ad_session_shown_v1";
-const DAILY_KEY = "popup_ad_daily_v1"; // { date: 'YYYY-MM-DD', count: number }
-const DAILY_LIMIT = 2; // max auto-shows per day per browser
+// Per-browser keys
+const DAILY_KEY    = "popup_ad_daily_v2"; // { date, count, triggers: string[] }
+const SESSION_KEY  = "popup_ad_session_trigger_v2"; // last force trigger shown in this tab session
+const DAILY_LIMIT  = 3; // max popups per browser per day (admin-force only)
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function getDailyCount(): number {
+type DailyState = { date: string; count: number; triggers: string[] };
+function getDaily(): DailyState {
   try {
     const raw = localStorage.getItem(DAILY_KEY);
-    if (!raw) return 0;
-    const obj = JSON.parse(raw) as { date: string; count: number };
-    if (obj.date !== todayStr()) return 0;
-    return obj.count || 0;
-  } catch { return 0; }
+    if (raw) {
+      const obj = JSON.parse(raw) as DailyState;
+      if (obj.date === todayStr()) {
+        return { date: obj.date, count: obj.count || 0, triggers: obj.triggers || [] };
+      }
+    }
+  } catch { /* ignore */ }
+  return { date: todayStr(), count: 0, triggers: [] };
 }
-function bumpDailyCount() {
-  const next = getDailyCount() + 1;
-  localStorage.setItem(DAILY_KEY, JSON.stringify({ date: todayStr(), count: next }));
+function bumpDaily(triggerId: string) {
+  const cur = getDaily();
+  if (cur.triggers.includes(triggerId)) return; // never double-count same trigger
+  const next: DailyState = {
+    date: cur.date,
+    count: cur.count + 1,
+    triggers: [...cur.triggers, triggerId].slice(-20),
+  };
+  localStorage.setItem(DAILY_KEY, JSON.stringify(next));
 }
 
 /** Accepts either a raw YouTube ID or a full URL (watch?v=, youtu.be/, shorts/, embed/). */
@@ -67,8 +75,6 @@ function isYouTubeShort(input: string): boolean {
 }
 
 export function PopupAdDialog() {
-  const location = useLocation();
-  const onEngagementRoute = location.pathname.startsWith("/engagement");
   const [ad, setAd] = useState<PopupAd | null>(null);
   const [open, setOpen] = useState(false);
   const [canSkip, setCanSkip] = useState(false);
@@ -138,9 +144,10 @@ export function PopupAdDialog() {
     }
   };
 
-  // Initial fetch + polling for force trigger
+  // Initial fetch + polling for admin force trigger.
+  // Shows ONLY when admin clicks Force, capped at DAILY_LIMIT per browser per day,
+  // inside the schedule window. Auto-show on `enabled` is intentionally removed.
   useEffect(() => {
-    if (!onEngagementRoute) return;
     let cancelled = false;
 
     const evaluate = (row: PopupAd) => {
@@ -156,38 +163,34 @@ export function PopupAdDialog() {
         (startsAt === null || now >= startsAt) &&
         (endsAt   === null || now <= endsAt);
 
-      const force = row.last_force_trigger;
-      const lastSeenForce =
-        lastSeenForceRef.current ?? localStorage.getItem(FORCE_KEY);
-
-      // Force trigger: only fire when inside the schedule window (or no window set)
-      if (force && force !== lastSeenForce && withinWindow) {
-        lastSeenForceRef.current = force;
-        localStorage.setItem(FORCE_KEY, force);
-        setOpen(true);
-        return;
-      }
-      if (force) lastSeenForceRef.current = force;
-
-      // Outside schedule window → never auto-show, and auto-close if currently open
+      // Outside schedule window → never show, close if currently open
       if (!withinWindow) {
         setOpen(false);
         return;
       }
 
-      // Auto-show: once per session if enabled and version not seen
-      if (row.enabled) {
-        const seenVersion = localStorage.getItem(SEEN_KEY);
-        const sessionShown = sessionStorage.getItem(SESSION_KEY);
-        if (sessionShown) return;
-        if (seenVersion === String(row.version)) return;
-        // Daily cap: at most DAILY_LIMIT auto-shows per browser per day
-        if (getDailyCount() >= DAILY_LIMIT) return;
-        sessionStorage.setItem(SESSION_KEY, "1");
-        localStorage.setItem(SEEN_KEY, String(row.version));
-        bumpDailyCount();
-        setOpen(true);
-      }
+      const force = row.last_force_trigger;
+      if (!force) return; // no admin trigger yet → do nothing
+
+      // Master kill switch
+      if (!row.enabled) return;
+
+      // Daily cap
+      const daily = getDaily();
+      if (daily.count >= DAILY_LIMIT) return;
+
+      // Already counted this trigger today? Don't re-show on every poll.
+      if (daily.triggers.includes(force)) return;
+
+      // Already shown this trigger in THIS tab session? Skip re-open in same tab.
+      const sessionTrigger = sessionStorage.getItem(SESSION_KEY);
+      if (sessionTrigger === force) return;
+
+      // Show & record
+      sessionStorage.setItem(SESSION_KEY, force);
+      lastSeenForceRef.current = force;
+      bumpDaily(force);
+      setOpen(true);
     };
 
     const fetchOnce = async () => {
@@ -208,8 +211,7 @@ export function PopupAdDialog() {
       cancelled = true;
       clearInterval(poll);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onEngagementRoute]);
+  }, []);
 
   // Skip countdown
   useEffect(() => {
@@ -234,7 +236,6 @@ export function PopupAdDialog() {
     return () => clearInterval(tick);
   }, [open, ad]);
 
-  if (!onEngagementRoute) return null;
   if (!ad || !ad.youtube_video_id) return null;
 
   const videoId = parseYouTubeId(ad.youtube_video_id);

@@ -408,9 +408,11 @@ export default function AdminPopupAd() {
                   </div>
                 )}
                 <div className="mt-4 p-3 rounded-xl bg-muted/30 text-xs space-y-1.5">
-                  <p><strong>How it works:</strong></p>
-                  <p>• <strong>Force Show Now</strong> → popup blasts immediately for everyone on engagement pages (within ~12s).</p>
-                  <p>• <strong>Auto-show ON</strong> → every user sees it once per session.</p>
+                  <p><strong>How it works (admin-controlled):</strong></p>
+                  <p>• Popup is <strong>fully manual</strong> — it only shows after you click <strong>Force Show Now</strong>.</p>
+                  <p>• <strong>Enable popup</strong> is the master kill switch. If it's OFF, even Force Show won't fire.</p>
+                  <p>• Once you click Force, the popup will appear for every logged-in user the next time they open <strong>any page</strong> of the app — up to <strong>3 times per day</strong> per user (browser). Each Force click counts as 1 of those 3.</p>
+                  <p>• Only fires inside the schedule window (Starts at / Ends at). Outside the window nothing shows.</p>
                   <p>• Users can only skip after the delay you set above.</p>
                 </div>
               </CardContent>
