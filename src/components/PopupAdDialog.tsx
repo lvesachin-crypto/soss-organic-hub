@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Play, Sparkles } from "lucide-react";
+import { X, Play, Sparkles, GripHorizontal } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 type PopupAd = {
@@ -47,6 +47,69 @@ export function PopupAdDialog() {
   const [canSkip, setCanSkip] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const lastSeenForceRef = useRef<string | null>(null);
+
+  // ---- Mobile draggable state ----
+  const [drag, setDrag] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragStateRef = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    pointerId: number | null;
+  }>({ active: false, startX: 0, startY: 0, originX: 0, originY: 0, pointerId: null });
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // Reset position whenever dialog opens
+  useEffect(() => {
+    if (open) setDrag({ x: 0, y: 0 });
+  }, [open]);
+
+  const clampToViewport = (x: number, y: number) => {
+    const el = cardRef.current;
+    if (!el) return { x, y };
+    const rect = el.getBoundingClientRect();
+    // Keep at least 64px of the card visible on every edge so the user
+    // can always grab it back / tap the skip button.
+    const minVisible = 64;
+    const maxX = Math.max(0, window.innerWidth  - minVisible) - rect.left + drag.x;
+    const minX = -(rect.right - minVisible) + drag.x;
+    const maxY = Math.max(0, window.innerHeight - minVisible) - rect.top  + drag.y;
+    const minY = -(rect.bottom - minVisible) + drag.y;
+    return {
+      x: Math.min(maxX, Math.max(minX, x)),
+      y: Math.min(maxY, Math.max(minY, y)),
+    };
+  };
+
+  const onDragPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only enable drag on touch/pen (mobile-ish). Desktop mouse stays static.
+    if (e.pointerType === "mouse") return;
+    dragStateRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: drag.x,
+      originY: drag.y,
+      pointerId: e.pointerId,
+    };
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  };
+  const onDragPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const st = dragStateRef.current;
+    if (!st.active || st.pointerId !== e.pointerId) return;
+    const nx = st.originX + (e.clientX - st.startX);
+    const ny = st.originY + (e.clientY - st.startY);
+    setDrag(clampToViewport(nx, ny));
+  };
+  const onDragPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const st = dragStateRef.current;
+    if (st.pointerId === e.pointerId) {
+      st.active = false;
+      st.pointerId = null;
+      try { (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    }
+  };
 
   // Initial fetch + polling for force trigger
   useEffect(() => {
@@ -182,7 +245,15 @@ export function PopupAdDialog() {
         }}
       >
         {/* Glow ring (outside the card) */}
-        <div className="relative">
+        <div
+          className="relative"
+          style={{
+            transform: `translate3d(${drag.x}px, ${drag.y}px, 0)`,
+            transition: dragStateRef.current.active ? "none" : "transform 200ms ease-out",
+            touchAction: "none",
+            willChange: "transform",
+          }}
+        >
           <div
             aria-hidden
             className="absolute -inset-[2px] rounded-[22px] sm:rounded-[26px] opacity-90 blur-[6px] animate-pulse"
@@ -192,7 +263,10 @@ export function PopupAdDialog() {
             }}
           />
           {/* Card */}
-          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-[#0b0b14] via-[#11131f] to-[#0b0b14] ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(249,115,22,0.45)]">
+          <div
+            ref={cardRef}
+            className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-[#0b0b14] via-[#11131f] to-[#0b0b14] ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(249,115,22,0.45)]"
+          >
             {/* Top glossy highlight */}
             <div
               aria-hidden
@@ -203,8 +277,36 @@ export function PopupAdDialog() {
               }}
             />
 
-            {/* Header */}
-            <div className="relative flex items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 pt-3.5 sm:pt-5 pb-3 sm:pb-4">
+            {/* Mobile drag handle — touch only */}
+            <div
+              className="sm:hidden relative flex items-center justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing select-none"
+              onPointerDown={onDragPointerDown}
+              onPointerMove={onDragPointerMove}
+              onPointerUp={onDragPointerUp}
+              onPointerCancel={onDragPointerUp}
+              style={{ touchAction: "none" }}
+              aria-label="Drag to reposition"
+            >
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur-md">
+                <GripHorizontal className="w-3.5 h-3.5 text-white/70" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/70">Drag</span>
+              </div>
+            </div>
+
+            {/* Header (also draggable on mobile, excluding the skip button) */}
+            <div
+              className="relative flex items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 pt-2 sm:pt-5 pb-3 sm:pb-4"
+              onPointerDown={(e) => {
+                // Don't start a drag if the user touched the skip control
+                const t = e.target as HTMLElement;
+                if (t.closest("[data-no-drag]")) return;
+                onDragPointerDown(e);
+              }}
+              onPointerMove={onDragPointerMove}
+              onPointerUp={onDragPointerUp}
+              onPointerCancel={onDragPointerUp}
+              style={{ touchAction: "none" }}
+            >
               <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                 {/* Logo badge */}
                 <div className="relative shrink-0">
@@ -234,20 +336,21 @@ export function PopupAdDialog() {
               </div>
 
               {/* Skip control — animated ring countdown / pill */}
-              <div className="shrink-0">
+              <div className="shrink-0" data-no-drag>
                 {canSkip ? (
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="group relative flex items-center gap-1.5 pl-3 sm:pl-3.5 pr-2 sm:pr-2.5 h-10 sm:h-auto sm:py-2 rounded-full text-[11px] font-bold uppercase tracking-wider text-white bg-white/10 hover:bg-white/20 backdrop-blur-md ring-1 ring-white/20 transition-all hover:scale-[1.03] active:scale-95 shadow-lg min-w-[44px]"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="group relative flex items-center gap-1.5 pl-4 sm:pl-3.5 pr-3 sm:pr-2.5 h-11 sm:h-auto sm:py-2 rounded-full text-[12px] sm:text-[11px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-orange-500/90 to-red-500/90 sm:from-white/10 sm:to-white/10 hover:from-orange-500 hover:to-red-500 sm:hover:bg-white/20 backdrop-blur-md ring-1 ring-white/25 transition-all hover:scale-[1.03] active:scale-95 shadow-lg shadow-orange-500/30 min-w-[88px] sm:min-w-[44px] justify-center"
                   >
                     <span>Skip Ad</span>
-                    <span className="w-5 h-5 rounded-full bg-white/15 group-hover:bg-white/25 flex items-center justify-center transition-colors">
-                      <X className="w-3 h-3" />
+                    <span className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-white/25 group-hover:bg-white/35 flex items-center justify-center transition-colors">
+                      <X className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                     </span>
                   </button>
                 ) : (
-                  <div className="relative w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center">
+                  <div className="relative w-12 h-12 sm:w-12 sm:h-12 flex items-center justify-center" onPointerDown={(e) => e.stopPropagation()}>
                     {/* Progress ring */}
                     <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
                       <circle
