@@ -13,6 +13,8 @@ type PopupAd = {
   skip_after_seconds: number;
   last_force_trigger: string | null;
   version: number;
+  starts_at: string | null;
+  ends_at: string | null;
 };
 
 const SEEN_KEY = "popup_ad_seen_v1";
@@ -57,18 +59,31 @@ export function PopupAdDialog() {
 
       if (!row.youtube_video_id) return;
 
+      const now = Date.now();
+      const startsAt = row.starts_at ? new Date(row.starts_at).getTime() : null;
+      const endsAt   = row.ends_at   ? new Date(row.ends_at).getTime()   : null;
+      const withinWindow =
+        (startsAt === null || now >= startsAt) &&
+        (endsAt   === null || now <= endsAt);
+
       const force = row.last_force_trigger;
       const lastSeenForce =
         lastSeenForceRef.current ?? localStorage.getItem(FORCE_KEY);
 
-      // Force trigger: show whenever last_force_trigger advances
-      if (force && force !== lastSeenForce) {
+      // Force trigger: only fire when inside the schedule window (or no window set)
+      if (force && force !== lastSeenForce && withinWindow) {
         lastSeenForceRef.current = force;
         localStorage.setItem(FORCE_KEY, force);
         setOpen(true);
         return;
       }
       if (force) lastSeenForceRef.current = force;
+
+      // Outside schedule window → never auto-show, and auto-close if currently open
+      if (!withinWindow) {
+        setOpen(false);
+        return;
+      }
 
       // Auto-show: once per session if enabled and version not seen
       if (row.enabled) {

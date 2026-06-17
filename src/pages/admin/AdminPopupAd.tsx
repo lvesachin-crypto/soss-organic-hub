@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Save, Zap, Play, Megaphone, ExternalLink } from "lucide-react";
+import { Loader2, Save, Zap, Play, Megaphone, ExternalLink, CalendarClock } from "lucide-react";
 
 type PopupAd = {
   id: string;
@@ -19,6 +19,8 @@ type PopupAd = {
   skip_after_seconds: number;
   last_force_trigger: string | null;
   version: number;
+  starts_at: string | null;
+  ends_at: string | null;
 };
 
 function parseYouTubeId(input: string): string {
@@ -36,6 +38,43 @@ function parseYouTubeId(input: string): string {
   }
 }
 
+/** ISO string -> "YYYY-MM-DDTHH:mm" in local TZ (for datetime-local input). */
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** datetime-local string (local TZ) -> ISO. Empty string -> null. */
+function localInputToIso(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+function ScheduleStatus({ startsAt, endsAt }: { startsAt: string; endsAt: string }) {
+  const now = Date.now();
+  const s = startsAt ? new Date(startsAt).getTime() : null;
+  const e = endsAt ? new Date(endsAt).getTime() : null;
+  if (!s && !e) {
+    return <p className="text-[11px] text-muted-foreground">No schedule set — popup is always available.</p>;
+  }
+  if (s && now < s) {
+    return <p className="text-[11px] text-amber-600 font-semibold">⏳ Scheduled — starts {new Date(s).toLocaleString()}</p>;
+  }
+  if (e && now > e) {
+    return <p className="text-[11px] text-red-600 font-semibold">⛔ Expired on {new Date(e).toLocaleString()} — popup will not show.</p>;
+  }
+  return (
+    <p className="text-[11px] text-green-600 font-semibold">
+      ✅ Active{e ? ` until ${new Date(e).toLocaleString()}` : ""}
+    </p>
+  );
+}
+
 export default function AdminPopupAd() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,6 +85,8 @@ export default function AdminPopupAd() {
   const [description, setDescription] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [skipSec, setSkipSec] = useState(5);
+  const [startsAt, setStartsAt] = useState<string>(""); // datetime-local
+  const [endsAt, setEndsAt] = useState<string>("");     // datetime-local
 
   const load = async () => {
     setLoading(true);
@@ -80,6 +121,8 @@ export default function AdminPopupAd() {
       setDescription(r.description || "");
       setEnabled(r.enabled);
       setSkipSec(r.skip_after_seconds);
+      setStartsAt(isoToLocalInput(r.starts_at));
+      setEndsAt(isoToLocalInput(r.ends_at));
     } else {
       const r = data as unknown as PopupAd;
       setRow(r);
@@ -88,6 +131,8 @@ export default function AdminPopupAd() {
       setDescription(r.description || "");
       setEnabled(r.enabled);
       setSkipSec(r.skip_after_seconds);
+      setStartsAt(isoToLocalInput(r.starts_at));
+      setEndsAt(isoToLocalInput(r.ends_at));
     }
     setLoading(false);
   };
@@ -100,12 +145,21 @@ export default function AdminPopupAd() {
     if (!row) return;
     setSaving(true);
     const videoId = parseYouTubeId(videoInput);
+    const startIso = localInputToIso(startsAt);
+    const endIso   = localInputToIso(endsAt);
+    if (startIso && endIso && new Date(endIso).getTime() <= new Date(startIso).getTime()) {
+      setSaving(false);
+      toast.error("End time must be after start time");
+      return;
+    }
     const update: Record<string, unknown> = {
       youtube_video_id: videoId,
       title: title.trim() || "Watch this video",
       description: description.trim(),
       enabled,
       skip_after_seconds: Math.max(0, Math.min(120, Math.floor(skipSec || 0))),
+      starts_at: startIso,
+      ends_at: endIso,
     };
     if (opts?.bumpVersion) {
       update.version = (row.version || 1) + 1;
@@ -234,6 +288,67 @@ export default function AdminPopupAd() {
                     </p>
                   </div>
                   <Switch checked={enabled} onCheckedChange={setEnabled} />
+                </div>
+
+                {/* Schedule window */}
+                <div className="p-3 rounded-xl border bg-muted/30 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="w-4 h-4 text-orange-500" />
+                    <p className="text-sm font-semibold">Schedule (optional)</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    Popup will only show between these times. Leave empty for no limit. Outside the window even Force Show won't fire.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Starts at</Label>
+                      <Input
+                        type="datetime-local"
+                        value={startsAt}
+                        onChange={(e) => setStartsAt(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Ends at (expiry)</Label>
+                      <Input
+                        type="datetime-local"
+                        value={endsAt}
+                        onChange={(e) => setEndsAt(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setStartsAt(""); setEndsAt(""); }}
+                      className="text-[11px] px-2 py-1 rounded-md border bg-background hover:bg-muted"
+                    >
+                      Clear schedule
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const end = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                        setStartsAt(isoToLocalInput(new Date().toISOString()));
+                        setEndsAt(isoToLocalInput(end.toISOString()));
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-md border bg-background hover:bg-muted"
+                    >
+                      Next 24h
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const end = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        setStartsAt(isoToLocalInput(new Date().toISOString()));
+                        setEndsAt(isoToLocalInput(end.toISOString()));
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-md border bg-background hover:bg-muted"
+                    >
+                      Next 7 days
+                    </button>
+                  </div>
+                  <ScheduleStatus startsAt={startsAt} endsAt={endsAt} />
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
