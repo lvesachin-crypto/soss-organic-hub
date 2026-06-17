@@ -310,7 +310,7 @@ export function PopupAdDialog() {
 
             {/* Mobile drag handle — touch only */}
             <div
-              className="sm:hidden relative flex items-center justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing select-none"
+              className="sm:hidden relative flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing select-none"
               onPointerDown={onDragPointerDown}
               onPointerMove={onDragPointerMove}
               onPointerUp={onDragPointerUp}
@@ -318,15 +318,12 @@ export function PopupAdDialog() {
               style={{ touchAction: "none" }}
               aria-label="Drag to reposition"
             >
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur-md">
-                <GripHorizontal className="w-3.5 h-3.5 text-white/70" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/70">Drag</span>
-              </div>
+              <div className="h-1 w-10 rounded-full bg-white/25" />
             </div>
 
             {/* Header (also draggable on mobile, excluding the skip button) */}
             <div
-              className="relative flex items-center justify-between gap-2.5 sm:gap-3 px-3 sm:px-6 pt-2 sm:pt-5 pb-3 sm:pb-4"
+              className="relative flex items-center justify-between gap-3 px-4 sm:px-6 pt-3 sm:pt-5 pb-3 sm:pb-4"
               onPointerDown={(e) => {
                 // Don't start a drag if the user touched the skip control
                 const t = e.target as HTMLElement;
@@ -417,10 +414,10 @@ export function PopupAdDialog() {
             </div>
 
             {/* Divider */}
-            <div className="mx-3 sm:mx-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            <div className="mx-4 sm:mx-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
             {/* Video frame with inner glow */}
-            <div className="p-2 sm:p-4">
+            <div className="px-3 py-3 sm:p-4">
               <div
                 className={`relative ${isShort ? "mx-auto w-full max-w-[320px] sm:max-w-[360px]" : "w-full"} rounded-xl sm:rounded-2xl overflow-hidden bg-black ring-1 ring-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]`}
                 style={{ aspectRatio: isShort ? "9 / 16" : "16 / 9" }}
