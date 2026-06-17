@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Play } from "lucide-react";
+import { X, Play, Sparkles } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 type PopupAd = {
@@ -152,6 +152,11 @@ export function PopupAdDialog() {
     setOpen(false);
   };
 
+  const totalSkip = Math.max(0, ad.skip_after_seconds || 0);
+  const progress = totalSkip > 0 ? 1 - secondsLeft / totalSkip : 1;
+  const ringCircum = 2 * Math.PI * 18; // r=18
+  const ringOffset = ringCircum * (1 - progress);
+
   return (
     <Dialog
       open={open}
@@ -161,7 +166,7 @@ export function PopupAdDialog() {
       }}
     >
       <DialogContent
-        className="max-w-3xl p-0 overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 [&>button.absolute]:hidden"
+        className="max-w-3xl p-0 overflow-hidden border-0 bg-transparent shadow-none [&>button.absolute]:hidden"
         onPointerDownOutside={(e) => {
           if (!canSkip) e.preventDefault();
         }}
@@ -169,58 +174,163 @@ export function PopupAdDialog() {
           if (!canSkip) e.preventDefault();
         }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-red-500/30">
-              <Play className="w-5 h-5 text-white fill-white" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-base sm:text-lg font-bold text-white leading-tight truncate">
-                {ad.title || "Watch this video"}
-              </h3>
-              {ad.description ? (
-                <p className="text-xs sm:text-sm text-slate-300 mt-0.5 line-clamp-2">
-                  {ad.description}
-                </p>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Skip button / countdown */}
-          {canSkip ? (
-            <button
-              type="button"
-              onClick={handleClose}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
-            >
-              Skip Ad <X className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-slate-300 border border-white/10">
-              Skip in {secondsLeft}s
-            </div>
-          )}
-        </div>
-
-        {/* YouTube embed */}
-        <div className="relative w-full bg-black" style={{ aspectRatio: "16 / 9" }}>
-          <iframe
-            key={videoId + (ad.last_force_trigger || "")}
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
-            title={ad.title || "Advertisement"}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+        {/* Glow ring (outside the card) */}
+        <div className="relative">
+          <div
+            aria-hidden
+            className="absolute -inset-[2px] rounded-[26px] opacity-90 blur-[6px] animate-pulse"
+            style={{
+              background:
+                "conic-gradient(from 0deg, #f97316, #ef4444, #fb923c, #f59e0b, #f97316)",
+            }}
           />
-        </div>
+          {/* Card */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#0b0b14] via-[#11131f] to-[#0b0b14] ring-1 ring-white/10 shadow-[0_30px_80px_-20px_rgba(249,115,22,0.45)]">
+            {/* Top glossy highlight */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-60"
+              style={{
+                background:
+                  "radial-gradient(60% 100% at 50% 0%, rgba(249,115,22,0.25), transparent 70%)",
+              }}
+            />
 
-        {/* Footer hint */}
-        <div className="px-5 py-3 text-[11px] text-slate-400 flex items-center justify-between">
-          <span>Sponsored</span>
-          <span>
-            {canSkip ? "You can close this now" : `Please wait ${secondsLeft}s…`}
-          </span>
+            {/* Header */}
+            <div className="relative flex items-center justify-between gap-3 px-4 sm:px-6 pt-5 pb-4">
+              <div className="flex items-center gap-3 min-w-0">
+                {/* Logo badge */}
+                <div className="relative shrink-0">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 blur-md opacity-70 animate-pulse" />
+                  <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/40 ring-1 ring-white/20">
+                    <Play className="w-5 h-5 text-white fill-white drop-shadow" />
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-[0.18em] uppercase bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm shadow-orange-500/40">
+                      <Sparkles className="w-2.5 h-2.5" /> Featured
+                    </span>
+                    <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-orange-300/70">
+                      Sponsored
+                    </span>
+                  </div>
+                  <h3 className="text-[15px] sm:text-lg font-extrabold text-white leading-tight truncate tracking-tight">
+                    {ad.title || "Watch this video"}
+                  </h3>
+                  {ad.description ? (
+                    <p className="text-[11px] sm:text-[12px] text-slate-300/80 mt-0.5 line-clamp-1 sm:line-clamp-2">
+                      {ad.description}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Skip control — animated ring countdown / pill */}
+              <div className="shrink-0">
+                {canSkip ? (
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="group relative flex items-center gap-1.5 pl-3.5 pr-2.5 py-2 rounded-full text-[11px] font-bold uppercase tracking-wider text-white bg-white/10 hover:bg-white/20 backdrop-blur-md ring-1 ring-white/20 transition-all hover:scale-[1.03] active:scale-95 shadow-lg"
+                  >
+                    <span>Skip Ad</span>
+                    <span className="w-5 h-5 rounded-full bg-white/15 group-hover:bg-white/25 flex items-center justify-center transition-colors">
+                      <X className="w-3 h-3" />
+                    </span>
+                  </button>
+                ) : (
+                  <div className="relative w-12 h-12 flex items-center justify-center">
+                    {/* Progress ring */}
+                    <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="18"
+                        stroke="rgba(255,255,255,0.10)"
+                        strokeWidth="3"
+                        fill="none"
+                      />
+                      <circle
+                        cx="20"
+                        cy="20"
+                        r="18"
+                        stroke="url(#popupAdRing)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        fill="none"
+                        strokeDasharray={ringCircum}
+                        strokeDashoffset={ringOffset}
+                        style={{ transition: "stroke-dashoffset 250ms linear" }}
+                      />
+                      <defs>
+                        <linearGradient id="popupAdRing" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor="#fb923c" />
+                          <stop offset="100%" stopColor="#ef4444" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <span className="relative text-[12px] font-extrabold text-white tabular-nums drop-shadow">
+                      {secondsLeft}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="mx-4 sm:mx-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+            {/* Video frame with inner glow */}
+            <div className="p-3 sm:p-4">
+              <div
+                className="relative w-full rounded-2xl overflow-hidden bg-black ring-1 ring-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]"
+                style={{ aspectRatio: "16 / 9" }}
+              >
+                {/* corner accents */}
+                <div className="pointer-events-none absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-orange-400/40 rounded-tl-2xl z-10" />
+                <div className="pointer-events-none absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-red-500/40 rounded-br-2xl z-10" />
+                <iframe
+                  key={videoId + (ad.last_force_trigger || "")}
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                  title={ad.title || "Advertisement"}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="relative px-5 sm:px-6 pb-4 pt-1 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                <span className="font-semibold tracking-wider uppercase">OrganicSMM Promo</span>
+              </div>
+              <span className="text-[11px] font-medium text-slate-300">
+                {canSkip ? (
+                  <span className="text-emerald-400">You can close this now ✓</span>
+                ) : (
+                  <span>
+                    Skip available in{" "}
+                    <span className="text-orange-300 font-bold tabular-nums">
+                      {secondsLeft}s
+                    </span>
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {/* Bottom progress bar */}
+            {!canSkip && totalSkip > 0 && (
+              <div className="h-1 w-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-400 via-red-500 to-orange-400 transition-[width] duration-250 ease-linear"
+                  style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
