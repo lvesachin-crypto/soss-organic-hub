@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Play } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 type PopupAd = {
   id: string;
@@ -37,6 +38,8 @@ function parseYouTubeId(input: string): string {
 }
 
 export function PopupAdDialog() {
+  const location = useLocation();
+  const onEngagementRoute = location.pathname.startsWith("/engagement");
   const [ad, setAd] = useState<PopupAd | null>(null);
   const [open, setOpen] = useState(false);
   const [canSkip, setCanSkip] = useState(false);
@@ -45,6 +48,7 @@ export function PopupAdDialog() {
 
   // Initial fetch + polling for force trigger
   useEffect(() => {
+    if (!onEngagementRoute) return;
     let cancelled = false;
 
     const evaluate = (row: PopupAd) => {
@@ -97,7 +101,7 @@ export function PopupAdDialog() {
       clearInterval(poll);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onEngagementRoute]);
 
   // Skip countdown
   useEffect(() => {
@@ -122,6 +126,7 @@ export function PopupAdDialog() {
     return () => clearInterval(tick);
   }, [open, ad]);
 
+  if (!onEngagementRoute) return null;
   if (!ad || !ad.youtube_video_id) return null;
 
   const videoId = parseYouTubeId(ad.youtube_video_id);
