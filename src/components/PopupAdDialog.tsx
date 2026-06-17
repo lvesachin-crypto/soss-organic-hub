@@ -20,6 +20,38 @@ type PopupAd = {
 const DAILY_KEY    = "popup_ad_daily_v2"; // { date, count, triggers: string[] }
 const SESSION_KEY  = "popup_ad_session_trigger_v2"; // last force trigger shown in this tab session
 const DAILY_LIMIT  = 3; // max popups per browser per day (admin-force only)
+const SCHEDULE_KEY = "popup_ad_schedule_v1"; // { triggerId, slots: number[] } — randomized 24h slot plan
+const SHOWS_PER_TRIGGER = 3; // 3 random shows spread across the next 24h
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+const FIRST_SLOT_MIN_MS = 2 * 60 * 1000;  // earliest first slot: ~2 min from now
+
+type SchedulePlan = { triggerId: string; slots: number[] };
+function getSchedule(): SchedulePlan | null {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw) as SchedulePlan;
+    if (!obj || !Array.isArray(obj.slots)) return null;
+    return obj;
+  } catch { return null; }
+}
+function setSchedule(plan: SchedulePlan | null) {
+  if (!plan || plan.slots.length === 0) {
+    localStorage.removeItem(SCHEDULE_KEY);
+  } else {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(plan));
+  }
+}
+/** Pick N random unix-ms timestamps in [fromMs, toMs], sorted ascending. */
+function pickRandomSlots(n: number, fromMs: number, toMs: number): number[] {
+  if (toMs <= fromMs || n <= 0) return [];
+  const span = toMs - fromMs;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    out.push(Math.floor(fromMs + Math.random() * span));
+  }
+  return out.sort((a, b) => a - b);
+}
 
 function todayStr() {
   const d = new Date();
@@ -182,52 +214,47 @@ export function PopupAdDialog() {
       // Master kill switch
       if (!row.enabled) return;
 
-      // Daily cap
-      const daily = getDaily();
-      if (daily.count >= DAILY_LIMIT) return;
-
-      // Already counted this trigger today? Don't re-show on every poll.
-      if (daily.triggers.includes(force)) return;
-
-      // Already shown this trigger in THIS tab session? Skip re-open in same tab.
-      const sessionTrigger = sessionStorage.getItem(SESSION_KEY);
-      if (sessionTrigger === force) return;
-
-      // Already scheduled this exact trigger? Don't schedule again.
-      if (scheduledTriggerRef.current === force) return;
-
-      // Random delay so the popup appears at an unpredictable time during the
-      // user's session (anywhere between ~30s and ~6min after we notice the
-      // trigger). This avoids the "popup-the-moment-you-load" feel.
-      const minMs = 30_000;          // 30 seconds
-      const maxMs = 6 * 60_000;      // 6 minutes
-      let delayMs = Math.floor(minMs + Math.random() * (maxMs - minMs));
-
-      // If the schedule has an `ends_at`, never fire after it. Clamp delay so
-      // the popup still gets a chance before the window closes.
-      if (endsAt !== null) {
-        const remaining = Math.max(0, endsAt - Date.now() - 2000);
-        if (remaining <= 0) return;
-        delayMs = Math.min(delayMs, remaining);
+      // ---- 24h randomized slot plan ----
+      // New trigger? Generate 3 random unix-ms slots spread across the next 24h
+      // (clamped to the schedule window). They persist in localStorage so they
+      // survive reloads / new tabs. Whichever slot's time has passed, popup
+      // fires next time we poll.
+      let plan = getSchedule();
+      if (!plan || plan.triggerId !== force) {
+        const fromMs = Math.max(now + FIRST_SLOT_MIN_MS, startsAt ?? 0);
+        let toMs = now + WINDOW_MS;
+        if (endsAt !== null) toMs = Math.min(toMs, endsAt - 5_000);
+        const slots = pickRandomSlots(SHOWS_PER_TRIGGER, fromMs, toMs);
+        plan = { triggerId: force, slots };
+        setSchedule(plan);
       }
 
-      scheduledTriggerRef.current = force;
-      pendingTimerRef.current = window.setTimeout(() => {
-        pendingTimerRef.current = null;
-        // Re-validate just before firing — limit/window/session may have changed
-        const d = getDaily();
-        if (d.count >= DAILY_LIMIT) return;
-        if (d.triggers.includes(force)) return;
-        if (sessionStorage.getItem(SESSION_KEY) === force) return;
-        const nowMs = Date.now();
-        if (endsAt !== null && nowMs > endsAt) return;
-        if (startsAt !== null && nowMs < startsAt) return;
+      // Already showing? Don't restack.
+      if (open) return;
+      // Same trigger already shown this tab session? Skip in this tab.
+      if (sessionStorage.getItem(SESSION_KEY) === force) {
+        // still allow future slots (different tab session) — just don't fire here
+      }
 
-        sessionStorage.setItem(SESSION_KEY, force);
-        lastSeenForceRef.current = force;
-        bumpDaily(force);
-        setOpen(true);
-      }, delayMs);
+      // Fire if a slot's time has arrived.
+      const due = plan.slots.find((t) => t <= now);
+      if (due === undefined) return;
+
+      // Hard cap as extra safety
+      const daily = getDaily();
+      if (daily.count >= DAILY_LIMIT) {
+        // Remove the due slot so we don't keep retrying it
+        setSchedule({ triggerId: force, slots: plan.slots.filter((t) => t !== due) });
+        return;
+      }
+
+      // Consume the slot, mark count, open popup
+      setSchedule({ triggerId: force, slots: plan.slots.filter((t) => t !== due) });
+      sessionStorage.setItem(SESSION_KEY, force);
+      lastSeenForceRef.current = force;
+      // bumpDaily uses triggerId as dedupe key; use a per-slot key so 3 shows count separately
+      bumpDaily(`${force}#${due}`);
+      setOpen(true);
     };
 
     const fetchOnce = async () => {
