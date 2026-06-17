@@ -39,6 +39,13 @@ function parseYouTubeId(input: string): string {
   return s;
 }
 
+/** Detect a YouTube Short from the raw input (URL contains /shorts/). */
+function isYouTubeShort(input: string): boolean {
+  const s = (input || "").trim().toLowerCase();
+  if (!s) return false;
+  return s.includes("/shorts/") || s.startsWith("shorts/");
+}
+
 export function PopupAdDialog() {
   const location = useLocation();
   const onEngagementRoute = location.pathname.startsWith("/engagement");
@@ -209,6 +216,7 @@ export function PopupAdDialog() {
 
   const videoId = parseYouTubeId(ad.youtube_video_id);
   if (!videoId) return null;
+  const isShort = isYouTubeShort(ad.youtube_video_id);
 
   const handleClose = () => {
     if (!canSkip) return;
@@ -394,8 +402,8 @@ export function PopupAdDialog() {
             {/* Video frame with inner glow */}
             <div className="p-2 sm:p-4">
               <div
-                className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black ring-1 ring-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]"
-                style={{ aspectRatio: "16 / 9" }}
+                className={`relative ${isShort ? "mx-auto w-full max-w-[320px] sm:max-w-[360px]" : "w-full"} rounded-xl sm:rounded-2xl overflow-hidden bg-black ring-1 ring-white/10 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]`}
+                style={{ aspectRatio: isShort ? "9 / 16" : "16 / 9" }}
               >
                 {/* corner accents */}
                 <div className="pointer-events-none absolute top-0 left-0 w-10 h-10 sm:w-16 sm:h-16 border-t-2 border-l-2 border-orange-400/40 rounded-tl-xl sm:rounded-tl-2xl z-10" />
