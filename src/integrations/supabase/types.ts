@@ -647,9 +647,11 @@ export type Database = {
           created_at: string
           description: string
           enabled: boolean
+          ends_at: string | null
           id: string
           last_force_trigger: string | null
           skip_after_seconds: number
+          starts_at: string | null
           title: string
           updated_at: string
           version: number
@@ -659,9 +661,11 @@ export type Database = {
           created_at?: string
           description?: string
           enabled?: boolean
+          ends_at?: string | null
           id?: string
           last_force_trigger?: string | null
           skip_after_seconds?: number
+          starts_at?: string | null
           title?: string
           updated_at?: string
           version?: number
@@ -671,9 +675,11 @@ export type Database = {
           created_at?: string
           description?: string
           enabled?: boolean
+          ends_at?: string | null
           id?: string
           last_force_trigger?: string | null
           skip_after_seconds?: number
+          starts_at?: string | null
           title?: string
           updated_at?: string
           version?: number
