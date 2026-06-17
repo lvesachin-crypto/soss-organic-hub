@@ -477,7 +477,7 @@ export function PopupAdDialog() {
                 <div className="pointer-events-none absolute bottom-0 right-0 w-10 h-10 sm:w-16 sm:h-16 border-b-2 border-r-2 border-red-500/40 rounded-br-xl sm:rounded-br-2xl z-10" />
                 <iframe
                   key={videoId + (ad.last_force_trigger || "")}
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1&controls=1`}
                   title={ad.title || "Advertisement"}
                   className="absolute inset-0 w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
