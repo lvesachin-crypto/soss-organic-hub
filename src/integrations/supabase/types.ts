@@ -642,6 +642,45 @@ export type Database = {
         }
         Relationships: []
       }
+      popup_ads: {
+        Row: {
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          last_force_trigger: string | null
+          skip_after_seconds: number
+          title: string
+          updated_at: string
+          version: number
+          youtube_video_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          last_force_trigger?: string | null
+          skip_after_seconds?: number
+          title?: string
+          updated_at?: string
+          version?: number
+          youtube_video_id?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          last_force_trigger?: string | null
+          skip_after_seconds?: number
+          title?: string
+          updated_at?: string
+          version?: number
+          youtube_video_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           api_key: string | null

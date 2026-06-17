@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Sidebar } from './Sidebar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { LiveChatWidget } from '@/components/chat/LiveChatWidget';
+import { PopupAdDialog } from '@/components/PopupAdDialog';
 
 interface DashboardLayoutProps { children: ReactNode; }
 
@@ -27,6 +28,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </main>
       <LiveChatWidget />
+      <PopupAdDialog />
     </div>
   );
 }

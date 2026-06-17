@@ -1,0 +1,308 @@
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Loader2, Save, Zap, Play, Megaphone, ExternalLink } from "lucide-react";
+
+type PopupAd = {
+  id: string;
+  youtube_video_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  skip_after_seconds: number;
+  last_force_trigger: string | null;
+  version: number;
+};
+
+function parseYouTubeId(input: string): string {
+  const s = (input || "").trim();
+  if (!s) return "";
+  if (/^[a-zA-Z0-9_-]{6,20}$/.test(s)) return s;
+  try {
+    const url = new URL(s.startsWith("http") ? s : `https://${s}`);
+    const v = url.searchParams.get("v");
+    if (v) return v;
+    const parts = url.pathname.split("/").filter(Boolean);
+    return parts[parts.length - 1] || "";
+  } catch {
+    return s;
+  }
+}
+
+export default function AdminPopupAd() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [forcing, setForcing] = useState(false);
+  const [row, setRow] = useState<PopupAd | null>(null);
+  const [videoInput, setVideoInput] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [enabled, setEnabled] = useState(false);
+  const [skipSec, setSkipSec] = useState(5);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("popup_ads" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    if (!data) {
+      const { data: inserted, error: insErr } = await supabase
+        .from("popup_ads" as never)
+        .insert({ youtube_video_id: "", title: "Watch this video" } as never)
+        .select("*")
+        .single();
+      if (insErr) {
+        toast.error(insErr.message);
+        setLoading(false);
+        return;
+      }
+      const r = inserted as unknown as PopupAd;
+      setRow(r);
+      setVideoInput(r.youtube_video_id);
+      setTitle(r.title);
+      setDescription(r.description || "");
+      setEnabled(r.enabled);
+      setSkipSec(r.skip_after_seconds);
+    } else {
+      const r = data as unknown as PopupAd;
+      setRow(r);
+      setVideoInput(r.youtube_video_id);
+      setTitle(r.title);
+      setDescription(r.description || "");
+      setEnabled(r.enabled);
+      setSkipSec(r.skip_after_seconds);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const save = async (opts?: { bumpVersion?: boolean; force?: boolean }) => {
+    if (!row) return;
+    setSaving(true);
+    const videoId = parseYouTubeId(videoInput);
+    const update: Record<string, unknown> = {
+      youtube_video_id: videoId,
+      title: title.trim() || "Watch this video",
+      description: description.trim(),
+      enabled,
+      skip_after_seconds: Math.max(0, Math.min(120, Math.floor(skipSec || 0))),
+    };
+    if (opts?.bumpVersion) {
+      update.version = (row.version || 1) + 1;
+    }
+    if (opts?.force) {
+      update.last_force_trigger = new Date().toISOString();
+    }
+    const { data, error } = await supabase
+      .from("popup_ads" as never)
+      .update(update as never)
+      .eq("id", row.id)
+      .select("*")
+      .single();
+    setSaving(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const r = data as unknown as PopupAd;
+    setRow(r);
+    setVideoInput(r.youtube_video_id);
+    toast.success(opts?.force ? "Popup forced for all users!" : "Saved");
+  };
+
+  const forceTrigger = async () => {
+    if (!row) return;
+    if (!parseYouTubeId(videoInput)) {
+      toast.error("Add a YouTube video first");
+      return;
+    }
+    setForcing(true);
+    await save({ bumpVersion: true, force: true });
+    setForcing(false);
+  };
+
+  const previewId = parseYouTubeId(videoInput);
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6 px-2 sm:px-4 lg:px-6 pb-8">
+        <div className="glass-card p-6 bg-gradient-to-br from-red-500/10 via-transparent to-orange-500/10">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-xl shadow-red-500/20">
+              <Megaphone className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Popup Ad Manager</h1>
+              <p className="text-sm text-muted-foreground">
+                Show a YouTube video popup on the engagement pages — automatically or on-demand
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Play className="w-5 h-5 text-red-500" />
+                  Ad Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label>YouTube Video URL or ID</Label>
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=XXXXXX or just XXXXXX"
+                    value={videoInput}
+                    onChange={(e) => setVideoInput(e.target.value)}
+                  />
+                  {previewId ? (
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      Parsed ID: <code className="font-mono">{previewId}</code>
+                      <a
+                        href={`https://youtu.be/${previewId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary inline-flex items-center gap-0.5 hover:underline"
+                      >
+                        Open <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-amber-600">Enter a valid YouTube link or ID</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Title (shown above video)</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description (optional)</Label>
+                  <Textarea
+                    rows={2}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Skip button delay (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={skipSec}
+                    onChange={(e) => setSkipSec(Number(e.target.value))}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    User can't close the popup until this many seconds pass
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-semibold">Auto-show on engagement pages</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Every user sees it once per browser session (until you change the video / bump it)
+                    </p>
+                  </div>
+                  <Switch checked={enabled} onCheckedChange={setEnabled} />
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button
+                    onClick={() => save({ bumpVersion: true })}
+                    disabled={saving}
+                    className="flex-1"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Changes
+                  </Button>
+                  <Button
+                    onClick={forceTrigger}
+                    disabled={forcing || saving}
+                    variant="destructive"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
+                  >
+                    {forcing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4" />
+                    )}
+                    Force Show Now
+                  </Button>
+                </div>
+
+                {row?.last_force_trigger && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Last forced: {new Date(row.last_force_trigger).toLocaleString()}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Preview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {previewId ? (
+                  <div className="relative w-full rounded-xl overflow-hidden border" style={{ aspectRatio: "16 / 9" }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${previewId}?rel=0&modestbranding=1`}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title="Preview"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-video rounded-xl border border-dashed flex items-center justify-center text-sm text-muted-foreground">
+                    Add a YouTube video to preview
+                  </div>
+                )}
+                <div className="mt-4 p-3 rounded-xl bg-muted/30 text-xs space-y-1.5">
+                  <p><strong>How it works:</strong></p>
+                  <p>• <strong>Force Show Now</strong> → popup blasts immediately for everyone on engagement pages (within ~12s).</p>
+                  <p>• <strong>Auto-show ON</strong> → every user sees it once per session.</p>
+                  <p>• Users can only skip after the delay you set above.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
