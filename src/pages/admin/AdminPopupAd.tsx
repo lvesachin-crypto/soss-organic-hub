@@ -21,6 +21,7 @@ type PopupAd = {
   version: number;
   starts_at: string | null;
   ends_at: string | null;
+  video_layout?: "auto" | "landscape" | "portrait" | null;
 };
 
 function parseYouTubeId(input: string): string {
@@ -87,6 +88,7 @@ export default function AdminPopupAd() {
   const [skipSec, setSkipSec] = useState(5);
   const [startsAt, setStartsAt] = useState<string>(""); // datetime-local
   const [endsAt, setEndsAt] = useState<string>("");     // datetime-local
+  const [videoLayout, setVideoLayout] = useState<"auto" | "landscape" | "portrait">("auto");
 
   const load = async () => {
     setLoading(true);
@@ -123,6 +125,7 @@ export default function AdminPopupAd() {
       setSkipSec(r.skip_after_seconds);
       setStartsAt(isoToLocalInput(r.starts_at));
       setEndsAt(isoToLocalInput(r.ends_at));
+      setVideoLayout((r.video_layout as "auto" | "landscape" | "portrait") || "auto");
     } else {
       const r = data as unknown as PopupAd;
       setRow(r);
@@ -133,6 +136,7 @@ export default function AdminPopupAd() {
       setSkipSec(r.skip_after_seconds);
       setStartsAt(isoToLocalInput(r.starts_at));
       setEndsAt(isoToLocalInput(r.ends_at));
+      setVideoLayout((r.video_layout as "auto" | "landscape" | "portrait") || "auto");
     }
     setLoading(false);
   };
@@ -160,6 +164,7 @@ export default function AdminPopupAd() {
       skip_after_seconds: Math.max(0, Math.min(120, Math.floor(skipSec || 0))),
       starts_at: startIso,
       ends_at: endIso,
+      video_layout: videoLayout,
     };
     if (opts?.bumpVersion) {
       update.version = (row.version || 1) + 1;
@@ -277,6 +282,29 @@ export default function AdminPopupAd() {
                   />
                   <p className="text-[11px] text-muted-foreground">
                     User can't close the popup until this many seconds pass
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Video layout</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["auto","landscape","portrait"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setVideoLayout(opt)}
+                        className={`px-3 py-2 rounded-lg border text-xs font-semibold capitalize transition-colors ${
+                          videoLayout === opt
+                            ? "bg-gradient-to-r from-red-500 to-orange-500 text-white border-transparent shadow"
+                            : "bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {opt === "auto" ? "Auto" : opt === "landscape" ? "Long (16:9)" : "Short (9:16)"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Auto detects from URL. Choose <strong>Long (16:9)</strong> to force landscape player even for a Shorts URL.
                   </p>
                 </div>
 

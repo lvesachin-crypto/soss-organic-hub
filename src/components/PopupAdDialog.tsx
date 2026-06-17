@@ -14,6 +14,7 @@ type PopupAd = {
   version: number;
   starts_at: string | null;
   ends_at: string | null;
+  video_layout?: "auto" | "landscape" | "portrait" | null;
 };
 
 // Per-browser keys
@@ -104,6 +105,13 @@ function isYouTubeShort(input: string): boolean {
   const s = (input || "").trim().toLowerCase();
   if (!s) return false;
   return s.includes("/shorts/") || s.startsWith("shorts/");
+}
+
+/** Resolve final portrait/landscape based on admin override + URL detection. */
+function resolveIsPortrait(layout: string | null | undefined, rawInput: string): boolean {
+  if (layout === "landscape") return false;
+  if (layout === "portrait") return true;
+  return isYouTubeShort(rawInput);
 }
 
 export function PopupAdDialog() {
@@ -312,7 +320,7 @@ export function PopupAdDialog() {
 
   const videoId = parseYouTubeId(ad.youtube_video_id);
   if (!videoId) return null;
-  const isShort = isYouTubeShort(ad.youtube_video_id);
+  const isShort = resolveIsPortrait(ad.video_layout, ad.youtube_video_id);
 
   const handleClose = () => {
     if (!canSkip) return;
