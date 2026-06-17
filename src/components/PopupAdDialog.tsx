@@ -222,50 +222,18 @@ export function PopupAdDialog() {
       // Master kill switch
       if (!row.enabled) return;
 
-      // ---- 24h randomized slot plan ----
-      // New trigger? Generate 3 random unix-ms slots spread across the next 24h
-      // (clamped to the schedule window). They persist in localStorage so they
-      // survive reloads / new tabs. Whichever slot's time has passed, popup
-      // fires next time we poll.
-      let plan = getSchedule();
-      if (!plan || plan.triggerId !== force) {
-        // Slot 1 = immediate (fires on this very evaluation — the moment user
-        // opens the app after admin Force). Slot 2 = a random time within
-        // the next 24h. After both fire, auto-block until next Force.
-        const immediate = now; // fires right away
-        const fromMs = Math.max(now + FIRST_SLOT_MIN_MS, startsAt ?? 0);
-        let toMs = now + WINDOW_MS;
-        if (endsAt !== null) toMs = Math.min(toMs, endsAt - 5_000);
-        const randomSlots = pickRandomSlots(Math.max(0, SHOWS_PER_TRIGGER - 1), fromMs, toMs);
-        plan = { triggerId: force, slots: [immediate, ...randomSlots].sort((a, b) => a - b) };
-        setSchedule(plan);
-      }
+      // ---- One fire per admin Force ----
+      // Every time admin clicks Force Show, a new `last_force_trigger`
+      // timestamp lands here. We fire the popup exactly once per trigger
+      // per browser — no daily cap, no random delay. Admin force karega
+      // utni baar user ko popup dikhega.
+      if (open) return; // already showing
+      const seen = localStorage.getItem(SEEN_FORCE_KEY);
+      if (seen === force) return; // this trigger already consumed in this browser
 
-      // Already showing? Don't restack.
-      if (open) return;
-      // Same trigger already shown this tab session? Skip in this tab.
-      if (sessionStorage.getItem(SESSION_KEY) === force) {
-        // still allow future slots (different tab session) — just don't fire here
-      }
-
-      // Fire if a slot's time has arrived.
-      const due = plan.slots.find((t) => t <= now);
-      if (due === undefined) return;
-
-      // Hard cap as extra safety
-      const daily = getDaily();
-      if (daily.count >= DAILY_LIMIT) {
-        // Remove the due slot so we don't keep retrying it
-        setSchedule({ triggerId: force, slots: plan.slots.filter((t) => t !== due) });
-        return;
-      }
-
-      // Consume the slot, mark count, open popup
-      setSchedule({ triggerId: force, slots: plan.slots.filter((t) => t !== due) });
+      localStorage.setItem(SEEN_FORCE_KEY, force);
       sessionStorage.setItem(SESSION_KEY, force);
       lastSeenForceRef.current = force;
-      // bumpDaily uses triggerId as dedupe key; use a per-slot key so 3 shows count separately
-      bumpDaily(`${force}#${due}`);
       setOpen(true);
     };
 
