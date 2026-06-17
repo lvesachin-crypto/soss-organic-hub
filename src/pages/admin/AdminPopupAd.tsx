@@ -55,6 +55,26 @@ function localInputToIso(value: string): string | null {
   return d.toISOString();
 }
 
+function ScheduleStatus({ startsAt, endsAt }: { startsAt: string; endsAt: string }) {
+  const now = Date.now();
+  const s = startsAt ? new Date(startsAt).getTime() : null;
+  const e = endsAt ? new Date(endsAt).getTime() : null;
+  if (!s && !e) {
+    return <p className="text-[11px] text-muted-foreground">No schedule set — popup is always available.</p>;
+  }
+  if (s && now < s) {
+    return <p className="text-[11px] text-amber-600 font-semibold">⏳ Scheduled — starts {new Date(s).toLocaleString()}</p>;
+  }
+  if (e && now > e) {
+    return <p className="text-[11px] text-red-600 font-semibold">⛔ Expired on {new Date(e).toLocaleString()} — popup will not show.</p>;
+  }
+  return (
+    <p className="text-[11px] text-green-600 font-semibold">
+      ✅ Active{e ? ` until ${new Date(e).toLocaleString()}` : ""}
+    </p>
+  );
+}
+
 export default function AdminPopupAd() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
