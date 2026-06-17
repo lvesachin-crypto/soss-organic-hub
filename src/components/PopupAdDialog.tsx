@@ -80,6 +80,8 @@ export function PopupAdDialog() {
   const [canSkip, setCanSkip] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const lastSeenForceRef = useRef<string | null>(null);
+  const pendingTimerRef = useRef<number | null>(null);
+  const scheduledTriggerRef = useRef<string | null>(null);
 
   // ---- Mobile draggable state ----
   const [drag, setDrag] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -165,6 +167,11 @@ export function PopupAdDialog() {
 
       // Outside schedule window → never show, close if currently open
       if (!withinWindow) {
+        if (pendingTimerRef.current) {
+          window.clearTimeout(pendingTimerRef.current);
+          pendingTimerRef.current = null;
+          scheduledTriggerRef.current = null;
+        }
         setOpen(false);
         return;
       }
@@ -186,11 +193,41 @@ export function PopupAdDialog() {
       const sessionTrigger = sessionStorage.getItem(SESSION_KEY);
       if (sessionTrigger === force) return;
 
-      // Show & record
-      sessionStorage.setItem(SESSION_KEY, force);
-      lastSeenForceRef.current = force;
-      bumpDaily(force);
-      setOpen(true);
+      // Already scheduled this exact trigger? Don't schedule again.
+      if (scheduledTriggerRef.current === force) return;
+
+      // Random delay so the popup appears at an unpredictable time during the
+      // user's session (anywhere between ~30s and ~6min after we notice the
+      // trigger). This avoids the "popup-the-moment-you-load" feel.
+      const minMs = 30_000;          // 30 seconds
+      const maxMs = 6 * 60_000;      // 6 minutes
+      let delayMs = Math.floor(minMs + Math.random() * (maxMs - minMs));
+
+      // If the schedule has an `ends_at`, never fire after it. Clamp delay so
+      // the popup still gets a chance before the window closes.
+      if (endsAt !== null) {
+        const remaining = Math.max(0, endsAt - Date.now() - 2000);
+        if (remaining <= 0) return;
+        delayMs = Math.min(delayMs, remaining);
+      }
+
+      scheduledTriggerRef.current = force;
+      pendingTimerRef.current = window.setTimeout(() => {
+        pendingTimerRef.current = null;
+        // Re-validate just before firing — limit/window/session may have changed
+        const d = getDaily();
+        if (d.count >= DAILY_LIMIT) return;
+        if (d.triggers.includes(force)) return;
+        if (sessionStorage.getItem(SESSION_KEY) === force) return;
+        const nowMs = Date.now();
+        if (endsAt !== null && nowMs > endsAt) return;
+        if (startsAt !== null && nowMs < startsAt) return;
+
+        sessionStorage.setItem(SESSION_KEY, force);
+        lastSeenForceRef.current = force;
+        bumpDaily(force);
+        setOpen(true);
+      }, delayMs);
     };
 
     const fetchOnce = async () => {
@@ -210,6 +247,10 @@ export function PopupAdDialog() {
     return () => {
       cancelled = true;
       clearInterval(poll);
+      if (pendingTimerRef.current) {
+        window.clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
     };
   }, []);
 
