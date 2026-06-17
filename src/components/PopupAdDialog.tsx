@@ -20,6 +20,7 @@ type PopupAd = {
 // Per-browser keys
 const DAILY_KEY    = "popup_ad_daily_v2"; // { date, count, triggers: string[] }
 const SESSION_KEY  = "popup_ad_session_trigger_v2"; // last force trigger shown in this tab session
+const SEEN_FORCE_KEY = "popup_ad_seen_force_v1"; // last force trigger consumed in this browser (persists across sessions)
 const DAILY_LIMIT  = 2; // max popups per browser per day (admin-force only)
 const SCHEDULE_KEY = "popup_ad_schedule_v1"; // { triggerId, slots: number[] } — randomized 24h slot plan
 const SHOWS_PER_TRIGGER = 2; // total shows per trigger per 24h (1 immediate + 1 random)
