@@ -285,6 +285,29 @@ export default function AdminPopupAd() {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Video layout</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["auto","landscape","portrait"] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setVideoLayout(opt)}
+                        className={`px-3 py-2 rounded-lg border text-xs font-semibold capitalize transition-colors ${
+                          videoLayout === opt
+                            ? "bg-gradient-to-r from-red-500 to-orange-500 text-white border-transparent shadow"
+                            : "bg-background hover:bg-muted"
+                        }`}
+                      >
+                        {opt === "auto" ? "Auto" : opt === "landscape" ? "Long (16:9)" : "Short (9:16)"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Auto detects from URL. Choose <strong>Long (16:9)</strong> to force landscape player even for a Shorts URL.
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-between p-3 rounded-xl border bg-muted/30">
                   <div>
                     <p className="text-sm font-semibold">Auto-show on engagement pages</p>
