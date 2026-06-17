@@ -21,6 +21,7 @@ type PopupAd = {
   version: number;
   starts_at: string | null;
   ends_at: string | null;
+  video_layout?: "auto" | "landscape" | "portrait" | null;
 };
 
 function parseYouTubeId(input: string): string {
@@ -87,6 +88,7 @@ export default function AdminPopupAd() {
   const [skipSec, setSkipSec] = useState(5);
   const [startsAt, setStartsAt] = useState<string>(""); // datetime-local
   const [endsAt, setEndsAt] = useState<string>("");     // datetime-local
+  const [videoLayout, setVideoLayout] = useState<"auto" | "landscape" | "portrait">("auto");
 
   const load = async () => {
     setLoading(true);
@@ -123,6 +125,7 @@ export default function AdminPopupAd() {
       setSkipSec(r.skip_after_seconds);
       setStartsAt(isoToLocalInput(r.starts_at));
       setEndsAt(isoToLocalInput(r.ends_at));
+      setVideoLayout((r.video_layout as "auto" | "landscape" | "portrait") || "auto");
     } else {
       const r = data as unknown as PopupAd;
       setRow(r);
@@ -133,6 +136,7 @@ export default function AdminPopupAd() {
       setSkipSec(r.skip_after_seconds);
       setStartsAt(isoToLocalInput(r.starts_at));
       setEndsAt(isoToLocalInput(r.ends_at));
+      setVideoLayout((r.video_layout as "auto" | "landscape" | "portrait") || "auto");
     }
     setLoading(false);
   };
@@ -160,6 +164,7 @@ export default function AdminPopupAd() {
       skip_after_seconds: Math.max(0, Math.min(120, Math.floor(skipSec || 0))),
       starts_at: startIso,
       ends_at: endIso,
+      video_layout: videoLayout,
     };
     if (opts?.bumpVersion) {
       update.version = (row.version || 1) + 1;
