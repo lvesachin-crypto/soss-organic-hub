@@ -172,6 +172,9 @@ export function PopupAdDialog() {
       const force = row.last_force_trigger;
       if (!force) return; // no admin trigger yet → do nothing
 
+      // Master kill switch
+      if (!row.enabled) return;
+
       // Daily cap
       const daily = getDaily();
       if (daily.count >= DAILY_LIMIT) return;
