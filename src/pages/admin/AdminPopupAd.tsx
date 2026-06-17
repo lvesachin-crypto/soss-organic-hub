@@ -290,6 +290,67 @@ export default function AdminPopupAd() {
                   <Switch checked={enabled} onCheckedChange={setEnabled} />
                 </div>
 
+                {/* Schedule window */}
+                <div className="p-3 rounded-xl border bg-muted/30 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="w-4 h-4 text-orange-500" />
+                    <p className="text-sm font-semibold">Schedule (optional)</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    Popup will only show between these times. Leave empty for no limit. Outside the window even Force Show won't fire.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Starts at</Label>
+                      <Input
+                        type="datetime-local"
+                        value={startsAt}
+                        onChange={(e) => setStartsAt(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Ends at (expiry)</Label>
+                      <Input
+                        type="datetime-local"
+                        value={endsAt}
+                        onChange={(e) => setEndsAt(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setStartsAt(""); setEndsAt(""); }}
+                      className="text-[11px] px-2 py-1 rounded-md border bg-background hover:bg-muted"
+                    >
+                      Clear schedule
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const end = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                        setStartsAt(isoToLocalInput(new Date().toISOString()));
+                        setEndsAt(isoToLocalInput(end.toISOString()));
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-md border bg-background hover:bg-muted"
+                    >
+                      Next 24h
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const end = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                        setStartsAt(isoToLocalInput(new Date().toISOString()));
+                        setEndsAt(isoToLocalInput(end.toISOString()));
+                      }}
+                      className="text-[11px] px-2 py-1 rounded-md border bg-background hover:bg-muted"
+                    >
+                      Next 7 days
+                    </button>
+                  </div>
+                  <ScheduleStatus startsAt={startsAt} endsAt={endsAt} />
+                </div>
+
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button
                     onClick={() => save({ bumpVersion: true })}
