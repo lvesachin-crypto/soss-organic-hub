@@ -411,7 +411,8 @@ export default function AdminPopupAd() {
                   <p><strong>How it works (admin-controlled):</strong></p>
                   <p>• Popup is <strong>fully manual</strong> — it only shows after you click <strong>Force Show Now</strong>.</p>
                   <p>• <strong>Enable popup</strong> is the master kill switch. If it's OFF, even Force Show won't fire.</p>
-                  <p>• Once you click Force, the popup will appear for every logged-in user at a <strong>random time (30s – 6min)</strong> during their session on <strong>any page</strong> — not the moment they open the site. Up to <strong>3 times per day</strong> per user (browser). Each Force click counts as 1 of those 3.</p>
+                  <p>• Once you click Force, the system picks <strong>3 random times spread across the next 24 hours</strong> per user. The popup appears at those random moments on whatever page the user is on — whenever they happen to be online. If they're offline at a slot time, it fires the next time they open the app.</p>
+                  <p>• Hard cap: <strong>max 3 popups / 24h / user</strong>. Clicking Force again resets the random plan with a new 24h spread.</p>
                   <p>• Only fires inside the schedule window (Starts at / Ends at). Outside the window nothing shows.</p>
                   <p>• Users can only skip after the delay you set above.</p>
                 </div>
