@@ -183,8 +183,10 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   // Calculate progress
   const allRuns = order.items?.flatMap((item: any) => item.runs || []) || [];
   const completedRuns = allRuns.filter((r: any) => r.status === 'completed').length;
-  const totalRuns = allRuns.length;
-  const progressPercent = totalRuns > 0 ? (completedRuns / totalRuns) * 100 : 0;
+  // Exclude cancelled runs from total — they were auto-cancelled because target was already met,
+  // so they shouldn't drag down progress %.
+  const effectiveRuns = allRuns.filter((r: any) => r.status !== 'cancelled').length;
+  const totalRuns = effectiveRuns;
 
   // Calculate delivered using provider truth (matches Live Stats on detail page)
   const normalizeProviderStatus = (s: any): string => (s ?? '').toString().toLowerCase().trim();
@@ -200,6 +202,11 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const totalDelivered = allRuns.reduce((sum: number, r: any) => sum + calculateActualDelivered(r), 0);
 
   const totalQuantity = order.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
+
+  // Progress = delivery-based when target known, else runs-based
+  const progressPercent = totalQuantity > 0
+    ? Math.min(100, (totalDelivered / totalQuantity) * 100)
+    : totalRuns > 0 ? (completedRuns / totalRuns) * 100 : 0;
 
   // Find next run
   const pendingRuns = allRuns
