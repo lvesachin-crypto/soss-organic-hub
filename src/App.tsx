@@ -123,7 +123,6 @@ const App = () => {
                     <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
                     <Route path="/admin/services" element={<AdminGuard><AdminServices /></AdminGuard>} />
                     <Route path="/admin/users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
-                    <Route path="/admin/orders" element={<AdminGuard><AdminOrders /></AdminGuard>} />
                     <Route path="/admin/bundles" element={<AdminGuard><AdminBundles /></AdminGuard>} />
                     <Route path="/admin/cron-monitor" element={<AdminGuard><AdminCronMonitor /></AdminGuard>} />
                     <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
