@@ -98,14 +98,7 @@ const Index = () => {
           <h1 className="text-[2.4rem] sm:text-5xl lg:text-[4.5rem] font-black leading-[1.04] tracking-[-0.035em] mb-5"
             style={{ color: C.ink, fontFamily: "'Outfit', 'Inter', system-ui, sans-serif" }}>
             Organic growth,<br className="hidden sm:block" />
-            <span className="relative inline-block">
-              <span style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                made beautifully simple.
-              </span>
-              <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" preserveAspectRatio="none">
-                <path d="M2 6 Q 80 1, 160 5 T 298 5" stroke={C.orange} strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.45" />
-              </svg>
-            </span>
+            <span style={{ color: C.orangeDeep }}>made simple.</span>
           </h1>
 
           <p className="text-[15px] sm:text-[17.5px] leading-[1.65] mb-9 max-w-xl mx-auto" style={{ color: C.ink2 }}>
@@ -380,7 +373,7 @@ const Index = () => {
             </span>
             <h2 className="text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight mb-4 text-white"
               style={{ fontFamily: "'Outfit', system-ui" }}>
-              Ready to grow <span style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>organically</span>?
+              Ready to grow <span style={{ color: '#6EE7B7' }}>organically</span>?
             </h2>
             <p className="text-[14.5px] sm:text-[16px] mb-8 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,.7)' }}>
               Join thousands of creators using our organic delivery system. No credit card required.
