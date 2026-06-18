@@ -83,6 +83,16 @@ async function syncObservedOverdeliveryGuard(supabase: any, itemId?: string | nu
   }).eq('id', itemId).neq('status', 'completed')
 }
 
+function isProviderStatusLookupMiss(errorMsg: string): boolean {
+  const lower = errorMsg.toLowerCase()
+  return lower.includes('incorrect order') || lower.includes('wrong order') || lower.includes('order not found') || lower.includes('not found')
+}
+
+function getRunAgeMinutes(run: any): number {
+  const startedAt = new Date(run?.started_at || run?.scheduled_at || Date.now()).getTime()
+  return Math.max(0, Math.round((Date.now() - startedAt) / 60000))
+}
+
 // This function checks provider order status and marks runs as complete
 // Supports BOTH legacy orders AND new engagement orders
 // Stores real-time provider data (start_count, remains, status) for live tracking
