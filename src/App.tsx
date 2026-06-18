@@ -34,7 +34,6 @@ import EngagementOrderDetail from "./pages/EngagementOrderDetail";
 import Admin from "./pages/admin/Admin";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminOrders from "./pages/admin/AdminOrders";
 import AdminBundles from "./pages/admin/AdminBundles";
 import AdminCronMonitor from "./pages/admin/AdminCronMonitor";
 
@@ -124,7 +123,6 @@ const App = () => {
                     <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
                     <Route path="/admin/services" element={<AdminGuard><AdminServices /></AdminGuard>} />
                     <Route path="/admin/users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
-                    <Route path="/admin/orders" element={<AdminGuard><AdminOrders /></AdminGuard>} />
                     <Route path="/admin/bundles" element={<AdminGuard><AdminBundles /></AdminGuard>} />
                     <Route path="/admin/cron-monitor" element={<AdminGuard><AdminCronMonitor /></AdminGuard>} />
                     <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
