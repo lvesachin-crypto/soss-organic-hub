@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, TrendingUp, Zap, Shield, BarChart3, CheckCircle2, Shuffle, Clock, Moon, Timer, Eye, ChevronRight, FileText, Lock, HelpCircle, Mail, Code2, Activity, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, TrendingUp, Zap, Shield, BarChart3, CheckCircle2, Shuffle, Clock, Moon, Timer, Eye, ChevronRight, FileText, Lock, HelpCircle, Mail, Code2, Activity, Sparkles, Star, Link2, Heart, MessageCircle, Bookmark, Share2, Brain, ArrowDown } from 'lucide-react';
 import logo from '@/assets/logo.jpg';
 import { PageMeta } from '@/components/seo/PageMeta';
 
@@ -246,36 +246,119 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ═══ HOW IT WORKS / WHY ═══ */}
+      {/* ═══ HOW IT WORKS — step-by-step explainer ═══ */}
       <section id="how-it-works" className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <Pill>Why choose us</Pill>
-            <h2 className="mt-4 text-[1.75rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight"
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10 sm:mb-14">
+            <Pill><Sparkles className="w-3 h-3" /> How it works</Pill>
+            <h2 className="mt-4 text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight"
               style={{ color: C.ink, fontFamily: "'Outfit', system-ui" }}>
-              Built for <span style={{ color: C.orange }}>real growth</span>
+              One link. <span style={{ color: C.orange }}>Full engagement.</span><br className="hidden sm:block" /> Delivered organically.
             </h2>
+            <p className="mt-4 text-[14px] sm:text-[16px] leading-[1.65] max-w-2xl mx-auto" style={{ color: C.ink2 }}>
+              Bas ek baar apna post link paste karo. Views ke saath likes, comments, saves aur shares — sab automatic, real users jaise pattern me deliver hote hain.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {[
-              { icon: TrendingUp, title: 'Natural growth curves', desc: 'Variable delivery quantities that perfectly mimic real organic engagement patterns.' },
-              { icon: Zap, title: 'Peak hour optimization', desc: 'Higher delivery during active hours (6 PM – 10 PM) for realistic engagement timing.' },
-              { icon: Shield, title: 'Account safety', desc: 'Randomized patterns prevent detection and keep your accounts 100% secure.' },
-              { icon: BarChart3, title: 'Live preview', desc: 'See exactly when and how much will be delivered before placing your order.' },
-              { icon: CheckCircle2, title: 'Premium quality', desc: 'High-quality engagement from real-looking accounts with complete profiles.' },
-              { icon: Shuffle, title: 'Organic variance', desc: '±25% random variance on each delivery for unpredictable, natural growth.' },
-            ].map((f) => (
-              <div key={f.title} className="group rounded-2xl p-6 sm:p-7 transition-all hover:-translate-y-1"
-                style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: C.soft }}>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-105"
-                  style={{ background: C.peach }}>
-                  <f.icon className="w-5 h-5" style={{ color: C.orangeDeep }} />
+          {/* Visual: one link → 5 engagement types */}
+          <div className="mb-10 sm:mb-14 rounded-3xl p-5 sm:p-8"
+            style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: C.softLg }}>
+            <div className="flex items-center gap-3 mb-5 px-3 py-2.5 rounded-xl" style={{ background: '#F7F8F5', border: `1px dashed ${C.line}` }}>
+              <Link2 className="w-4 h-4 shrink-0" style={{ color: C.orangeDeep }} />
+              <span className="text-[12.5px] font-mono truncate" style={{ color: C.ink2 }}>https://instagram.com/p/your-post...</span>
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0"
+                style={{ background: C.peach, color: C.orangeDeep }}>1 link</span>
+            </div>
+            <div className="flex justify-center my-3">
+              <ArrowDown className="w-5 h-5 animate-bounce" style={{ color: C.orange }} />
+            </div>
+            <div className="grid grid-cols-5 gap-2 sm:gap-3">
+              {[
+                { icon: Eye, label: 'Views', color: '#3B82F6' },
+                { icon: Heart, label: 'Likes', color: '#EF4444' },
+                { icon: MessageCircle, label: 'Comments', color: '#8B5CF6' },
+                { icon: Bookmark, label: 'Saves', color: '#F59E0B' },
+                { icon: Share2, label: 'Shares', color: '#10B981' },
+              ].map((e) => (
+                <div key={e.label} className="flex flex-col items-center gap-1.5 p-2.5 sm:p-3 rounded-xl"
+                  style={{ background: '#FAFAF7', border: `1px solid ${C.line}` }}>
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center"
+                    style={{ background: `${e.color}14` }}>
+                    <e.icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: e.color }} />
+                  </div>
+                  <span className="text-[10.5px] sm:text-[12px] font-bold" style={{ color: C.ink }}>{e.label}</span>
                 </div>
-                <h3 className="text-[15px] font-bold mb-2" style={{ color: C.ink }}>{f.title}</h3>
-                <p className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{f.desc}</p>
+              ))}
+            </div>
+            <p className="mt-4 text-center text-[11.5px] sm:text-[12.5px]" style={{ color: C.muted }}>
+              Sab kuch ek hi order me — pick & choose what you need.
+            </p>
+          </div>
+
+          {/* 4 steps */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {[
+              {
+                step: '01',
+                icon: Link2,
+                title: 'Paste your link',
+                desc: 'Instagram, YouTube ya TikTok post ka link daal do. Bas itna hi input chahiye.',
+              },
+              {
+                step: '02',
+                icon: Sparkles,
+                title: 'Pick engagement',
+                desc: 'Views, likes, comments, saves, shares — jo chahiye toggle karo aur qty set karo.',
+              },
+              {
+                step: '03',
+                icon: Brain,
+                title: 'AI plans delivery',
+                desc: 'S-curve schedule, ±50% variance, peak-hour boost, night slowdown — sab auto-calculated.',
+              },
+              {
+                step: '04',
+                icon: TrendingUp,
+                title: 'Grow naturally',
+                desc: 'Hours me trickle hota hai, dump nahi. Live progress bhi dikhta hai. Zero ban risk.',
+              },
+            ].map((s) => (
+              <div key={s.step} className="relative rounded-2xl p-5 sm:p-6"
+                style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: C.soft }}>
+                <span className="absolute -top-2.5 -right-2.5 text-[10px] font-extrabold tracking-widest px-2.5 py-1 rounded-lg"
+                  style={{ background: C.ink, color: 'white' }}>{s.step}</span>
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-3.5"
+                  style={{ background: C.peach }}>
+                  <s.icon className="w-5 h-5" style={{ color: C.orangeDeep }} />
+                </div>
+                <h3 className="text-[14.5px] font-bold mb-1.5" style={{ color: C.ink }}>{s.title}</h3>
+                <p className="text-[12.5px] leading-relaxed" style={{ color: C.ink2 }}>{s.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* What "organic" actually means */}
+          <div className="mt-10 sm:mt-14 rounded-2xl p-5 sm:p-7"
+            style={{ background: 'linear-gradient(135deg, #F1FCF4, #FFFFFF)', border: `1px solid rgba(22,163,74,.2)` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-4 h-4" style={{ color: C.orangeDeep }} />
+              <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>
+                What "organic" actually means here
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {[
+                'Har batch random qty (±50%) — same number kabhi repeat nahi hoga.',
+                'Peak hours (6–10 PM IST) me 1.5× speed, raat ko slow — real user behaviour.',
+                '±5 min timing jitter — bot pattern detect karna impossible.',
+                'Multi-provider rotation — quality consistent, single point of failure nahi.',
+              ].map((t) => (
+                <div key={t} className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#16A34A' }} />
+                  <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
