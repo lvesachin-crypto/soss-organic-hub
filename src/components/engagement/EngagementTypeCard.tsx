@@ -513,6 +513,9 @@ export function EngagementTypeCard({
                       Max {maxAllowedRuns.toLocaleString()} · min {providerMin}/run
                     </span>
                   </Label>
+                  <p className="text-[10px] text-muted-foreground leading-snug">
+                    How many small batches to split the order into. More runs = smoother, more human-like delivery.
+                  </p>
 
                   {/* Presets + custom input on one responsive row */}
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -614,6 +617,9 @@ export function EngagementTypeCard({
                             : "text-green-400 bg-green-400/20"
                     )}>±{variancePercent}%</span>
                   </Label>
+                  <p className="text-[10px] text-muted-foreground leading-snug">
+                    How much each batch quantity randomly differs. Higher % = looks less like a bot pattern.
+                  </p>
 
                   {/* Enhanced Slider */}
                   <div className="py-1 sm:py-2">
