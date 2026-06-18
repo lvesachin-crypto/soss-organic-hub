@@ -373,7 +373,7 @@ const Index = () => {
             </span>
             <h2 className="text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight mb-4 text-white"
               style={{ fontFamily: "'Outfit', system-ui" }}>
-              Ready to grow <span style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>organically</span>?
+              Ready to grow <span style={{ color: '#6EE7B7' }}>organically</span>?
             </h2>
             <p className="text-[14.5px] sm:text-[16px] mb-8 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,.7)' }}>
               Join thousands of creators using our organic delivery system. No credit card required.
