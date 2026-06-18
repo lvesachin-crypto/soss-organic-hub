@@ -708,7 +708,7 @@ export default function Orders() {
           <div className="glass-card p-12 text-center">
             <p className="text-muted-foreground mb-4">No orders found</p>
             <Button variant="gradient" asChild>
-              <a href="/order">Place Your First Order</a>
+              <a href="/engagement-order">Place Your First Order</a>
             </Button>
           </div>
         )}
