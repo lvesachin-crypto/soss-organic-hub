@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
             const itemStatus = run.engagement_order_item?.status
             const ageMinutes = getRunAgeMinutes(run)
 
-            if (orderStatus === 'cancelled' || itemStatus === 'cancelled') {
+            if ((orderStatus === 'cancelled' || itemStatus === 'cancelled') && !run.provider_order_id) {
               await supabase.from('organic_run_schedule').update({
                 status: 'cancelled',
                 error_message: 'Order cancelled by user',
