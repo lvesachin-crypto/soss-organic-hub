@@ -12,16 +12,16 @@ const C = {
   muted: '#8A8A99',
   line: 'rgba(11,11,18,.07)',
   card: '#FFFFFF',
-  orange: '#6366F1',
-  orangeDeep: '#4F46E5',
-  peach: '#EEF0FF',
+  orange: '#10B981',
+  orangeDeep: '#059669',
+  peach: '#ECFDF5',
   soft: '0 1px 2px rgba(11,11,18,.04), 0 8px 24px rgba(11,11,18,.05)',
-  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(99,102,241,.12)',
+  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(16,185,129,.12)',
 };
 
 const Pill: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] sm:text-[12px] font-semibold"
-    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(99,102,241,.22)` }}>
+    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(16,185,129,.20)` }}>
     {children}
   </span>
 );
@@ -39,9 +39,9 @@ const Index = () => {
       {/* Subtle background glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1100px] h-[600px] rounded-full"
-          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,.22), transparent 70%)', filter: 'blur(20px)' }} />
+          style={{ background: 'radial-gradient(closest-side, rgba(16,185,129,.20), transparent 70%)', filter: 'blur(20px)' }} />
         <div className="absolute top-[40%] -right-40 w-[500px] h-[500px] rounded-full"
-          style={{ background: 'radial-gradient(closest-side, rgba(167,139,250,.22), transparent 70%)', filter: 'blur(20px)' }} />
+          style={{ background: 'radial-gradient(closest-side, rgba(110,231,183,.25), transparent 70%)', filter: 'blur(20px)' }} />
       </div>
 
       {/* ═══ NAV ═══ */}
@@ -51,7 +51,7 @@ const Index = () => {
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="relative">
               <div className="absolute -inset-1 rounded-2xl opacity-60 blur-md transition-opacity group-hover:opacity-90"
-                style={{ background: `linear-gradient(135deg, ${C.orange}, #A78BFA)` }} />
+                style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)` }} />
               <img src={logo} alt="OrganicSMM" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
@@ -99,7 +99,7 @@ const Index = () => {
             style={{ color: C.ink, fontFamily: "'Outfit', 'Inter', system-ui, sans-serif" }}>
             Organic growth,<br className="hidden sm:block" />
             <span className="relative inline-block">
-              <span style={{ background: `linear-gradient(135deg, ${C.orange}, #A78BFA)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <span style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 made beautifully simple.
               </span>
               <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" preserveAspectRatio="none">
@@ -115,7 +115,7 @@ const Index = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold text-white flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5"
-              style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(99,102,241,.40)' }}>
+              style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(16,185,129,.38)' }}>
               <Sparkles className="w-4 h-4" /> Start growing free
             </Link>
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold flex items-center justify-center gap-2 transition-colors"
@@ -207,12 +207,12 @@ const Index = () => {
               </div>
             </div>
             {/* Us */}
-            <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #F5F3FF, #FFFFFF)' }}>
+            <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #ECFDF5, #FFFFFF)' }}>
               <span className="absolute top-5 right-5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md"
                 style={{ background: C.orange, color: 'white' }}>This panel</span>
               <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#E0E7FF' }}>
-                  <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#6366F1', width: 18, height: 18 }} />
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D1FAE5' }}>
+                  <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#10B981', width: 18, height: 18 }} />
                 </div>
                 <span className="text-[15px] font-bold" style={{ color: C.ink }}>OrganicSMM</span>
               </div>
@@ -224,7 +224,7 @@ const Index = () => {
                   '100% safe, zero bans reported',
                 ].map((t) => (
                   <div key={t} className="flex items-start gap-2.5">
-                    <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#6366F1' }} />
+                    <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#10B981' }} />
                     <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
                   </div>
                 ))}
@@ -339,7 +339,7 @@ const Index = () => {
 
           {/* What "organic" actually means */}
           <div className="mt-10 sm:mt-14 rounded-2xl p-5 sm:p-7"
-            style={{ background: 'linear-gradient(135deg, #F5F3FF, #FFFFFF)', border: `1px solid rgba(99,102,241,.22)` }}>
+            style={{ background: 'linear-gradient(135deg, #ECFDF5, #FFFFFF)', border: `1px solid rgba(16,185,129,.20)` }}>
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-4 h-4" style={{ color: C.orangeDeep }} />
               <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>
@@ -354,7 +354,7 @@ const Index = () => {
                 'Multi-provider rotation keeps quality consistent with no single point of failure.',
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#6366F1' }} />
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#10B981' }} />
                   <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
                 </div>
               ))}
@@ -369,18 +369,18 @@ const Index = () => {
           style={{ background: `linear-gradient(135deg, ${C.ink} 0%, #1A1A28 100%)`, boxShadow: C.softLg }}>
           {/* glow */}
           <div aria-hidden className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full"
-            style={{ background: `radial-gradient(closest-side, rgba(99,102,241,.45), transparent 70%)`, filter: 'blur(20px)' }} />
+            style={{ background: `radial-gradient(closest-side, rgba(16,185,129,.42), transparent 70%)`, filter: 'blur(20px)' }} />
           <div aria-hidden className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full"
-            style={{ background: `radial-gradient(closest-side, rgba(167,139,250,.30), transparent 70%)`, filter: 'blur(20px)' }} />
+            style={{ background: `radial-gradient(closest-side, rgba(110,231,183,.32), transparent 70%)`, filter: 'blur(20px)' }} />
 
           <div className="relative">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest mb-5"
-              style={{ background: 'rgba(255,255,255,.1)', color: '#A78BFA', border: '1px solid rgba(134,239,172,.2)' }}>
+              style={{ background: 'rgba(255,255,255,.1)', color: '#6EE7B7', border: '1px solid rgba(134,239,172,.2)' }}>
               <Sparkles className="w-3 h-3" /> Free to start
             </span>
             <h2 className="text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight mb-4 text-white"
               style={{ fontFamily: "'Outfit', system-ui" }}>
-              Ready to grow <span style={{ background: `linear-gradient(135deg, ${C.orange}, #A78BFA)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>organically</span>?
+              Ready to grow <span style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>organically</span>?
             </h2>
             <p className="text-[14.5px] sm:text-[16px] mb-8 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,.7)' }}>
               Join thousands of creators using our organic delivery system. No credit card required.
@@ -409,7 +409,7 @@ const Index = () => {
             <div>
               <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Quick Links</h4>
               <div className="space-y-2.5">
-                <Link to="/auth" className="block text-[13px] hover:text-indigo-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
+                <Link to="/auth" className="block text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
               </div>
             </div>
             <div>
@@ -422,7 +422,7 @@ const Index = () => {
                   { to: '/shipping', icon: FileText, label: 'Shipping & Delivery' },
                   { to: '/cookies', icon: FileText, label: 'Cookie Policy' },
                 ].map((l) => (
-                  <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-indigo-600 transition-colors" style={{ color: C.ink2 }}>
+                  <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
@@ -437,7 +437,7 @@ const Index = () => {
                   { to: '/support', icon: HelpCircle, label: 'Help Center' },
                   { to: '/api-access', icon: Code2, label: 'API Documentation' },
                 ].map((l) => (
-                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-indigo-600 transition-colors" style={{ color: C.ink2 }}>
+                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
