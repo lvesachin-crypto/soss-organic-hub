@@ -34,7 +34,6 @@ import EngagementOrderDetail from "./pages/EngagementOrderDetail";
 import Admin from "./pages/admin/Admin";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminOrders from "./pages/admin/AdminOrders";
 import AdminBundles from "./pages/admin/AdminBundles";
 import AdminCronMonitor from "./pages/admin/AdminCronMonitor";
 
