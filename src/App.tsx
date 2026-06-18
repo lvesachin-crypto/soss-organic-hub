@@ -17,8 +17,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import Services from "./pages/Services";
-import Order from "./pages/Order";
 import Orders from "./pages/Orders";
 import Wallet from "./pages/Wallet";
 import Settings from "./pages/Settings";
@@ -106,8 +104,6 @@ const App = () => {
                     <Route path="*" element={<NotFound />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/services" element={<Services />} />
-                    <Route path="/order" element={<Order />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/settings" element={<Settings />} />

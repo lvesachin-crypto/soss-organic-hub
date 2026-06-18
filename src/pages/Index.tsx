@@ -327,7 +327,6 @@ const Index = () => {
               <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Quick Links</h4>
               <div className="space-y-2.5">
                 <Link to="/auth" className="block text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
-                <Link to="/services" className="block text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>Services</Link>
               </div>
             </div>
             <div>
