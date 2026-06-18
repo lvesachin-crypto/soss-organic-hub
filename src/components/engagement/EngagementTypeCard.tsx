@@ -391,14 +391,39 @@ export function EngagementTypeCard({
         {config.enabled && !hasError && (
           <Collapsible>
             <CollapsibleTrigger asChild>
-              <button className="mt-2 w-full flex items-center justify-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors py-1 border-t border-border/40">
-                <Timer className="h-3 w-3" />
-                <span className="font-bold uppercase tracking-widest">Settings</span>
-                <ChevronDown className="h-3 w-3" />
+              <button
+                type="button"
+                className="group mt-3 w-full flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors px-3 py-2.5 text-left data-[state=open]:bg-primary/10"
+              >
+                <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                  <Timer className="h-4 w-4" />
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
+                  </span>
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[12px] font-bold text-foreground leading-tight">
+                    Tap to customise delivery
+                  </span>
+                  <span className="block text-[10.5px] text-muted-foreground leading-snug mt-0.5">
+                    Set delivery time, number of runs, variance & peak hours
+                  </span>
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary shrink-0">
+                  Open
+                  <ChevronDown className="h-4 w-4 animate-bounce group-data-[state=open]:rotate-180 group-data-[state=open]:animate-none transition-transform" />
+                </span>
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="mt-2 pt-2 border-t border-border space-y-3">
+                {/* Friendly intro: what is this section */}
+                <div className="rounded-lg bg-muted/40 border border-border px-3 py-2">
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    <strong className="text-foreground">How delivery works:</strong> we split your total qty into multiple smaller batches ("runs") and ship them over the selected time window with randomised quantity + timing. More runs + longer time + higher variance = more organic looking.
+                  </p>
+                </div>
                 {/* Time Limit + Number of Runs side-by-side */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5 min-w-0">
@@ -406,6 +431,9 @@ export function EngagementTypeCard({
                     <Timer className="h-3 w-3 text-foreground" />
                     Delivery Time
                   </Label>
+                  <p className="text-[10px] text-muted-foreground leading-snug -mt-0.5">
+                    Total time window over which all runs ship. Longer = safer & more natural.
+                  </p>
                   <div className="flex flex-wrap gap-1">
                     {TIME_PRESETS.map(preset => {
                       // Determine if this preset is selected
