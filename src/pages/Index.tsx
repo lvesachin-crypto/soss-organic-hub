@@ -256,7 +256,7 @@ const Index = () => {
               One link. <span style={{ color: C.orange }}>Full engagement.</span><br className="hidden sm:block" /> Delivered organically.
             </h2>
             <p className="mt-4 text-[14px] sm:text-[16px] leading-[1.65] max-w-2xl mx-auto" style={{ color: C.ink2 }}>
-              Bas ek baar apna post link paste karo. Views ke saath likes, comments, saves aur shares — sab automatic, real users jaise pattern me deliver hote hain.
+              Paste your post link once. Views, likes, comments, saves and shares are all delivered automatically — in patterns that look exactly like real users.
             </p>
           </div>
 
@@ -291,7 +291,7 @@ const Index = () => {
               ))}
             </div>
             <p className="mt-4 text-center text-[11.5px] sm:text-[12.5px]" style={{ color: C.muted }}>
-              Sab kuch ek hi order me — pick & choose what you need.
+              Everything in one single order — pick and choose what you need.
             </p>
           </div>
 
@@ -302,25 +302,25 @@ const Index = () => {
                 step: '01',
                 icon: Link2,
                 title: 'Paste your link',
-                desc: 'Instagram, YouTube ya TikTok post ka link daal do. Bas itna hi input chahiye.',
+                desc: 'Drop in any Instagram, YouTube or TikTok post link. That is the only input we need.',
               },
               {
                 step: '02',
                 icon: Sparkles,
                 title: 'Pick engagement',
-                desc: 'Views, likes, comments, saves, shares — jo chahiye toggle karo aur qty set karo.',
+                desc: 'Toggle Views, Likes, Comments, Saves and Shares — set the quantity you want for each.',
               },
               {
                 step: '03',
                 icon: Brain,
                 title: 'AI plans delivery',
-                desc: 'S-curve schedule, ±50% variance, peak-hour boost, night slowdown — sab auto-calculated.',
+                desc: 'S-curve schedule, ±50% quantity variance, peak-hour boost and night slowdown — all auto-calculated.',
               },
               {
                 step: '04',
                 icon: TrendingUp,
                 title: 'Grow naturally',
-                desc: 'Hours me trickle hota hai, dump nahi. Live progress bhi dikhta hai. Zero ban risk.',
+                desc: 'Engagement trickles in over hours instead of dumping at once. Live progress visible. Zero ban risk.',
               },
             ].map((s) => (
               <div key={s.step} className="relative rounded-2xl p-5 sm:p-6"
@@ -348,10 +348,10 @@ const Index = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[
-                'Har batch random qty (±50%) — same number kabhi repeat nahi hoga.',
-                'Peak hours (6–10 PM IST) me 1.5× speed, raat ko slow — real user behaviour.',
-                '±5 min timing jitter — bot pattern detect karna impossible.',
-                'Multi-provider rotation — quality consistent, single point of failure nahi.',
+                'Every batch ships a randomised quantity (±50%) — the same number is never repeated.',
+                'Peak hours (6–10 PM IST) run at 1.5× speed, night hours slow down — mirroring real user behaviour.',
+                '±5 min timing jitter on every run — impossible to detect any bot pattern.',
+                'Multi-provider rotation keeps quality consistent with no single point of failure.',
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#6366F1' }} />
