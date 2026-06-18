@@ -12,16 +12,16 @@ const C = {
   muted: '#8A8A99',
   line: 'rgba(11,11,18,.07)',
   card: '#FFFFFF',
-  orange: '#16A34A',
-  orangeDeep: '#15803D',
-  peach: '#E8F8EE',
+  orange: '#6366F1',
+  orangeDeep: '#4F46E5',
+  peach: '#EEF0FF',
   soft: '0 1px 2px rgba(11,11,18,.04), 0 8px 24px rgba(11,11,18,.05)',
-  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(22,163,74,.10)',
+  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(99,102,241,.12)',
 };
 
 const Pill: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] sm:text-[12px] font-semibold"
-    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(22,163,74,.18)` }}>
+    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(99,102,241,.22)` }}>
     {children}
   </span>
 );
@@ -39,9 +39,9 @@ const Index = () => {
       {/* Subtle background glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1100px] h-[600px] rounded-full"
-          style={{ background: 'radial-gradient(closest-side, rgba(22,163,74,.18), transparent 70%)', filter: 'blur(20px)' }} />
+          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,.22), transparent 70%)', filter: 'blur(20px)' }} />
         <div className="absolute top-[40%] -right-40 w-[500px] h-[500px] rounded-full"
-          style={{ background: 'radial-gradient(closest-side, rgba(134,239,172,.18), transparent 70%)', filter: 'blur(20px)' }} />
+          style={{ background: 'radial-gradient(closest-side, rgba(167,139,250,.22), transparent 70%)', filter: 'blur(20px)' }} />
       </div>
 
       {/* ═══ NAV ═══ */}
@@ -51,7 +51,7 @@ const Index = () => {
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="relative">
               <div className="absolute -inset-1 rounded-2xl opacity-60 blur-md transition-opacity group-hover:opacity-90"
-                style={{ background: `linear-gradient(135deg, ${C.orange}, #86EFAC)` }} />
+                style={{ background: `linear-gradient(135deg, ${C.orange}, #A78BFA)` }} />
               <img src={logo} alt="OrganicSMM" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
@@ -99,7 +99,7 @@ const Index = () => {
             style={{ color: C.ink, fontFamily: "'Outfit', 'Inter', system-ui, sans-serif" }}>
             Organic growth,<br className="hidden sm:block" />
             <span className="relative inline-block">
-              <span style={{ background: `linear-gradient(135deg, ${C.orange}, #4ADE80)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <span style={{ background: `linear-gradient(135deg, ${C.orange}, #A78BFA)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 made beautifully simple.
               </span>
               <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" preserveAspectRatio="none">
@@ -115,7 +115,7 @@ const Index = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold text-white flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5"
-              style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(22,163,74,.35)' }}>
+              style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(99,102,241,.40)' }}>
               <Sparkles className="w-4 h-4" /> Start growing free
             </Link>
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold flex items-center justify-center gap-2 transition-colors"
@@ -207,12 +207,12 @@ const Index = () => {
               </div>
             </div>
             {/* Us */}
-            <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #F1FCF4, #FFFFFF)' }}>
+            <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #F5F3FF, #FFFFFF)' }}>
               <span className="absolute top-5 right-5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md"
                 style={{ background: C.orange, color: 'white' }}>This panel</span>
               <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#DCFCE7' }}>
-                  <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#16A34A', width: 18, height: 18 }} />
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#E0E7FF' }}>
+                  <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#6366F1', width: 18, height: 18 }} />
                 </div>
                 <span className="text-[15px] font-bold" style={{ color: C.ink }}>OrganicSMM</span>
               </div>
@@ -224,7 +224,7 @@ const Index = () => {
                   '100% safe, zero bans reported',
                 ].map((t) => (
                   <div key={t} className="flex items-start gap-2.5">
-                    <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#16A34A' }} />
+                    <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#6366F1' }} />
                     <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
                   </div>
                 ))}
@@ -256,7 +256,7 @@ const Index = () => {
               One link. <span style={{ color: C.orange }}>Full engagement.</span><br className="hidden sm:block" /> Delivered organically.
             </h2>
             <p className="mt-4 text-[14px] sm:text-[16px] leading-[1.65] max-w-2xl mx-auto" style={{ color: C.ink2 }}>
-              Bas ek baar apna post link paste karo. Views ke saath likes, comments, saves aur shares — sab automatic, real users jaise pattern me deliver hote hain.
+              Paste your post link once. Views, likes, comments, saves and shares are all delivered automatically — in patterns that look exactly like real users.
             </p>
           </div>
 
@@ -291,7 +291,7 @@ const Index = () => {
               ))}
             </div>
             <p className="mt-4 text-center text-[11.5px] sm:text-[12.5px]" style={{ color: C.muted }}>
-              Sab kuch ek hi order me — pick & choose what you need.
+              Everything in one single order — pick and choose what you need.
             </p>
           </div>
 
@@ -302,25 +302,25 @@ const Index = () => {
                 step: '01',
                 icon: Link2,
                 title: 'Paste your link',
-                desc: 'Instagram, YouTube ya TikTok post ka link daal do. Bas itna hi input chahiye.',
+                desc: 'Drop in any Instagram, YouTube or TikTok post link. That is the only input we need.',
               },
               {
                 step: '02',
                 icon: Sparkles,
                 title: 'Pick engagement',
-                desc: 'Views, likes, comments, saves, shares — jo chahiye toggle karo aur qty set karo.',
+                desc: 'Toggle Views, Likes, Comments, Saves and Shares — set the quantity you want for each.',
               },
               {
                 step: '03',
                 icon: Brain,
                 title: 'AI plans delivery',
-                desc: 'S-curve schedule, ±50% variance, peak-hour boost, night slowdown — sab auto-calculated.',
+                desc: 'S-curve schedule, ±50% quantity variance, peak-hour boost and night slowdown — all auto-calculated.',
               },
               {
                 step: '04',
                 icon: TrendingUp,
                 title: 'Grow naturally',
-                desc: 'Hours me trickle hota hai, dump nahi. Live progress bhi dikhta hai. Zero ban risk.',
+                desc: 'Engagement trickles in over hours instead of dumping at once. Live progress visible. Zero ban risk.',
               },
             ].map((s) => (
               <div key={s.step} className="relative rounded-2xl p-5 sm:p-6"
@@ -339,7 +339,7 @@ const Index = () => {
 
           {/* What "organic" actually means */}
           <div className="mt-10 sm:mt-14 rounded-2xl p-5 sm:p-7"
-            style={{ background: 'linear-gradient(135deg, #F1FCF4, #FFFFFF)', border: `1px solid rgba(22,163,74,.2)` }}>
+            style={{ background: 'linear-gradient(135deg, #F5F3FF, #FFFFFF)', border: `1px solid rgba(99,102,241,.22)` }}>
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-4 h-4" style={{ color: C.orangeDeep }} />
               <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>
@@ -348,13 +348,13 @@ const Index = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[
-                'Har batch random qty (±50%) — same number kabhi repeat nahi hoga.',
-                'Peak hours (6–10 PM IST) me 1.5× speed, raat ko slow — real user behaviour.',
-                '±5 min timing jitter — bot pattern detect karna impossible.',
-                'Multi-provider rotation — quality consistent, single point of failure nahi.',
+                'Every batch ships a randomised quantity (±50%) — the same number is never repeated.',
+                'Peak hours (6–10 PM IST) run at 1.5× speed, night hours slow down — mirroring real user behaviour.',
+                '±5 min timing jitter on every run — impossible to detect any bot pattern.',
+                'Multi-provider rotation keeps quality consistent with no single point of failure.',
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#16A34A' }} />
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#6366F1' }} />
                   <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
                 </div>
               ))}
@@ -369,18 +369,18 @@ const Index = () => {
           style={{ background: `linear-gradient(135deg, ${C.ink} 0%, #1A1A28 100%)`, boxShadow: C.softLg }}>
           {/* glow */}
           <div aria-hidden className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full"
-            style={{ background: `radial-gradient(closest-side, rgba(22,163,74,.4), transparent 70%)`, filter: 'blur(20px)' }} />
+            style={{ background: `radial-gradient(closest-side, rgba(99,102,241,.45), transparent 70%)`, filter: 'blur(20px)' }} />
           <div aria-hidden className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full"
-            style={{ background: `radial-gradient(closest-side, rgba(134,239,172,.25), transparent 70%)`, filter: 'blur(20px)' }} />
+            style={{ background: `radial-gradient(closest-side, rgba(167,139,250,.30), transparent 70%)`, filter: 'blur(20px)' }} />
 
           <div className="relative">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest mb-5"
-              style={{ background: 'rgba(255,255,255,.1)', color: '#86EFAC', border: '1px solid rgba(134,239,172,.2)' }}>
+              style={{ background: 'rgba(255,255,255,.1)', color: '#A78BFA', border: '1px solid rgba(134,239,172,.2)' }}>
               <Sparkles className="w-3 h-3" /> Free to start
             </span>
             <h2 className="text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight mb-4 text-white"
               style={{ fontFamily: "'Outfit', system-ui" }}>
-              Ready to grow <span style={{ background: `linear-gradient(135deg, ${C.orange}, #86EFAC)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>organically</span>?
+              Ready to grow <span style={{ background: `linear-gradient(135deg, ${C.orange}, #A78BFA)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>organically</span>?
             </h2>
             <p className="text-[14.5px] sm:text-[16px] mb-8 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,.7)' }}>
               Join thousands of creators using our organic delivery system. No credit card required.
@@ -409,7 +409,7 @@ const Index = () => {
             <div>
               <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Quick Links</h4>
               <div className="space-y-2.5">
-                <Link to="/auth" className="block text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
+                <Link to="/auth" className="block text-[13px] hover:text-indigo-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
               </div>
             </div>
             <div>
@@ -422,7 +422,7 @@ const Index = () => {
                   { to: '/shipping', icon: FileText, label: 'Shipping & Delivery' },
                   { to: '/cookies', icon: FileText, label: 'Cookie Policy' },
                 ].map((l) => (
-                  <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>
+                  <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-indigo-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
@@ -437,7 +437,7 @@ const Index = () => {
                   { to: '/support', icon: HelpCircle, label: 'Help Center' },
                   { to: '/api-access', icon: Code2, label: 'API Documentation' },
                 ].map((l) => (
-                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-green-600 transition-colors" style={{ color: C.ink2 }}>
+                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-indigo-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
