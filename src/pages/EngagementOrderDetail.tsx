@@ -417,17 +417,29 @@ export default function EngagementOrderDetail() {
         .eq('engagement_order_item_id', itemId)
         .in('status', ['pending', 'failed', 'started']);
 
-      // Check if ALL items are now effectively finished/cancelled → cancel parent order
+      // Recalculate parent order status based on remaining items.
+      // Only mark parent 'cancelled' if NO item delivered anything.
+      // If any item completed/partial, parent should be 'partial' instead.
       const { data: remainingItems } = await supabase
         .from('engagement_order_items')
         .select('id, status')
         .eq('engagement_order_id', order.id);
-      const allCancelled = remainingItems?.every((i: any) => i.status === 'cancelled' || i.status === 'completed' || i.status === 'failed');
-      if (allCancelled) {
-        await supabase
-          .from('engagement_orders')
-          .update({ status: 'cancelled' })
-          .eq('id', order.id);
+      if (remainingItems && remainingItems.length > 0) {
+        const allTerminal = remainingItems.every((i: any) =>
+          ['cancelled', 'completed', 'failed', 'partial'].includes(i.status)
+        );
+        if (allTerminal) {
+          const hasDelivered = remainingItems.some((i: any) =>
+            i.status === 'completed' || i.status === 'partial'
+          );
+          const hasFailed = remainingItems.some((i: any) => i.status === 'failed');
+          const newStatus = hasDelivered ? 'partial' : hasFailed ? 'failed' : 'cancelled';
+          await supabase
+            .from('engagement_orders')
+            .update({ status: newStatus })
+            .eq('id', order.id)
+            .neq('status', 'cancelled');
+        }
       }
     },
     onSuccess: () => {
