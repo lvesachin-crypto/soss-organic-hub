@@ -273,7 +273,58 @@ Deno.serve(async (req) => {
           const providerError = String(result.error || '')
           const providerErrorLower = providerError.toLowerCase()
           
-          if (providerErrorLower.includes('not found') || providerErrorLower.includes('cancelled') || providerErrorLower.includes('incorrect order')) {
+          if (isProviderStatusLookupMiss(providerError)) {
+            const orderStatus = run.engagement_order_item?.engagement_order?.status
+            const itemStatus = run.engagement_order_item?.status
+            const ageMinutes = getRunAgeMinutes(run)
+
+            if (orderStatus === 'cancelled' || itemStatus === 'cancelled') {
+              await supabase.from('organic_run_schedule').update({
+                status: 'cancelled',
+                error_message: 'Order cancelled by user',
+                completed_at: new Date().toISOString(),
+                provider_status: 'cancelled',
+                last_status_check: new Date().toISOString(),
+              }).eq('id', run.id)
+            } else if (ageMinutes < 180) {
+              // Some providers create the order first but their status endpoint starts
+              // recognizing that ID later. Do not mark it failed immediately, and do
+              // not retry/place a duplicate external order.
+              await supabase.from('organic_run_schedule').update({
+                status: 'started',
+                error_message: `[Awaiting provider confirmation] ${providerError}`,
+                provider_status: 'Pending',
+                last_status_check: new Date().toISOString(),
+                provider_response: {
+                  ...(run.provider_response || {}),
+                  last_status_error: providerError,
+                  status_lookup_pending: true,
+                  status_lookup_age_min: ageMinutes,
+                },
+              }).eq('id', run.id)
+              stillProcessing++
+            } else {
+              // Provider order already exists for this run.
+              // Never recycle it into the placement queue, otherwise one scheduled run can create multiple external orders.
+              await supabase.from('organic_run_schedule').update({
+                status: 'completed',
+                error_message: `Auto-completed after provider lookup miss (${providerError}) — provider order exists, duplicate retry blocked`,
+                completed_at: run.completed_at || new Date().toISOString(),
+                provider_status: 'Completed',
+                last_status_check: new Date().toISOString(),
+                retry_count: 99,
+                provider_response: {
+                  ...(run.provider_response || {}),
+                  last_status_error: providerError,
+                  status_lookup_missed: true,
+                  duplicate_retry_blocked: true,
+                },
+              }).eq('id', run.id)
+              completed++
+              await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
+              await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+            }
+          } else if (providerErrorLower.includes('cancelled')) {
             const orderStatus = run.engagement_order_item?.engagement_order?.status
             const itemStatus = run.engagement_order_item?.status
 
@@ -286,8 +337,6 @@ Deno.serve(async (req) => {
                 last_status_check: new Date().toISOString(),
               }).eq('id', run.id)
             } else {
-              // Provider order already exists for this run.
-              // Never recycle it into the placement queue, otherwise one scheduled run can create multiple external orders.
               await supabase.from('organic_run_schedule').update({
                 status: 'failed',
                 error_message: `Repeat blocked after provider order creation: ${providerError}`,
