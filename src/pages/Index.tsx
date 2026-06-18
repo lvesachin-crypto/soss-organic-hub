@@ -12,16 +12,16 @@ const C = {
   muted: '#8A8A99',
   line: 'rgba(11,11,18,.07)',
   card: '#FFFFFF',
-  orange: '#16A34A',
-  orangeDeep: '#15803D',
-  peach: '#E8F8EE',
+  orange: '#6366F1',
+  orangeDeep: '#4F46E5',
+  peach: '#EEF0FF',
   soft: '0 1px 2px rgba(11,11,18,.04), 0 8px 24px rgba(11,11,18,.05)',
-  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(22,163,74,.10)',
+  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(99,102,241,.12)',
 };
 
 const Pill: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] sm:text-[12px] font-semibold"
-    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(22,163,74,.18)` }}>
+    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(99,102,241,.22)` }}>
     {children}
   </span>
 );
