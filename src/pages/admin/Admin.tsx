@@ -31,6 +31,7 @@ import {
   TrendingDown,
   ShieldAlert,
   Megaphone,
+  Radio,
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -403,6 +404,28 @@ export default function Admin() {
                     <p className="text-xs text-muted-foreground">YouTube popup on engagement pages</p>
                   </div>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/admin/live-rotation">
+            <Card className="glass-card h-full hover:border-success/50 hover:shadow-lg hover:shadow-success/10 transition-all cursor-pointer group border-2 border-success/30">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-success/30 to-success/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Radio className="h-6 w-6 text-success" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold group-hover:text-success transition-colors">
+                        Live Rotation
+                      </h3>
+                      <Badge className="text-[10px] h-4 px-1.5 bg-success text-success-foreground">LIVE</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Active/pending per link &amp; provider</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-success transition-colors" />
                 </div>
               </CardContent>
             </Card>
