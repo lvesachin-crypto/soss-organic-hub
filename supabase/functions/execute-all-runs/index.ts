@@ -1428,6 +1428,50 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         
         triedProviderIds.push(selectedAccount.id)
 
+        // ==========================================
+        // STRICT GUARD: Never place a 2nd order on the SAME provider for the SAME
+        // link while a previous order there is still active (Pending / In progress
+        // / Processing on the provider side, or 'started' on our side without a
+        // terminal provider status). Prevents duplicate concurrent orders on the
+        // provider panel (e.g. 2x pending on indiasmmpanel.in for one video).
+        // ==========================================
+        {
+          const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          const { data: priorRuns } = await supabase
+            .from('organic_run_schedule')
+            .select('id, status, provider_status, provider_order_id, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
+            .eq('provider_account_id', selectedAccount.id)
+            .not('provider_order_id', 'is', null)
+            .gte('started_at', lookbackIso)
+            .order('started_at', { ascending: false })
+            .limit(30)
+
+          const stillActive = (priorRuns || []).some((pr: any) => {
+            if (pr.id === run.id) return false
+            const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
+            const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
+            if (prLink !== sameLink || prType !== currentTypeNormalized) return false
+            if (pr.status === 'started' && !isTerminalProviderStatus(pr.provider_status)) return true
+            if (isActiveProviderStatus(pr.provider_status)) return true
+            return false
+          })
+
+          if (stillActive) {
+            const postponeUntil = new Date(Date.now() + 2 * 60 * 1000).toISOString()
+            if (!runClaimed) {
+              await supabase.from('organic_run_schedule').update({
+                scheduled_at: postponeUntil,
+                error_message: `[Waiting] ${selectedAccount.name} still processing previous order on this link`,
+                last_status_check: new Date().toISOString(),
+              }).eq('id', run.id).eq('status', currentStatus)
+            }
+            if (!busyAccountIds.includes(selectedAccount.id)) busyAccountIds.push(selectedAccount.id)
+            lastError = `Provider ${selectedAccount.name} busy on same link (previous order not yet completed)`
+            console.log(`⏸️ Skipping ${selectedAccount.name} for run #${run.run_number}: previous order on same link still active at provider`)
+            continue
+          }
+        }
+
         if (!runClaimed) {
           const { error: claimError, locked: lockAcquired } = await claimRunLock({
             supabase,
