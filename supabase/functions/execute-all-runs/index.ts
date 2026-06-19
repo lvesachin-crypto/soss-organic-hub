@@ -1429,24 +1429,25 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         triedProviderIds.push(selectedAccount.id)
 
         // ==========================================
-        // STRICT GUARD: Never place a 2nd order on the SAME provider for the SAME
-        // link while a previous order there is still active (Pending / In progress
-        // / Processing on the provider side, or 'started' on our side without a
-        // terminal provider status). Prevents duplicate concurrent orders on the
-        // provider panel (e.g. 2x pending on indiasmmpanel.in for one video).
+        // STRICT GUARD (cross-provider): For a given (link + engagement type),
+        // only ONE active order is allowed at any time across ALL providers.
+        // If ANY provider account currently has an active order for this
+        // link+type (status='started' without terminal provider status, OR
+        // provider_status is Pending / In progress / Processing), we postpone
+        // this run completely — no second dispatch to any provider until the
+        // first one is truly complete on the provider side.
         // ==========================================
         {
           const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: priorRuns } = await supabase
             .from('organic_run_schedule')
-            .select('id, status, provider_status, provider_order_id, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
-            .eq('provider_account_id', selectedAccount.id)
+            .select('id, status, provider_status, provider_order_id, provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
             .not('provider_order_id', 'is', null)
             .gte('started_at', lookbackIso)
             .order('started_at', { ascending: false })
-            .limit(30)
+            .limit(100)
 
-          const stillActive = (priorRuns || []).some((pr: any) => {
+          const conflictingRun = (priorRuns || []).find((pr: any) => {
             if (pr.id === run.id) return false
             const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
             const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
@@ -1456,19 +1457,20 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             return false
           })
 
-          if (stillActive) {
+          if (conflictingRun) {
+            const blockingProvider = (conflictingRun as any).provider_account_name || 'another provider'
             const postponeUntil = new Date(Date.now() + 2 * 60 * 1000).toISOString()
             if (!runClaimed) {
               await supabase.from('organic_run_schedule').update({
                 scheduled_at: postponeUntil,
-                error_message: `[Waiting] ${selectedAccount.name} still processing previous order on this link`,
+                error_message: `[Waiting] ${blockingProvider} still has an active order on this link — holding until it completes`,
                 last_status_check: new Date().toISOString(),
               }).eq('id', run.id).eq('status', currentStatus)
             }
-            if (!busyAccountIds.includes(selectedAccount.id)) busyAccountIds.push(selectedAccount.id)
-            lastError = `Provider ${selectedAccount.name} busy on same link (previous order not yet completed)`
-            console.log(`⏸️ Skipping ${selectedAccount.name} for run #${run.run_number}: previous order on same link still active at provider`)
-            continue
+            lastError = `Link busy: ${blockingProvider} still processing previous order (same link + ${currentTypeNormalized})`
+            console.log(`⛔ Holding run #${run.run_number}: ${blockingProvider} still active on this link+type — no cross-provider dispatch allowed`)
+            // Break the per-account loop entirely — no other provider should take this either.
+            break
           }
         }
 
