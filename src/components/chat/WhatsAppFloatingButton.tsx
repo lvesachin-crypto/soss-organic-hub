@@ -5,11 +5,16 @@ const WHATSAPP_NUMBER = '255637520201'; // +255 637 520 201
 
 function buildMessage(email?: string, name?: string | null) {
   return (
-    `Hi OrganicSMM Support! 👋\n\n` +
-    `I need some help with my account.\n` +
-    (name ? `Name: ${name}\n` : '') +
-    (email ? `Email: ${email}\n` : '') +
-    `\nPlease assist me. 🙏`
+    `Hello OrganicSMM Support Team! 👋\n\n` +
+    `I need help regarding my account. Here are my details:\n\n` +
+    `━━━━━━━━━━━━━━━━━━\n` +
+    (name ? `👤 Name: ${name}\n` : '') +
+    (email ? `📧 Email: ${email}\n` : '') +
+    `🌐 Website: organicsmm.online\n` +
+    `━━━━━━━━━━━━━━━━━━\n\n` +
+    `📝 My issue / question:\n` +
+    `(Please describe your problem here — order ID, payment, services, etc.)\n\n` +
+    `Kindly assist me as soon as possible. Thank you! 🙏`
   );
 }
 
