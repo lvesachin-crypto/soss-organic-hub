@@ -41,7 +41,6 @@ import AdminProviderAccounts from "./pages/admin/AdminProviderAccounts";
 import AdminServiceProviderMapping from "./pages/admin/AdminServiceProviderMapping";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminPopupAd from "./pages/admin/AdminPopupAd";
-import AdminLiveRotation from "./pages/admin/AdminLiveRotation";
 
 // Legal pages
 import TermsOfService from "./pages/legal/TermsOfService";
