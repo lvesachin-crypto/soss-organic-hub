@@ -325,6 +325,10 @@ serve(async (req) => {
     }
 
     const backgroundWork = async () => {
+      const bgStart = Date.now()
+      const orderTag = `[order=${order.order_number} oid=${order.id.slice(0,8)}]`
+      const itemReport: Record<string, { attempts: number; lastError?: string; runsInserted: number; status: 'ok' | 'fallback' | 'failed' }> = {}
+      console.log(`${orderTag} 🚀 Background scheduler started (items=${createdItemIds.length})`)
       try {
         const startTime = new Date()
         const detectPlatform = (url: string): string => {
@@ -363,7 +367,14 @@ serve(async (req) => {
         let viewsDurationMinutes = 0
 
         for (const { type: engType, itemId, engagement, finalServiceId } of sortedItems) {
+         const itemTag = `${orderTag}[${engType} item=${itemId.slice(0,8)} qty=${engagement.quantity}]`
+         itemReport[itemId] = { attempts: 0, runsInserted: 0, status: 'failed' }
+         let lastErr: any = null
+         // Retry the entire per-item scheduling up to 2 times on transient crashes.
+         for (let attempt = 1; attempt <= 2; attempt++) {
+         itemReport[itemId].attempts = attempt
          try {
+           console.log(`${itemTag} ▶️ scheduling attempt ${attempt}`)
           const config = getServiceConfig(engType)
           let providerMin = config.defaultMinQty
           if (finalServiceId) {
