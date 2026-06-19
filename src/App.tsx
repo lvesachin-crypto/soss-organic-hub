@@ -127,7 +127,6 @@ const App = () => {
                     <Route path="/admin/service-provider-mapping" element={<AdminGuard><AdminServiceProviderMapping /></AdminGuard>} />
                     <Route path="/admin/audit-log" element={<AdminGuard><AdminAuditLog /></AdminGuard>} />
                     <Route path="/admin/popup-ad" element={<AdminGuard><AdminPopupAd /></AdminGuard>} />
-                    <Route path="/admin/live-rotation" element={<AdminGuard><AdminLiveRotation /></AdminGuard>} />
 
                     {/* Legal */}
                     <Route path="/terms" element={<TermsOfService />} />
