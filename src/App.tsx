@@ -41,7 +41,6 @@ import AdminProviderAccounts from "./pages/admin/AdminProviderAccounts";
 import AdminServiceProviderMapping from "./pages/admin/AdminServiceProviderMapping";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
 import AdminPopupAd from "./pages/admin/AdminPopupAd";
-import AdminLiveRotation from "./pages/admin/AdminLiveRotation";
 
 // Legal pages
 import TermsOfService from "./pages/legal/TermsOfService";
@@ -128,7 +127,6 @@ const App = () => {
                     <Route path="/admin/service-provider-mapping" element={<AdminGuard><AdminServiceProviderMapping /></AdminGuard>} />
                     <Route path="/admin/audit-log" element={<AdminGuard><AdminAuditLog /></AdminGuard>} />
                     <Route path="/admin/popup-ad" element={<AdminGuard><AdminPopupAd /></AdminGuard>} />
-                    <Route path="/admin/live-rotation" element={<AdminGuard><AdminLiveRotation /></AdminGuard>} />
 
                     {/* Legal */}
                     <Route path="/terms" element={<TermsOfService />} />
