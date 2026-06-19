@@ -325,6 +325,10 @@ serve(async (req) => {
     }
 
     const backgroundWork = async () => {
+      const bgStart = Date.now()
+      const orderTag = `[order=${order.order_number} oid=${order.id.slice(0,8)}]`
+      const itemReport: Record<string, { attempts: number; lastError?: string; runsInserted: number; status: 'ok' | 'fallback' | 'failed' }> = {}
+      console.log(`${orderTag} 🚀 Background scheduler started (items=${createdItemIds.length})`)
       try {
         const startTime = new Date()
         const detectPlatform = (url: string): string => {
@@ -363,7 +367,14 @@ serve(async (req) => {
         let viewsDurationMinutes = 0
 
         for (const { type: engType, itemId, engagement, finalServiceId } of sortedItems) {
+         const itemTag = `${orderTag}[${engType} item=${itemId.slice(0,8)} qty=${engagement.quantity}]`
+         itemReport[itemId] = { attempts: 0, runsInserted: 0, status: 'failed' }
+         let lastErr: any = null
+         // Retry the entire per-item scheduling up to 2 times on transient crashes.
+         for (let attempt = 1; attempt <= 2; attempt++) {
+         itemReport[itemId].attempts = attempt
          try {
+           console.log(`${itemTag} ▶️ scheduling attempt ${attempt}`)
           const config = getServiceConfig(engType)
           let providerMin = config.defaultMinQty
           if (finalServiceId) {
@@ -585,10 +596,14 @@ serve(async (req) => {
           if (validatedEntries.length > 0) {
             const { error: schedErr } = await supabase.from('organic_run_schedule').insert(validatedEntries)
             if (schedErr) {
-               console.error(`❌ [${engType}] Insert error:`, schedErr.message)
+               console.error(`${itemTag} ❌ Insert error (attempt ${attempt}):`, schedErr.message)
+               itemReport[itemId].lastError = `insert: ${schedErr.message}`
+               throw new Error(schedErr.message)
             } else {
                const scheduledSum = validatedEntries.reduce((s, r) => s + r.quantity_to_send, 0)
-               console.log(`✅ [${engType}] Scheduled ${validatedEntries.length} runs. (Sum: ${scheduledSum}, Target: ${totalTargetQty})`)
+               console.log(`${itemTag} ✅ Scheduled ${validatedEntries.length} runs (sum=${scheduledSum}/${totalTargetQty}) in ${Date.now()-bgStart}ms`)
+               itemReport[itemId].runsInserted = validatedEntries.length
+               itemReport[itemId].status = 'ok'
             }
             // Capture the views window so non-view types can mirror it
             if (isViewType && !viewsEndTime) {
@@ -602,23 +617,40 @@ serve(async (req) => {
               }
             }
           } else {
-            console.warn(`⚠️ [${engType}] No schedule entries created (qty: ${totalTargetQty})`)
+            console.warn(`${itemTag} ⚠️ No schedule entries created (qty=${totalTargetQty}) — will rely on fallback`)
+            itemReport[itemId].lastError = 'no entries produced'
           }
+           break // success path, exit retry loop
          } catch (itemErr: any) {
-           console.error(`❌ [${engType}] Scheduling crashed:`, itemErr?.message || itemErr)
+           lastErr = itemErr
+           itemReport[itemId].lastError = itemErr?.message || String(itemErr)
+           console.error(`${itemTag} ❌ attempt ${attempt} crashed:`, itemErr?.message || itemErr, itemErr?.stack ? `\n${itemErr.stack}` : '')
+           if (attempt < 2) {
+             await new Promise(r => setTimeout(r, 500 * attempt))
+             continue
+           }
          }
+         }
+         if (lastErr) console.error(`${itemTag} 🛑 all retries exhausted — safety net will create fallback run`)
         }
 
         // SAFETY NET: Ensure every item got at least one scheduled run.
         // If scheduling crashed/skipped for any item, create a single fallback
         // run so the engagement actually gets delivered (not silently lost).
-        try {
-          for (const { type: engType, itemId, engagement } of createdItemIds) {
-            const { count } = await supabase
-              .from('organic_run_schedule')
-              .select('id', { count: 'exact', head: true })
-              .eq('engagement_order_item_id', itemId)
-            if ((count ?? 0) === 0 && engagement.quantity > 0) {
+        const fallbackCreated: Array<{ type: string; itemId: string; qty: number }> = []
+        for (const { type: engType, itemId, engagement } of createdItemIds) {
+          let attempted = 0
+          let inserted = false
+          while (attempted < 3 && !inserted) {
+            attempted++
+            try {
+              const { count, error: cntErr } = await supabase
+                .from('organic_run_schedule')
+                .select('id', { count: 'exact', head: true })
+                .eq('engagement_order_item_id', itemId)
+              if (cntErr) throw cntErr
+              if ((count ?? 0) > 0) { inserted = true; break }
+              if (engagement.quantity <= 0) { inserted = true; break }
               const fallbackAt = new Date(Date.now() + (5 + Math.random() * 10) * 60 * 1000).toISOString()
               const { error: fbErr } = await supabase.from('organic_run_schedule').insert([{
                 engagement_order_item_id: itemId,
@@ -628,15 +660,42 @@ serve(async (req) => {
                 base_quantity: engagement.quantity,
                 status: 'pending',
               }])
-              if (fbErr) {
-                console.error(`❌ [${engType}] Fallback run insert failed:`, fbErr.message)
-              } else {
-                console.log(`🛟 [${engType}] Fallback run created (qty: ${engagement.quantity}) — original scheduling was missing`)
-              }
+              if (fbErr) throw fbErr
+              console.warn(`${orderTag}[${engType}] 🛟 Fallback run created (qty=${engagement.quantity}, attempt ${attempted})`)
+              itemReport[itemId] = { ...(itemReport[itemId] || { attempts: 0, runsInserted: 0, status: 'failed' }), runsInserted: 1, status: 'fallback' }
+              fallbackCreated.push({ type: engType, itemId, qty: engagement.quantity })
+              inserted = true
+            } catch (sErr: any) {
+              console.error(`${orderTag}[${engType}] safety-net attempt ${attempted} failed:`, sErr?.message || sErr)
+              if (attempted < 3) await new Promise(r => setTimeout(r, 750 * attempted))
             }
           }
-        } catch (safetyErr: any) {
-          console.error('Safety-net check failed:', safetyErr?.message || safetyErr)
+          if (!inserted) {
+            console.error(`${orderTag}[${engType}] 🚨 SAFETY NET FAILED — item ${itemId} has NO runs after retries`)
+          }
+        }
+
+        // Final summary log — easy to grep later.
+        const totalMs = Date.now() - bgStart
+        const summaryLines = createdItemIds.map(c => {
+          const r = itemReport[c.itemId] || { attempts: 0, runsInserted: 0, status: 'failed' as const }
+          return `  • ${c.type}(qty=${c.engagement.quantity}) → ${r.status} runs=${r.runsInserted} attempts=${r.attempts}${r.lastError ? ` err="${r.lastError}"` : ''}`
+        }).join('\n')
+        console.log(`${orderTag} 📊 Scheduler finished in ${totalMs}ms\n${summaryLines}`)
+
+        // Telegram alert when any fallback fired or any item failed entirely.
+        const failed = createdItemIds.filter(c => (itemReport[c.itemId]?.runsInserted ?? 0) === 0)
+        if (fallbackCreated.length > 0 || failed.length > 0) {
+          try {
+            await supabase.functions.invoke('send-telegram-notification', {
+              body: {
+                message: `⚠️ <b>Scheduler recovery</b>\nOrder <code>#${order.order_number}</code>\nFallbacks: <b>${fallbackCreated.length}</b> | Failed: <b>${failed.length}</b>\n<pre>${summaryLines.replace(/</g,'&lt;')}</pre>`,
+                parse_mode: 'HTML',
+              },
+            })
+          } catch (tgErr: any) {
+            console.error(`${orderTag} Telegram alert failed:`, tgErr?.message || tgErr)
+          }
         }
 
         fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/execute-all-runs`, {
@@ -644,7 +703,9 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}` },
           body: JSON.stringify({ instant: true, order_id: order.id })
         }).catch(() => {})
-      } catch (err: any) { console.error('Background error:', err?.message || err) }
+      } catch (err: any) {
+        console.error(`${orderTag} 💥 Background fatal error:`, err?.message || err, err?.stack ? `\n${err.stack}` : '')
+      }
     }
 
     if (typeof (globalThis as any).EdgeRuntime !== 'undefined' && (globalThis as any).EdgeRuntime.waitUntil) {
