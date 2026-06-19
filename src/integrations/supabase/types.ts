@@ -867,6 +867,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rotation_alert_state: {
+        Row: {
+          alert_key: string
+          last_alerted_at: string
+          last_count: number
+          resolved_at: string | null
+        }
+        Insert: {
+          alert_key: string
+          last_alerted_at?: string
+          last_count?: number
+          resolved_at?: string | null
+        }
+        Update: {
+          alert_key?: string
+          last_alerted_at?: string
+          last_count?: number
+          resolved_at?: string | null
+        }
+        Relationships: []
+      }
       service_provider_mapping: {
         Row: {
           created_at: string | null
