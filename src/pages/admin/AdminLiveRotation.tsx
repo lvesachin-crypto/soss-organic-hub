@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, RefreshCw, Radio, Search } from "lucide-react";
+import { ArrowLeft, RefreshCw, Radio, Search, AlertTriangle, BellOff, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type RunRow = {
@@ -40,6 +41,34 @@ export default function AdminLiveRotation() {
   const [live, setLive] = useState(false);
   const [search, setSearch] = useState("");
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [violations, setViolations] = useState<
+    { link: string; type: string; provider: string; count: number; at: Date }[]
+  >([]);
+  const alertedRef = useRef<Map<string, number>>(new Map()); // key -> count
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const beep = () => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.18, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.35);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const fetchRuns = async () => {
     const { data, error } = await supabase
@@ -132,10 +161,54 @@ export default function AdminLiveRotation() {
     return arr;
   }, [runs, search]);
 
+  // Detect rotation-guard violations: same provider with A > 1 on same link+type
+  useEffect(() => {
+    const nextAlerted = new Map<string, number>();
+    for (const g of grouped) {
+      for (const p of g.providersArr) {
+        if (p.active > 1) {
+          const key = `${g.link}||${g.type}||${p.name}`;
+          nextAlerted.set(key, p.active);
+          const prev = alertedRef.current.get(key) || 0;
+          if (p.active > prev) {
+            // New or escalating violation — alert
+            setViolations((v) =>
+              [
+                {
+                  link: g.link,
+                  type: g.type,
+                  provider: p.name,
+                  count: p.active,
+                  at: new Date(),
+                },
+                ...v,
+              ].slice(0, 50)
+            );
+            if (alertsEnabled) {
+              toast.error(
+                `Rotation guard violation: ${p.name} has ${p.active} active on ${g.type}`,
+                {
+                  description: g.link,
+                  duration: 10000,
+                }
+              );
+              beep();
+            }
+          }
+        }
+      }
+    }
+    alertedRef.current = nextAlerted;
+  }, [grouped, alertsEnabled]);
+
   const totalActive = runs.filter(
     (r) => r.status === "started" && r.provider_order_id && !isTerminal(r.provider_status)
   ).length;
   const totalPending = runs.filter((r) => r.status === "pending").length;
+  const activeViolations = grouped.reduce(
+    (n, g) => n + g.providersArr.filter((p) => p.active > 1).length,
+    0
+  );
 
   return (
     <DashboardLayout>
@@ -165,11 +238,44 @@ export default function AdminLiveRotation() {
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={fetchRuns} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setAlertsEnabled((v) => !v)}
+              className="gap-2"
+              title={alertsEnabled ? "Mute alerts" : "Enable alerts"}
+            >
+              {alertsEnabled ? (
+                <Bell className="h-4 w-4 text-success" />
+              ) : (
+                <BellOff className="h-4 w-4 text-muted-foreground" />
+              )}
+              {alertsEnabled ? "Alerts ON" : "Alerts OFF"}
+            </Button>
+            <Button variant="outline" onClick={fetchRuns} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {activeViolations > 0 && (
+          <Card className="border-destructive bg-destructive/10">
+            <CardContent className="p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5 animate-pulse" />
+              <div className="flex-1">
+                <p className="font-semibold text-destructive">
+                  {activeViolations} rotation guard violation
+                  {activeViolations === 1 ? "" : "s"} detected
+                </p>
+                <p className="text-xs text-destructive/80">
+                  Same provider has more than one active order on the same link + engagement
+                  type. Scroll the table below — red badges show which provider.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card>
@@ -298,6 +404,57 @@ export default function AdminLiveRotation() {
             )}
           </CardContent>
         </Card>
+
+        {violations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Violation Log
+              </CardTitle>
+              <CardDescription>
+                Recent rotation guard violations detected during this session (newest first,
+                last 50).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Provider</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-center">Active</TableHead>
+                      <TableHead>Link</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {violations.map((v, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {v.at.toLocaleTimeString()}
+                        </TableCell>
+                        <TableCell className="font-medium">{v.provider}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">{v.type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="bg-destructive text-destructive-foreground">
+                            A:{v.count}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs break-all max-w-[320px]">
+                          {v.link}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );
