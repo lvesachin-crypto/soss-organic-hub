@@ -1429,26 +1429,28 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         triedProviderIds.push(selectedAccount.id)
 
         // ==========================================
-        // STRICT GUARD (cross-provider): For a given (link + engagement type),
-        // only ONE active order is allowed at any time across ALL providers.
-        // If ANY provider account currently has an active order for this
-        // link+type (status='started' without terminal provider status, OR
-        // provider_status is Pending / In progress / Processing), we postpone
-        // this run completely — no second dispatch to any provider until the
-        // first one is truly complete on the provider side.
+        // STRICT GUARD (per-provider): The SAME provider account cannot have
+        // two active orders on the same (link + engagement type). Other
+        // providers are free to take this run — rotation continues normally.
+        // Only when the currently-selected provider already has an active
+        // order for this link+type (status='started' without terminal
+        // provider status, OR provider_status is Pending / In progress /
+        // Processing) do we skip THIS provider and try the next one.
         // ==========================================
         {
           const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: priorRuns } = await supabase
             .from('organic_run_schedule')
-            .select('id, status, provider_status, provider_order_id, provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
+            .select('id, status, provider_status, provider_order_id, provider_account_id, provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
             .not('provider_order_id', 'is', null)
+            .eq('provider_account_id', selectedAccount.id)
             .gte('started_at', lookbackIso)
             .order('started_at', { ascending: false })
             .limit(100)
 
           const conflictingRun = (priorRuns || []).find((pr: any) => {
             if (pr.id === run.id) return false
+            if (pr.provider_account_id !== selectedAccount.id) return false
             const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
             const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
             if (prLink !== sameLink || prType !== currentTypeNormalized) return false
@@ -1458,19 +1460,13 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           })
 
           if (conflictingRun) {
-            const blockingProvider = (conflictingRun as any).provider_account_name || 'another provider'
-            const postponeUntil = new Date(Date.now() + 2 * 60 * 1000).toISOString()
-            if (!runClaimed) {
-              await supabase.from('organic_run_schedule').update({
-                scheduled_at: postponeUntil,
-                error_message: `[Waiting] ${blockingProvider} still has an active order on this link — holding until it completes`,
-                last_status_check: new Date().toISOString(),
-              }).eq('id', run.id).eq('status', currentStatus)
+            // Mark this provider as busy for this run and try the next provider.
+            if (!busyAccountIds.includes(selectedAccount.id)) {
+              busyAccountIds.push(selectedAccount.id)
             }
-            lastError = `Link busy: ${blockingProvider} still processing previous order (same link + ${currentTypeNormalized})`
-            console.log(`⛔ Holding run #${run.run_number}: ${blockingProvider} still active on this link+type — no cross-provider dispatch allowed`)
-            // Break the per-account loop entirely — no other provider should take this either.
-            break
+            lastError = `${selectedAccount.name} already has an active order on this link+${currentTypeNormalized} — trying next provider`
+            console.log(`↪️ Run #${run.run_number}: ${selectedAccount.name} busy on same link+type, rotating to next provider`)
+            continue
           }
         }
 
