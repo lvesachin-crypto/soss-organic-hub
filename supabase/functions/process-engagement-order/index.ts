@@ -363,6 +363,7 @@ serve(async (req) => {
         let viewsDurationMinutes = 0
 
         for (const { type: engType, itemId, engagement, finalServiceId } of sortedItems) {
+         try {
           const config = getServiceConfig(engType)
           let providerMin = config.defaultMinQty
           if (finalServiceId) {
@@ -603,6 +604,39 @@ serve(async (req) => {
           } else {
             console.warn(`⚠️ [${engType}] No schedule entries created (qty: ${totalTargetQty})`)
           }
+         } catch (itemErr: any) {
+           console.error(`❌ [${engType}] Scheduling crashed:`, itemErr?.message || itemErr)
+         }
+        }
+
+        // SAFETY NET: Ensure every item got at least one scheduled run.
+        // If scheduling crashed/skipped for any item, create a single fallback
+        // run so the engagement actually gets delivered (not silently lost).
+        try {
+          for (const { type: engType, itemId, engagement } of createdItemIds) {
+            const { count } = await supabase
+              .from('organic_run_schedule')
+              .select('id', { count: 'exact', head: true })
+              .eq('engagement_order_item_id', itemId)
+            if ((count ?? 0) === 0 && engagement.quantity > 0) {
+              const fallbackAt = new Date(Date.now() + (5 + Math.random() * 10) * 60 * 1000).toISOString()
+              const { error: fbErr } = await supabase.from('organic_run_schedule').insert([{
+                engagement_order_item_id: itemId,
+                run_number: 1,
+                scheduled_at: fallbackAt,
+                quantity_to_send: engagement.quantity,
+                base_quantity: engagement.quantity,
+                status: 'pending',
+              }])
+              if (fbErr) {
+                console.error(`❌ [${engType}] Fallback run insert failed:`, fbErr.message)
+              } else {
+                console.log(`🛟 [${engType}] Fallback run created (qty: ${engagement.quantity}) — original scheduling was missing`)
+              }
+            }
+          }
+        } catch (safetyErr: any) {
+          console.error('Safety-net check failed:', safetyErr?.message || safetyErr)
         }
 
         fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/execute-all-runs`, {
