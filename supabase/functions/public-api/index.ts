@@ -182,20 +182,21 @@ serve(async (req) => {
 
                 if (oErr || !order) throw oErr
 
-                const newBal = wallet.balance - totalPrice
-                await supabase.from('wallets')
-                    .update({ balance: newBal, total_spent: (wallet.total_spent || 0) + totalPrice })
-                    .eq('user_id', userId)
-
-                await supabase.from('transactions').insert({
-                    user_id: userId,
-                    type: 'order',
-                    amount: -totalPrice,
-                    balance_after: newBal,
-                    order_id: order.id,
-                    description: `API Order #${order.order_number} - ${svc.name}`,
-                    status: 'completed',
+                // Atomic debit + transaction insert (locks wallet row, single DB tx).
+                // Rolls the order back if payment fails so it can never escape unpaid.
+                const { data: debitData, error: debitError } = await supabase.rpc('debit_wallet_for_order', {
+                    p_user_id: userId,
+                    p_amount: totalPrice,
+                    p_order_id: order.id,
+                    p_engagement_order_id: null,
+                    p_description: `API Order #${order.order_number} - ${svc.name}`,
                 })
+
+                if (debitError || !debitData) {
+                    console.error('[public-api] atomic debit failed, rolling back order:', debitError)
+                    await supabase.from('orders').delete().eq('id', order.id)
+                    return err(debitError?.message || 'Payment failed', 400)
+                }
 
                 // Fire & forget
                 supabase.functions.invoke('process-order', { body: { order_id: order.id } })
