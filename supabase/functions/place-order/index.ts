@@ -44,12 +44,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { service_name, ...orderInsertData } = orderData;
+    // ============ ALLOWLIST CLIENT INPUT (anti field-injection) ============
+    // Never spread client orderData into a service-role insert. Pick only safe fields.
+    const service_name: string | undefined = orderData.service_name;
+    const orderInsertData: Record<string, unknown> = {
+      service_id: orderData.service_id,
+      link: typeof orderData.link === "string" ? orderData.link : null,
+      quantity: orderData.quantity,
+      is_drip_feed: !!orderData.is_drip_feed,
+      is_organic_mode: !!orderData.is_organic_mode,
+      variance_percent:
+        Number.isFinite(Number(orderData.variance_percent))
+          ? Math.min(100, Math.max(0, Number(orderData.variance_percent)))
+          : 25,
+      peak_hours_enabled: !!orderData.peak_hours_enabled,
+      drip_qty_per_run: orderData.drip_qty_per_run ?? null,
+      drip_interval: orderData.drip_interval ?? null,
+      drip_interval_unit:
+        orderData.drip_interval_unit === "minutes" ||
+        orderData.drip_interval_unit === "hours" ||
+        orderData.drip_interval_unit === "days"
+          ? orderData.drip_interval_unit
+          : "hours",
+      runs_total: orderData.runs_total ?? null,
+    };
 
     // ============ SERVER-SIDE PRICE RECOMPUTATION (anti-tamper) ============
-    // Never trust client totalPrice / orderInsertData.price. Recompute from services.price + markup.
     const qty = Math.max(0, Math.floor(Number(orderInsertData.quantity) || 0));
-    if (!orderInsertData.service_id || qty <= 0) {
+    if (!orderInsertData.service_id || qty <= 0 || !orderInsertData.link) {
       return new Response(JSON.stringify({ error: "Invalid service or quantity" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -81,6 +103,7 @@ Deno.serve(async (req) => {
     // Override any client-supplied price
     orderInsertData.price = safeTotalPrice;
     orderInsertData.quantity = qty;
+    orderInsertData.status = "pending";
 
     // Quick pre-check (UX only; real check is atomic RPC below)
     const { data: walletPre } = await supabaseAdmin
@@ -171,11 +194,17 @@ Deno.serve(async (req) => {
 
     const newBalance = (debitData as any).new_balance as number;
 
-    // 5. Insert organic run schedule if provided
-    if (runs && runs.length > 0) {
-      const runEntries = runs.map((run: any) => ({
-        ...run,
+    // 5. Insert organic run schedule if provided (allowlist fields only)
+    if (runs && Array.isArray(runs) && runs.length > 0) {
+      const runEntries = runs.map((run: any, idx: number) => ({
         order_id: order.id,
+        run_number: Number(run?.run_number ?? idx + 1),
+        scheduled_at: run?.scheduled_at,
+        quantity_to_send: Math.max(0, Math.floor(Number(run?.quantity_to_send) || 0)),
+        base_quantity: Math.max(0, Math.floor(Number(run?.base_quantity ?? run?.quantity_to_send) || 0)),
+        variance_applied: Number.isFinite(Number(run?.variance_applied)) ? Number(run.variance_applied) : 0,
+        peak_multiplier: Number.isFinite(Number(run?.peak_multiplier)) ? Number(run.peak_multiplier) : 1,
+        status: "pending",
       }));
       
       const { error: runErr } = await supabaseAdmin
