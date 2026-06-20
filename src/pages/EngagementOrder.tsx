@@ -306,6 +306,16 @@ export default function EngagementOrder() {
           serviceId: item.service.id,
           minQuantity: lowestMatchedMin ?? item.service.min_quantity,
         };
+        return;
+      }
+
+      // 4) No linked service and no auto-match, but admin set a manual price → still register
+      if (manualPricePerK !== null) {
+        prices[item.engagement_type] = {
+          pricePerK: manualPricePerK,
+          serviceId: null,
+          minQuantity: lowestMatchedMin ?? 0,
+        };
       }
     });
     // Enforce platform minimum of 100 for views regardless of provider.
