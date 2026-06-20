@@ -1302,6 +1302,16 @@ export type Database = {
       }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_admin_users_summary: { Args: never; Returns: Json }
+      get_provider_topup_plan: {
+        Args: never
+        Returns: {
+          markup_percent: number
+          pending_runs: number
+          pending_user_usd: number
+          provider_id: string
+          provider_name: string
+        }[]
+      }
       get_public_markup: { Args: never; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
