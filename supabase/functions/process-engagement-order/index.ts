@@ -277,14 +277,11 @@ serve(async (req) => {
     const body = await req.json()
     const { bundle_id, link, total_price, engagements, base_quantity } = body
 
-    // Lock wallet and fetch balance
-    const { data: wallet } = await supabase.from('wallets').select('*').eq('user_id', user_id).single()
-    if (!wallet || wallet.balance < total_price) return new Response(JSON.stringify({ error: 'Insufficient balance' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-
-    // Deduct payment
-    const newBalance = wallet.balance - total_price
-    const newSpent = (wallet.total_spent || 0) + total_price
-    await supabase.from('wallets').update({ balance: newBalance, total_spent: newSpent, updated_at: new Date().toISOString() }).eq('id', wallet.id)
+    // Pre-check (UX only; real check is the atomic RPC below after order insert)
+    const { data: walletPre } = await supabase.from('wallets').select('balance').eq('user_id', user_id).maybeSingle()
+    if (!walletPre || walletPre.balance < total_price) {
+      return new Response(JSON.stringify({ error: 'Insufficient balance' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // Check if bundle has AI Organic Mode enabled (default ON)
     let aiOrganicEnabled = true
@@ -300,16 +297,27 @@ serve(async (req) => {
 
     if (orderError || !order) return new Response(JSON.stringify({ error: `Failed to create order: ${orderError?.message || 'Unknown error'}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-    // Record transaction for revenue tracking
-    await supabase.from('transactions').insert({
-      user_id,
-      type: 'order_payment',
-      amount: total_price,
-      balance_after: newBalance,
-      order_id: order.id,
-      status: 'completed',
-      description: `Engagement Order #${order.order_number}`,
+    // Atomic debit + transaction insert under row lock. If this fails, roll the order back.
+    const { data: debitData, error: debitError } = await supabase.rpc('debit_wallet_for_order', {
+      p_user_id: user_id,
+      p_amount: total_price,
+      p_order_id: null,
+      p_engagement_order_id: order.id,
+      p_description: `Engagement Order #${order.order_number}`,
     })
+
+    if (debitError || !debitData) {
+      console.error('Atomic debit failed, rolling back engagement order:', debitError)
+      await supabase.from('engagement_orders').delete().eq('id', order.id)
+      const msg = debitError?.message || 'Payment failed'
+      const isInsufficient = msg.toLowerCase().includes('insufficient')
+      return new Response(JSON.stringify({ error: msg }), {
+        status: isInsufficient ? 400 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const newBalance = (debitData as any).new_balance as number
 
     const createdItemIds: Array<{ type: string; itemId: string; engagement: any; finalServiceId: string }> = []
     for (const eng of engagements) {
