@@ -295,6 +295,24 @@ serve(async (req) => {
     const markupPct = Number(ps?.global_markup_percent ?? 0)
     const markupMul = 1 + (markupPct / 100)
 
+    // Admin-set per-bundle-item price overrides services.price.
+    // Build a map: service_id -> bundle_items.price_per_k (only when > 0).
+    const bundleItemPriceMap = new Map<string, number>()
+    if (bundle_id) {
+      const { data: biRows } = await supabase
+        .from('bundle_items')
+        .select('service_id, engagement_type, price_per_k')
+        .eq('bundle_id', bundle_id)
+      if (Array.isArray(biRows)) {
+        for (const bi of biRows) {
+          const ppk = Number(bi.price_per_k) || 0
+          if (bi.service_id && ppk > 0) {
+            bundleItemPriceMap.set(bi.service_id as string, ppk)
+          }
+        }
+      }
+    }
+
     let serverTotal = 0
     for (const eng of engagements) {
       const svc = svcMap.get(eng.service_id) as any
@@ -311,7 +329,10 @@ serve(async (req) => {
       if (svc.max_quantity && qty > svc.max_quantity) {
         return new Response(JSON.stringify({ error: `Quantity above maximum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      const userPrice = (qty / 1000) * Number(svc.price) * markupMul
+      // Use admin-set bundle price_per_k when available, else fall back to service price.
+      // Global markup is still applied on top for backward compatibility (currently 0).
+      const effectivePricePerK = bundleItemPriceMap.get(eng.service_id) ?? Number(svc.price)
+      const userPrice = (qty / 1000) * effectivePricePerK * markupMul
       eng.quantity = qty
       eng.price = Math.round(userPrice * 10000) / 10000
       serverTotal += eng.price
