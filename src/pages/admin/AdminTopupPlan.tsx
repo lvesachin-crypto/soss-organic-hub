@@ -34,17 +34,19 @@ export default function AdminTopupPlan() {
   const [usdToInr, setUsdToInr] = useState<number>(83.5);
   const [safetyPct, setSafetyPct] = useState<number>(20); // 20% buffer
 
-  const { data: pending, isLoading: pendingLoading, refetch: refetchPending } = useQuery({
+  const { data: pending, isLoading: pendingLoading, refetch: refetchPending, error: pendingError } = useQuery({
     queryKey: ["topup-plan-pending"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_provider_topup_plan" as any);
       if (error) throw error;
       return (data || []) as PendingRow[];
     },
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  const { data: accounts, isLoading: accLoading, refetch: refetchAcc } = useQuery({
+  const { data: accounts, isLoading: accLoading, refetch: refetchAcc, error: accError } = useQuery({
     queryKey: ["topup-plan-accounts"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -53,7 +55,8 @@ export default function AdminTopupPlan() {
       if (error) throw error;
       return (data || []) as AccountRow[];
     },
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const plan = useMemo(() => {
@@ -226,6 +229,18 @@ export default function AdminTopupPlan() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {(pendingError || accError) && (
+              <div className="mb-3 rounded-md border border-red-300 bg-red-50 p-3 text-xs text-red-700">
+                <div className="font-semibold mb-1">Error loading data:</div>
+                {pendingError && <div>Pending RPC: {(pendingError as any)?.message || String(pendingError)}</div>}
+                {accError && <div>Accounts: {(accError as any)?.message || String(accError)}</div>}
+              </div>
+            )}
+            {!loading && !pendingError && !accError && pending && accounts && (
+              <div className="mb-3 text-[11px] text-muted-foreground">
+                Loaded {pending.length} pending provider group(s), {accounts.length} account(s) from DB.
+              </div>
+            )}
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : plan.length === 0 ? (
