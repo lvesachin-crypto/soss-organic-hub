@@ -161,7 +161,7 @@ export const DEFAULT_RATIOS: Record<EngagementType, number> = {
   subscribers: 3,
   watch_hours: 5,
   retweets: 4,
-  reposts: 0.8,
+  reposts: 1.3,
 };
 
 // Platform-specific engagement types
