@@ -44,28 +44,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 1. Get wallet and check balance
-    const { data: wallet, error: walletError } = await supabaseAdmin
-      .from("wallets")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+    const { service_name, ...orderInsertData } = orderData;
 
-    if (walletError || !wallet) {
+    // Quick pre-check (UX only; real check is atomic RPC below)
+    const { data: walletPre } = await supabaseAdmin
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!walletPre) {
       return new Response(JSON.stringify({ error: "Wallet not found" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    if (wallet.balance < totalPrice) {
+    if (walletPre.balance < totalPrice) {
       return new Response(JSON.stringify({ error: "Insufficient balance" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const { service_name, ...orderInsertData } = orderData;
 
     const duplicateWindowStart = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     const { data: recentDuplicateOrder } = await supabaseAdmin
@@ -110,33 +108,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Deduct from wallet
-    const newBalance = wallet.balance - totalPrice;
-    const newSpent = (wallet.total_spent || 0) + totalPrice;
-    
-    const { error: updateErr } = await supabaseAdmin
-      .from("wallets")
-      .update({
-        balance: newBalance,
-        total_spent: newSpent,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
+    // 3. Atomic debit + transaction (under row lock, single DB transaction).
+    //    If this fails, the order we just inserted is rolled back manually so
+    //    users cannot end up with an order that was never paid for.
+    const { data: debitData, error: debitError } = await supabaseAdmin.rpc(
+      "debit_wallet_for_order",
+      {
+        p_user_id: user.id,
+        p_amount: totalPrice,
+        p_order_id: order.id,
+        p_engagement_order_id: null,
+        p_description: `Order #${order.order_number} - ${service_name || "Service Order"}`,
+      }
+    );
 
-    if (updateErr) throw updateErr;
+    if (debitError || !debitData) {
+      console.error("Atomic debit failed, rolling back order:", debitError);
+      await supabaseAdmin.from("orders").delete().eq("id", order.id);
+      const msg = debitError?.message || "Payment failed";
+      const isInsufficient = msg.toLowerCase().includes("insufficient");
+      return new Response(JSON.stringify({ error: msg }), {
+        status: isInsufficient ? 400 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // 4. Record transaction
-    const { error: txErr } = await supabaseAdmin.from("transactions").insert({
-      user_id: user.id,
-      type: "order_payment",
-      amount: totalPrice,
-      balance_after: newBalance,
-      order_id: order.id,
-      description: `Order #${order.order_number} - ${service_name || 'Service Order'}`,
-      status: "completed",
-    });
-
-    if (txErr) console.error("Transaction insert error:", txErr);
+    const newBalance = (debitData as any).new_balance as number;
 
     // 5. Insert organic run schedule if provided
     if (runs && runs.length > 0) {
