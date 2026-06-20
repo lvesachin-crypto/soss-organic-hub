@@ -321,6 +321,28 @@ export default function Admin() {
             </Card>
           </Link>
 
+          <Link to="/admin/topup-plan">
+            <Card className="glass-card h-full hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all cursor-pointer group border-2 border-orange-500/30">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500/30 to-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <CreditCard className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold group-hover:text-orange-500 transition-colors">
+                        Top-up Plan
+                      </h3>
+                      <Badge className="text-[10px] h-4 px-1.5 bg-orange-500 text-white">NEW</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Per-provider ₹ to add</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           <Link to="/admin/service-provider-mapping">
             <Card className="glass-card h-full hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all cursor-pointer group border-2 border-primary/30">
               <CardContent className="p-5">
