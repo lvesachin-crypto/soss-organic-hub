@@ -1280,6 +1280,10 @@ export type Database = {
       }
     }
     Functions: {
+      cancel_order_with_refund: {
+        Args: { p_actor: string; p_is_admin: boolean; p_order_id: string }
+        Returns: Json
+      }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
       credit_wallet_razorpay: {
         Args: {
