@@ -30,12 +30,10 @@ import EngagementOrderDetail from "./pages/EngagementOrderDetail";
 
 // Admin pages
 import Admin from "./pages/admin/Admin";
-import AdminServices from "./pages/admin/AdminServices";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminBundles from "./pages/admin/AdminBundles";
 import AdminCronMonitor from "./pages/admin/AdminCronMonitor";
 
-import AdminChat from "./pages/admin/AdminChat";
 import AdminDeposits from "./pages/admin/AdminDeposits";
 import AdminProviderAccounts from "./pages/admin/AdminProviderAccounts";
 import AdminServiceProviderMapping from "./pages/admin/AdminServiceProviderMapping";
@@ -118,11 +116,11 @@ const App = () => {
 
                     {/* Admin — server-verified guard */}
                     <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
-                    <Route path="/admin/services" element={<AdminGuard><AdminServices /></AdminGuard>} />
+                    <Route path="/admin/services" element={<NotFound />} />
                     <Route path="/admin/users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
                     <Route path="/admin/bundles" element={<AdminGuard><AdminBundles /></AdminGuard>} />
                     <Route path="/admin/cron-monitor" element={<AdminGuard><AdminCronMonitor /></AdminGuard>} />
-                    <Route path="/admin/chat" element={<AdminGuard><AdminChat /></AdminGuard>} />
+                    <Route path="/admin/chat" element={<NotFound />} />
                     <Route path="/admin/deposits" element={<AdminGuard><AdminDeposits /></AdminGuard>} />
                     <Route path="/admin/provider-accounts" element={<AdminGuard><AdminProviderAccounts /></AdminGuard>} />
                     <Route path="/admin/service-provider-mapping" element={<AdminGuard><AdminServiceProviderMapping /></AdminGuard>} />
