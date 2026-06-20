@@ -536,6 +536,7 @@ export type Database = {
           provider_status: string | null
           quantity_to_send: number
           retry_count: number | null
+          rotation_lock_key: string | null
           run_number: number
           scheduled_at: string
           started_at: string | null
@@ -562,6 +563,7 @@ export type Database = {
           provider_status?: string | null
           quantity_to_send: number
           retry_count?: number | null
+          rotation_lock_key?: string | null
           run_number: number
           scheduled_at: string
           started_at?: string | null
@@ -588,6 +590,7 @@ export type Database = {
           provider_status?: string | null
           quantity_to_send?: number
           retry_count?: number | null
+          rotation_lock_key?: string | null
           run_number?: number
           scheduled_at?: string
           started_at?: string | null
