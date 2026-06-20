@@ -102,16 +102,20 @@ serve(async (req) => {
     for (const [key, g] of violations) {
       const prior = stateMap.get(key);
       const priorCount = prior?.last_count ?? 0;
-      const wasResolved = !prior || prior.resolved_at !== null;
-      // Alert if: new violation, OR escalating count, OR previously resolved & reappeared
-      if (g.count > priorCount || wasResolved) {
+      const priorActive = prior && prior.resolved_at === null;
+      // Anti-noise: only alert if the violation persisted across at least 2 consecutive scans.
+      // First detection just records state silently; if next scan still sees it, then alert.
+      // This kills transient races (parallel cron, revert migrations, etc.) that self-resolve within ~1 min.
+      const persistedSecondScan = !!priorActive && priorCount > 0;
+      const escalated = g.count > priorCount && priorActive;
+      if (persistedSecondScan || escalated) {
         const msg =
           `🚨 <b>Rotation Guard Violation</b>\n\n` +
           `<b>Provider:</b> ${g.provider}\n` +
           `<b>Type:</b> ${g.type}\n` +
           `<b>Active orders on same link:</b> ${g.count}\n\n` +
           `<b>Link:</b> <code>${g.link}</code>\n\n` +
-          `Same provider has ${g.count} active orders on this link+type — rotation guard failed.`;
+          `Same provider has ${g.count} active orders on this link+type — rotation guard failed (persisted across multiple scans).`;
         await sendTelegram(supabaseUrl, anonKey, msg);
         alertsSent.push(key);
       }
