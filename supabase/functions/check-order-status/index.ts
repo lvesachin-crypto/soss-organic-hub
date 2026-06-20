@@ -674,7 +674,9 @@ Deno.serve(async (req) => {
 
           const providerStatus = (result.status || '').toLowerCase()
           const startCount = parseInt(result.start_count) || null
-          const remains = parseInt(result.remains) || 0
+          const remainsRaw = result.remains
+          const remainsProvided = remainsRaw !== undefined && remainsRaw !== null && String(remainsRaw).trim() !== ''
+          const remains = remainsProvided ? (parseInt(String(remainsRaw)) || 0) : 0
           const charge = parseFloat(result.charge) || null
 
           // Always update tracking data
@@ -687,7 +689,11 @@ Deno.serve(async (req) => {
             last_status_check: new Date().toISOString()
           }
 
-          const deliveredAll = remains === 0 && !['cancelled', 'canceled', 'refunded', 'refund', 'failed', 'error', 'canscelled'].includes(providerStatus)
+          const deliveredAll = remainsProvided
+            && remains === 0
+            && startCount !== null
+            && startCount > 0
+            && !['cancelled', 'canceled', 'refunded', 'refund', 'failed', 'error', 'canscelled'].includes(providerStatus)
 
           if (providerStatus === 'completed' || providerStatus === 'complete' || providerStatus === 'success' || deliveredAll) {
             await supabase.from('organic_run_schedule').update({
