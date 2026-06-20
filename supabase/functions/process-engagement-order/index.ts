@@ -277,9 +277,58 @@ serve(async (req) => {
     const body = await req.json()
     const { bundle_id, link, total_price, engagements, base_quantity } = body
 
-    // Pre-check (UX only; real check is the atomic RPC below after order insert)
+    // ============ SERVER-SIDE PRICE RECOMPUTATION (anti-tamper) ============
+    // NEVER trust client-supplied price. Recompute from services.price + global markup.
+    if (!Array.isArray(engagements) || engagements.length === 0) {
+      return new Response(JSON.stringify({ error: 'No engagements provided' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const serviceIds = [...new Set(engagements.map((e: any) => e.service_id).filter(Boolean))]
+    const { data: svcRows, error: svcErr } = await supabase
+      .from('services')
+      .select('id, price, min_quantity, max_quantity, is_active')
+      .in('id', serviceIds)
+    if (svcErr || !svcRows || svcRows.length !== serviceIds.length) {
+      return new Response(JSON.stringify({ error: 'Invalid service in engagements' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const svcMap = new Map(svcRows.map((s: any) => [s.id, s]))
+    const { data: ps } = await supabase.from('platform_settings').select('global_markup_percent').limit(1).maybeSingle()
+    const markupPct = Number(ps?.global_markup_percent ?? 0)
+    const markupMul = 1 + (markupPct / 100)
+
+    let serverTotal = 0
+    for (const eng of engagements) {
+      const svc = svcMap.get(eng.service_id) as any
+      if (!svc || svc.is_active === false) {
+        return new Response(JSON.stringify({ error: `Service unavailable: ${eng.service_id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      const qty = Math.max(0, Math.floor(Number(eng.quantity) || 0))
+      if (qty <= 0) {
+        return new Response(JSON.stringify({ error: 'Invalid quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      if (svc.min_quantity && qty < svc.min_quantity) {
+        return new Response(JSON.stringify({ error: `Quantity below minimum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      if (svc.max_quantity && qty > svc.max_quantity) {
+        return new Response(JSON.stringify({ error: `Quantity above maximum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      const userPrice = (qty / 1000) * Number(svc.price) * markupMul
+      eng.quantity = qty
+      eng.price = Math.round(userPrice * 10000) / 10000
+      serverTotal += eng.price
+    }
+    serverTotal = Math.round(serverTotal * 10000) / 10000
+
+    // Tolerate 1% client/server rounding drift, otherwise reject
+    const clientTotal = Number(total_price) || 0
+    if (clientTotal > 0 && Math.abs(clientTotal - serverTotal) / serverTotal > 0.01) {
+      console.warn(`[anti-tamper] client total=${clientTotal} server total=${serverTotal} user=${user_id}`)
+    }
+    // Always use server-computed total — ignore client value entirely
+    const safeTotalPrice = serverTotal
+
+    // Pre-check balance against the server total
     const { data: walletPre } = await supabase.from('wallets').select('balance').eq('user_id', user_id).maybeSingle()
-    if (!walletPre || walletPre.balance < total_price) {
+    if (!walletPre || walletPre.balance < safeTotalPrice) {
       return new Response(JSON.stringify({ error: 'Insufficient balance' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
@@ -292,7 +341,7 @@ serve(async (req) => {
 
     // Create order
     const { data: order, error: orderError } = await supabase.from('engagement_orders').insert({
-      user_id, bundle_id, link, total_price, base_quantity, is_organic_mode: true, status: 'processing'
+      user_id, bundle_id, link, total_price: safeTotalPrice, base_quantity, is_organic_mode: true, status: 'processing'
     }).select().single()
 
     if (orderError || !order) return new Response(JSON.stringify({ error: `Failed to create order: ${orderError?.message || 'Unknown error'}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -300,7 +349,7 @@ serve(async (req) => {
     // Atomic debit + transaction insert under row lock. If this fails, roll the order back.
     const { data: debitData, error: debitError } = await supabase.rpc('debit_wallet_for_order', {
       p_user_id: user_id,
-      p_amount: total_price,
+      p_amount: safeTotalPrice,
       p_order_id: null,
       p_engagement_order_id: order.id,
       p_description: `Engagement Order #${order.order_number}`,

@@ -46,6 +46,42 @@ Deno.serve(async (req) => {
 
     const { service_name, ...orderInsertData } = orderData;
 
+    // ============ SERVER-SIDE PRICE RECOMPUTATION (anti-tamper) ============
+    // Never trust client totalPrice / orderInsertData.price. Recompute from services.price + markup.
+    const qty = Math.max(0, Math.floor(Number(orderInsertData.quantity) || 0));
+    if (!orderInsertData.service_id || qty <= 0) {
+      return new Response(JSON.stringify({ error: "Invalid service or quantity" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: svc, error: svcErr } = await supabaseAdmin
+      .from("services")
+      .select("id, price, min_quantity, max_quantity, is_active")
+      .eq("id", orderInsertData.service_id)
+      .maybeSingle();
+    if (svcErr || !svc || svc.is_active === false) {
+      return new Response(JSON.stringify({ error: "Service unavailable" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (svc.min_quantity && qty < svc.min_quantity) {
+      return new Response(JSON.stringify({ error: `Minimum quantity is ${svc.min_quantity}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (svc.max_quantity && qty > svc.max_quantity) {
+      return new Response(JSON.stringify({ error: `Maximum quantity is ${svc.max_quantity}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: psRow } = await supabaseAdmin
+      .from("platform_settings").select("global_markup_percent").limit(1).maybeSingle();
+    const markupMul = 1 + (Number(psRow?.global_markup_percent ?? 0) / 100);
+    const safeTotalPrice = Math.round((qty / 1000) * Number(svc.price) * markupMul * 10000) / 10000;
+    // Override any client-supplied price
+    orderInsertData.price = safeTotalPrice;
+    orderInsertData.quantity = qty;
+
     // Quick pre-check (UX only; real check is atomic RPC below)
     const { data: walletPre } = await supabaseAdmin
       .from("wallets")
@@ -58,7 +94,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (walletPre.balance < totalPrice) {
+    if (walletPre.balance < safeTotalPrice) {
       return new Response(JSON.stringify({ error: "Insufficient balance" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -115,7 +151,7 @@ Deno.serve(async (req) => {
       "debit_wallet_for_order",
       {
         p_user_id: user.id,
-        p_amount: totalPrice,
+        p_amount: safeTotalPrice,
         p_order_id: order.id,
         p_engagement_order_id: null,
         p_description: `Order #${order.order_number} - ${service_name || "Service Order"}`,
