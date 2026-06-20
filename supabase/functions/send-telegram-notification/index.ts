@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,31 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Authentication: require either a valid signed-in user JWT or the service-role key.
+    // This blocks anonymous internet abuse of the admin Telegram channel.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    let authorized = !!token && !!serviceKey && token === serviceKey;
+    if (!authorized && token) {
+      try {
+        const supa = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        );
+        const { data, error } = await supa.auth.getUser(token);
+        authorized = !error && !!data?.user;
+      } catch (_) {
+        authorized = false;
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const TG_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID");
     if (!TG_CHAT_ID) {
       return new Response(
