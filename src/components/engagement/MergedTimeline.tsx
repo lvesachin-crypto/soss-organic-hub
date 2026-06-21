@@ -240,11 +240,14 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             const Icon = engConfig.icon;
             const scheduledDate = new Date(run.scheduled_at);
             const now = new Date();
+            // Treat target-met auto-cancellations as completed in the UI
+            const isAutoCompletedCancel = run.status === 'cancelled'
+              && (run.error_message || '').toLowerCase().startsWith('target met');
             const isPending = run.status === 'pending';
             const isActive = run.status === 'started';
-            const isCompleted = run.status === 'completed';
+            const isCompleted = run.status === 'completed' || isAutoCompletedCancel;
             const isFailed = run.status === 'failed';
-            const isCancelled = run.status === 'cancelled';
+            const isCancelled = run.status === 'cancelled' && !isAutoCompletedCancel;
 
             const isAlreadyExecuted = isCompleted || isFailed || isActive;
             const isScheduledInPast = scheduledDate < now;
