@@ -182,10 +182,13 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const { formatPrice } = useCurrency();
   // Calculate progress
   const allRuns = order.items?.flatMap((item: any) => item.runs || []) || [];
-  const completedRuns = allRuns.filter((r: any) => r.status === 'completed').length;
-  // Exclude cancelled runs from total — they were auto-cancelled because target was already met,
-  // so they shouldn't drag down progress %.
-  const effectiveRuns = allRuns.filter((r: any) => r.status !== 'cancelled').length;
+  // Auto-cancelled-because-target-met runs should display as completed.
+  // (Backend marks them cancelled with error_message starting with "Target met".)
+  const isAutoCompletedCancel = (r: any) =>
+    r.status === 'cancelled' && (r.error_message || '').toLowerCase().startsWith('target met');
+  const completedRuns = allRuns.filter((r: any) => r.status === 'completed' || isAutoCompletedCancel(r)).length;
+  // Exclude user-cancelled runs from total — auto-completed ones still count.
+  const effectiveRuns = allRuns.filter((r: any) => r.status !== 'cancelled' || isAutoCompletedCancel(r)).length;
   const totalRuns = effectiveRuns;
 
   // Calculate delivered using provider truth (matches Live Stats on detail page)
