@@ -9,7 +9,7 @@ import {
   Eye, Heart, MessageCircle, Bookmark, Share2,
   Clock, Play, CheckCircle2, XCircle, Pencil,
   ChevronDown, ChevronUp, ExternalLink, RefreshCw, Zap, CalendarClock,
-  Pause, PlayCircle, Ban
+  Pause, PlayCircle, Ban, RefreshCw as Repost, Repeat, UserPlus, Bell, Clock as ClockIcon
 } from "lucide-react";
 import {
   AlertDialog,
@@ -28,6 +28,11 @@ const ENGAGEMENT_CONFIG = {
   comments: { icon: MessageCircle, label: "Comments" },
   saves: { icon: Bookmark, label: "Saves" },
   shares: { icon: Share2, label: "Shares" },
+  reposts: { icon: Repost, label: "Reposts" },
+  retweets: { icon: Repeat, label: "Retweets" },
+  followers: { icon: UserPlus, label: "Followers" },
+  subscribers: { icon: Bell, label: "Subscribers" },
+  watch_hours: { icon: ClockIcon, label: "Watch Hours" },
 };
 
 interface Run {
