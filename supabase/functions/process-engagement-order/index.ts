@@ -469,7 +469,9 @@ serve(async (req) => {
 
           let initialDelayMinutes = 0
           if (isViewType && !viewsFirstRunScheduled) {
-            initialDelayMinutes = 10 + Math.random() * 15
+            // Instant-feel start: first views run kicks off within ~1-2 minutes
+            // (was 10-25 min — users complained it felt too slow).
+            initialDelayMinutes = 0.5 + Math.random() * 1.5
             viewsStartTime = new Date(startTime.getTime() + initialDelayMinutes * 60 * 1000)
             viewsFirstRunScheduled = true
           } else if (viewsStartTime) {
@@ -575,7 +577,14 @@ serve(async (req) => {
               let qty = Math.round((remaining / runsLeft) * (0.8 + Math.random() * 0.4) * multiplier)
               
               qty = Math.max(providerMin, Math.min(qty, remaining, maxBatchCap))
-              
+
+              // Soft warm-start: first run for views is a SMALL starter (~5% of total),
+              // so the user sees a quick organic-looking burst instead of a huge spike.
+              if (isViewType && runNumber === 1 && targetRuns > 1) {
+                const starter = Math.max(providerMin, Math.ceil(engagement.quantity * 0.05))
+                qty = Math.min(starter, remaining, maxBatchCap)
+              }
+
               if (runNumber === targetRuns || remaining <= providerMin) {
                 qty = remaining
               }
