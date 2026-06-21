@@ -72,6 +72,10 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     if (ps === 'canceled' || ps === 'cancelled' || ps === 'refunded' || ps === 'failed' || ps === 'error') return 'failed';
 
     const s = (run.status || '').toString().toLowerCase().trim();
+    // Auto-cancelled because the target was already met → show as completed in UI
+    if ((s === 'cancelled' || s === 'canceled') && (run.error_message || '').toLowerCase().startsWith('target met')) {
+      return 'completed';
+    }
     if (s === 'processing') return 'started';
     if (s === 'cancelled' || s === 'canceled') return 'cancelled';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
