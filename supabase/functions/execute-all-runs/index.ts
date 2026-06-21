@@ -443,7 +443,12 @@ const calculateObservedItemDelivery = (runs: any[]) => {
     askedSent,
     observedByRuns,
     publicCountDelta,
-    delivered: Math.max(askedSent, observedByRuns, publicCountDelta),
+    // NOTE: publicCountDelta is intentionally EXCLUDED from `delivered`.
+    // The public like/view count on a real post grows organically (natural users),
+    // so including it inflates our "delivered" total and causes future scheduled
+    // runs to be capped/cancelled even though we haven't actually sent that quantity.
+    // We only trust what we asked the provider to send + what the provider reports remaining.
+    delivered: Math.max(askedSent, observedByRuns),
   }
 }
 
