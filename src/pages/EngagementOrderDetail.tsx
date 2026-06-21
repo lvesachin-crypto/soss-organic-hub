@@ -551,6 +551,14 @@ export default function EngagementOrderDetail() {
     const calculateActualDelivered = (run: any): number => {
       const ps = normalizeProviderStatus(run.provider_status);
 
+      // Auto-completed cancel ("Target met") — count as fully delivered
+      if (
+        run.status === 'cancelled' &&
+        (run.error_message || '').toString().toLowerCase().startsWith('target met')
+      ) {
+        return run.quantity_to_send;
+      }
+
       // Provider-confirmed completion
       if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
 

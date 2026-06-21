@@ -195,6 +195,12 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const normalizeProviderStatus = (s: any): string => (s ?? '').toString().toLowerCase().trim();
   const calculateActualDelivered = (run: any): number => {
     const ps = normalizeProviderStatus(run.provider_status);
+    if (
+      run.status === 'cancelled' &&
+      (run.error_message || '').toLowerCase().startsWith('target met')
+    ) {
+      return run.quantity_to_send;
+    }
     if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
     if (run.provider_remains !== null && run.provider_remains !== undefined) {
       return Math.max(0, run.quantity_to_send - run.provider_remains);
