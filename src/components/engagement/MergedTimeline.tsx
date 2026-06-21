@@ -72,6 +72,10 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     if (ps === 'canceled' || ps === 'cancelled' || ps === 'refunded' || ps === 'failed' || ps === 'error') return 'failed';
 
     const s = (run.status || '').toString().toLowerCase().trim();
+    // Auto-cancelled because the target was already met → show as completed in UI
+    if ((s === 'cancelled' || s === 'canceled') && (run.error_message || '').toLowerCase().startsWith('target met')) {
+      return 'completed';
+    }
     if (s === 'processing') return 'started';
     if (s === 'cancelled' || s === 'canceled') return 'cancelled';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
@@ -236,11 +240,14 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             const Icon = engConfig.icon;
             const scheduledDate = new Date(run.scheduled_at);
             const now = new Date();
+            // Treat target-met auto-cancellations as completed in the UI
+            const isAutoCompletedCancel = run.status === 'cancelled'
+              && (run.error_message || '').toLowerCase().startsWith('target met');
             const isPending = run.status === 'pending';
             const isActive = run.status === 'started';
-            const isCompleted = run.status === 'completed';
+            const isCompleted = run.status === 'completed' || isAutoCompletedCancel;
             const isFailed = run.status === 'failed';
-            const isCancelled = run.status === 'cancelled';
+            const isCancelled = run.status === 'cancelled' && !isAutoCompletedCancel;
 
             const isAlreadyExecuted = isCompleted || isFailed || isActive;
             const isScheduledInPast = scheduledDate < now;
