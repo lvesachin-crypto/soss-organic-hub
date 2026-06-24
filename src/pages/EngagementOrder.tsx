@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, memo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,6 +99,17 @@ export default function EngagementOrder() {
 
   // Engagement configs - initialize empty, will be populated when bundle loads
   const [engagements, setEngagements] = useState<EngagementConfigs>({});
+
+  // Track per-type user-edited quantities so auto-ratio sync doesn't overwrite them.
+  // Cleared whenever the user changes the base quantity.
+  const userEditedQtyRef = useRef<Set<EngagementType>>(new Set());
+  const lastBaseQtyRef = useRef<number>(baseQuantity);
+  useEffect(() => {
+    if (lastBaseQtyRef.current !== debouncedBaseQuantity) {
+      userEditedQtyRef.current = new Set();
+      lastBaseQtyRef.current = debouncedBaseQuantity;
+    }
+  }, [debouncedBaseQuantity]);
 
   // Local settings toggles (defaulted from localStorage)
   const [isOrganicMode, setIsOrganicMode] = useState(true);
@@ -363,13 +374,19 @@ export default function EngagementOrder() {
         // If it's below provider min, the per-card warning will appear.
         const quantity = ratioQuantity;
 
+        const isUserEdited = userEditedQtyRef.current.has(type);
+        const finalQuantity = isUserEdited && prev[type]
+          ? prev[type].quantity
+          : ((isAutoRatios || !prev[type]) ? quantity : prev[type].quantity);
+        const finalPrice = serviceData
+          ? (finalQuantity / 1000) * serviceData.pricePerK
+          : prev[type]?.price ?? 0;
+
         updated[type] = {
           type,
           enabled: prev[type] ? prev[type].enabled : isEnabledByDefault,
-          quantity: (isAutoRatios || !prev[type]) ? quantity : prev[type].quantity,
-          price: serviceData
-            ? (quantity / 1000) * serviceData.pricePerK
-            : prev[type]?.price ?? 0,
+          quantity: finalQuantity,
+          price: finalPrice,
           serviceId: serviceData?.serviceId ?? prev[type]?.serviceId ?? null,
           minQuantity: serviceData?.minQuantity ?? prev[type]?.minQuantity,
           // Per-type organic settings
@@ -383,7 +400,13 @@ export default function EngagementOrder() {
   }, [debouncedBaseQuantity, bundles, servicePrices, userSavedRatios, isAutoRatios]);
 
   const handleEngagementChange = useCallback((type: EngagementType, config: EngagementConfig) => {
-    setEngagements(prev => ({ ...prev, [type]: config }));
+    setEngagements(prev => {
+      const prevQty = prev[type]?.quantity;
+      if (prevQty !== undefined && config.quantity !== prevQty) {
+        userEditedQtyRef.current.add(type);
+      }
+      return { ...prev, [type]: config };
+    });
     // Reset draw mode when user manually changes quantity
     if (drawModeState.isEnabled) {
       setDrawModeState(prev => ({
