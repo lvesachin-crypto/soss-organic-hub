@@ -102,11 +102,38 @@ export default function EngagementOrder() {
 
   // Track per-type user-edited quantities so auto-ratio sync doesn't overwrite them.
   // Cleared whenever the user changes the base quantity.
+  // Persisted to localStorage keyed by platform+baseQuantity so reload keeps overrides.
   const userEditedQtyRef = useRef<Set<EngagementType>>(new Set());
+  const userEditedQtyValuesRef = useRef<Partial<Record<EngagementType, number>>>({});
   const lastBaseQtyRef = useRef<number>(baseQuantity);
+
+  const overridesStorageKey = useMemo(
+    () => `eo_qty_overrides_${platform}_${debouncedBaseQuantity}`,
+    [platform, debouncedBaseQuantity]
+  );
+
+  // Hydrate overrides from localStorage when key changes (platform / base qty)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(overridesStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Record<EngagementType, number>>;
+        userEditedQtyValuesRef.current = parsed || {};
+        userEditedQtyRef.current = new Set(Object.keys(parsed || {}) as EngagementType[]);
+      } else {
+        userEditedQtyValuesRef.current = {};
+        userEditedQtyRef.current = new Set();
+      }
+    } catch {
+      userEditedQtyValuesRef.current = {};
+      userEditedQtyRef.current = new Set();
+    }
+  }, [overridesStorageKey]);
+
   useEffect(() => {
     if (lastBaseQtyRef.current !== debouncedBaseQuantity) {
       userEditedQtyRef.current = new Set();
+      userEditedQtyValuesRef.current = {};
       lastBaseQtyRef.current = debouncedBaseQuantity;
     }
   }, [debouncedBaseQuantity]);
@@ -375,8 +402,9 @@ export default function EngagementOrder() {
         const quantity = ratioQuantity;
 
         const isUserEdited = userEditedQtyRef.current.has(type);
-        const finalQuantity = isUserEdited && prev[type]
-          ? prev[type].quantity
+        const savedOverride = userEditedQtyValuesRef.current[type];
+        const finalQuantity = isUserEdited
+          ? (prev[type]?.quantity ?? savedOverride ?? quantity)
           : ((isAutoRatios || !prev[type]) ? quantity : prev[type].quantity);
         const finalPrice = serviceData
           ? (finalQuantity / 1000) * serviceData.pricePerK
@@ -404,6 +432,16 @@ export default function EngagementOrder() {
       const prevQty = prev[type]?.quantity;
       if (prevQty !== undefined && config.quantity !== prevQty) {
         userEditedQtyRef.current.add(type);
+        userEditedQtyValuesRef.current = {
+          ...userEditedQtyValuesRef.current,
+          [type]: config.quantity,
+        };
+        try {
+          localStorage.setItem(
+            overridesStorageKey,
+            JSON.stringify(userEditedQtyValuesRef.current),
+          );
+        } catch { /* quota - ignore */ }
       }
       return { ...prev, [type]: config };
     });
@@ -417,7 +455,7 @@ export default function EngagementOrder() {
         },
       }));
     }
-  }, [drawModeState.isEnabled]);
+  }, [drawModeState.isEnabled, overridesStorageKey]);
 
   // Real-time: when user drags curve, update quantities instantly (and schedule updates automatically)
   useEffect(() => {
