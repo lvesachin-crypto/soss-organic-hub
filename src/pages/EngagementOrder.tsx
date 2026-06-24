@@ -402,8 +402,9 @@ export default function EngagementOrder() {
         const quantity = ratioQuantity;
 
         const isUserEdited = userEditedQtyRef.current.has(type);
-        const finalQuantity = isUserEdited && prev[type]
-          ? prev[type].quantity
+        const savedOverride = userEditedQtyValuesRef.current[type];
+        const finalQuantity = isUserEdited
+          ? (prev[type]?.quantity ?? savedOverride ?? quantity)
           : ((isAutoRatios || !prev[type]) ? quantity : prev[type].quantity);
         const finalPrice = serviceData
           ? (finalQuantity / 1000) * serviceData.pricePerK
@@ -431,6 +432,16 @@ export default function EngagementOrder() {
       const prevQty = prev[type]?.quantity;
       if (prevQty !== undefined && config.quantity !== prevQty) {
         userEditedQtyRef.current.add(type);
+        userEditedQtyValuesRef.current = {
+          ...userEditedQtyValuesRef.current,
+          [type]: config.quantity,
+        };
+        try {
+          localStorage.setItem(
+            overridesStorageKey,
+            JSON.stringify(userEditedQtyValuesRef.current),
+          );
+        } catch { /* quota - ignore */ }
       }
       return { ...prev, [type]: config };
     });
@@ -444,7 +455,7 @@ export default function EngagementOrder() {
         },
       }));
     }
-  }, [drawModeState.isEnabled]);
+  }, [drawModeState.isEnabled, overridesStorageKey]);
 
   // Real-time: when user drags curve, update quantities instantly (and schedule updates automatically)
   useEffect(() => {
