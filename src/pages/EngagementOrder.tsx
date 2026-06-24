@@ -102,11 +102,38 @@ export default function EngagementOrder() {
 
   // Track per-type user-edited quantities so auto-ratio sync doesn't overwrite them.
   // Cleared whenever the user changes the base quantity.
+  // Persisted to localStorage keyed by platform+baseQuantity so reload keeps overrides.
   const userEditedQtyRef = useRef<Set<EngagementType>>(new Set());
+  const userEditedQtyValuesRef = useRef<Partial<Record<EngagementType, number>>>({});
   const lastBaseQtyRef = useRef<number>(baseQuantity);
+
+  const overridesStorageKey = useMemo(
+    () => `eo_qty_overrides_${platform}_${debouncedBaseQuantity}`,
+    [platform, debouncedBaseQuantity]
+  );
+
+  // Hydrate overrides from localStorage when key changes (platform / base qty)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(overridesStorageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Record<EngagementType, number>>;
+        userEditedQtyValuesRef.current = parsed || {};
+        userEditedQtyRef.current = new Set(Object.keys(parsed || {}) as EngagementType[]);
+      } else {
+        userEditedQtyValuesRef.current = {};
+        userEditedQtyRef.current = new Set();
+      }
+    } catch {
+      userEditedQtyValuesRef.current = {};
+      userEditedQtyRef.current = new Set();
+    }
+  }, [overridesStorageKey]);
+
   useEffect(() => {
     if (lastBaseQtyRef.current !== debouncedBaseQuantity) {
       userEditedQtyRef.current = new Set();
+      userEditedQtyValuesRef.current = {};
       lastBaseQtyRef.current = debouncedBaseQuantity;
     }
   }, [debouncedBaseQuantity]);
