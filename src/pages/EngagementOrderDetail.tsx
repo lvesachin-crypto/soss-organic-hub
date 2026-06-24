@@ -534,12 +534,19 @@ export default function EngagementOrderDetail() {
         ...run,
         engagement_type: item.engagement_type,
         item_id: item.id,
-        provider_account_name: run.provider_account_name || item.service?.name || null,
+        provider_account_name: run.provider_account_name || null,
         error_message: run.error_message || null,
       }))
     );
     
-    const completedRuns = allRuns.filter((r: any) => r.status === 'completed');
+    const isTargetMetAutoCompleted = (run: any): boolean => {
+      const status = (run.status || '').toString().toLowerCase().trim();
+      const message = (run.error_message || '').toString().toLowerCase().trim();
+
+      return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+    };
+
+    const completedRuns = allRuns.filter((r: any) => r.status === 'completed' || isTargetMetAutoCompleted(r));
     const pendingRuns = allRuns.filter((r: any) => r.status === 'pending');
     const startedRuns = allRuns.filter((r: any) => r.status === 'started');
     const failedRuns = allRuns.filter((r: any) => r.status === 'failed');
@@ -552,10 +559,7 @@ export default function EngagementOrderDetail() {
       const ps = normalizeProviderStatus(run.provider_status);
 
       // Auto-completed cancel ("Target met") — count as fully delivered
-      if (
-        run.status === 'cancelled' &&
-        (run.error_message || '').toString().toLowerCase().startsWith('target met')
-      ) {
+      if (isTargetMetAutoCompleted(run)) {
         return run.quantity_to_send;
       }
 
@@ -676,10 +680,10 @@ export default function EngagementOrderDetail() {
   const hasPending = (stats?.pendingRuns?.length ?? 0) > 0;
   const hasActive = (stats?.startedRuns?.length ?? 0) > 0;
   let effectiveStatus = order.status as string;
-  if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
-    if (totalOriginalQuantity > 0 && liveDelivered >= totalOriginalQuantity) {
-      effectiveStatus = 'completed';
-    } else if (hasActive || hasPending || liveDelivered > 0) {
+  if (totalOriginalQuantity > 0 && liveDelivered >= totalOriginalQuantity) {
+    effectiveStatus = 'completed';
+  } else if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
+    if (hasActive || hasPending || liveDelivered > 0) {
       effectiveStatus = 'processing';
     }
   }
