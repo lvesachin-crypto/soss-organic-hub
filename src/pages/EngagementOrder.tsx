@@ -101,15 +101,9 @@ export default function EngagementOrder() {
   const [engagements, setEngagements] = useState<EngagementConfigs>({});
 
   // Track per-type user-edited quantities so auto-ratio sync doesn't overwrite them.
-  // Cleared whenever the user changes the base quantity.
+  // Once a user manually edits a type's quantity, it stays locked to their value
+  // regardless of base quantity changes — they can edit each type independently.
   const userEditedQtyRef = useRef<Set<EngagementType>>(new Set());
-  const lastBaseQtyRef = useRef<number>(baseQuantity);
-  useEffect(() => {
-    if (lastBaseQtyRef.current !== debouncedBaseQuantity) {
-      userEditedQtyRef.current = new Set();
-      lastBaseQtyRef.current = debouncedBaseQuantity;
-    }
-  }, [debouncedBaseQuantity]);
 
   // Local settings toggles (defaulted from localStorage)
   const [isOrganicMode, setIsOrganicMode] = useState(true);
