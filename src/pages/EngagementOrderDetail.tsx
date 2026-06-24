@@ -865,7 +865,7 @@ export default function EngagementOrderDetail() {
             .map((item: any) => {
             const itemRuns = (item.runs || []).map((run: any) => ({
               ...run,
-              provider_account_name: run.provider_account?.name || null,
+              provider_account_name: run.provider_account_name || null,
               provider_status: run.provider_status || null,
               provider_order_id: run.provider_order_id || null,
               provider_remains: run.provider_remains ?? null,

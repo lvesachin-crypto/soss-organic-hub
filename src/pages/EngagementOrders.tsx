@@ -333,7 +333,7 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
           {order.items?.map((item: any) => {
             const Icon = ENGAGEMENT_ICONS[item.engagement_type as keyof typeof ENGAGEMENT_ICONS] || Eye;
             const itemRuns = item.runs || [];
-            const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed').length;
+            const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed' || isAutoCompletedCancel(r)).length;
             const itemDelivered = itemRuns.reduce(
               (sum: number, r: any) => sum + calculateActualDelivered(r),
               0
