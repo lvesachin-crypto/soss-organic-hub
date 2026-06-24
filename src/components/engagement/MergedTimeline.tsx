@@ -62,8 +62,17 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
   const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
 
   const normalizeProviderStatus = (s?: string | null) => (s ?? '').toString().toLowerCase().trim();
+  const isTargetMetAutoCompleted = (run: MergedRun) => {
+    const status = (run.status || '').toString().toLowerCase().trim();
+    const message = (run.error_message || '').toString().toLowerCase().trim();
+
+    return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+  };
 
   const getEffectiveStatus = (run: MergedRun): 'pending' | 'started' | 'completed' | 'failed' | 'cancelled' => {
+    // Target already complete before this run went to provider — show user "Completed".
+    if (isTargetMetAutoCompleted(run)) return 'completed';
+
     const ps = normalizeProviderStatus(run.provider_status);
 
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
@@ -72,10 +81,6 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     if (ps === 'canceled' || ps === 'cancelled' || ps === 'refunded' || ps === 'failed' || ps === 'error') return 'failed';
 
     const s = (run.status || '').toString().toLowerCase().trim();
-    // Auto-cancelled because the target was already met → show as completed in UI
-    if ((s === 'cancelled' || s === 'canceled') && (run.error_message || '').toLowerCase().startsWith('target met')) {
-      return 'completed';
-    }
     if (s === 'processing') return 'started';
     if (s === 'cancelled' || s === 'canceled') return 'cancelled';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
@@ -87,6 +92,9 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
 
     // Provider-confirmed completion
     if (ps === 'completed' || ps === 'complete') return run.quantity_to_send;
+
+    // Target already complete locally; this run was not sent to provider.
+    if (isTargetMetAutoCompleted(run)) return run.quantity_to_send;
 
     // If we have remains, that's the most accurate signal (including partial/in progress)
     if (run.provider_remains !== null && run.provider_remains !== undefined) {
@@ -241,13 +249,13 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             const scheduledDate = new Date(run.scheduled_at);
             const now = new Date();
             // Treat target-met auto-cancellations as completed in the UI
-            const isAutoCompletedCancel = run.status === 'cancelled'
-              && (run.error_message || '').toLowerCase().startsWith('target met');
-            const isPending = run.status === 'pending';
-            const isActive = run.status === 'started';
-            const isCompleted = run.status === 'completed' || isAutoCompletedCancel;
-            const isFailed = run.status === 'failed';
-            const isCancelled = run.status === 'cancelled' && !isAutoCompletedCancel;
+            const isAutoCompletedCancel = isTargetMetAutoCompleted(run);
+            const effectiveStatus = getEffectiveStatus(run);
+            const isPending = effectiveStatus === 'pending';
+            const isActive = effectiveStatus === 'started';
+            const isCompleted = effectiveStatus === 'completed';
+            const isFailed = effectiveStatus === 'failed';
+            const isCancelled = effectiveStatus === 'cancelled';
 
             const isAlreadyExecuted = isCompleted || isFailed || isActive;
             const isScheduledInPast = scheduledDate < now;
@@ -257,6 +265,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             // If provider_status exists, use it directly (real-time from provider)
             // If pending + future = "Scheduled", pending + past = "Queued"
             const getDisplayStatus = () => {
+              if (isAutoCompletedCancel) return 'Completed';
               if (run.provider_status) return run.provider_status;
               if (isCancelled) return 'CANCELLED';
               if (isFailed) return 'FAILED';
@@ -333,7 +342,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                       </div>
 
                       {/* Provider source badge - shows where this came from */}
-                      {run.provider_account_name && (
+                      {run.provider_account_name && !isAutoCompletedCancel && (
                         <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/40 text-xs truncate max-w-[200px] sm:max-w-none">
                           via {run.provider_account_name}
                         </Badge>
@@ -492,14 +501,14 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                   {/* Provider Name + ID + Actions */}
                   <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 flex-wrap">
                     {/* Provider/Service Name - visible to all users */}
-                    {run.provider_account_name && (
+                    {run.provider_account_name && !isAutoCompletedCancel && (
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground uppercase">Provider</p>
                         <p className="text-sm font-bold text-purple-400">{run.provider_account_name}</p>
                       </div>
                     )}
 
-                    {run.provider_order_id && (
+                    {run.provider_order_id && !isAutoCompletedCancel && (
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground uppercase">Order ID</p>
                         <p className="text-sm font-mono text-teal-400">{run.provider_order_id}</p>

@@ -229,10 +229,10 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   // Derive effective status: if provider delivered everything, treat as completed
   // regardless of stale DB status (real-time accuracy).
   let effectiveStatus = order.status as string;
-  if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
-    if (totalQuantity > 0 && totalDelivered >= totalQuantity) {
-      effectiveStatus = 'completed';
-    } else if (activeRuns > 0 || pendingRuns.length > 0 || totalDelivered > 0) {
+  if (totalQuantity > 0 && totalDelivered >= totalQuantity) {
+    effectiveStatus = 'completed';
+  } else if (effectiveStatus !== 'cancelled' && effectiveStatus !== 'failed' && effectiveStatus !== 'paused') {
+    if (activeRuns > 0 || pendingRuns.length > 0 || totalDelivered > 0) {
       effectiveStatus = 'processing';
     }
   }
@@ -333,7 +333,7 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
           {order.items?.map((item: any) => {
             const Icon = ENGAGEMENT_ICONS[item.engagement_type as keyof typeof ENGAGEMENT_ICONS] || Eye;
             const itemRuns = item.runs || [];
-            const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed').length;
+            const itemCompleted = itemRuns.filter((r: any) => r.status === 'completed' || isAutoCompletedCancel(r)).length;
             const itemDelivered = itemRuns.reduce(
               (sum: number, r: any) => sum + calculateActualDelivered(r),
               0
