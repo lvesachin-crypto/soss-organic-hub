@@ -94,8 +94,17 @@ export function TypeHistoryCard({
 
   // Provider-first helper: delivered + effective status should follow provider_status/remains
   const normalizeProviderStatus = (s?: string | null) => (s ?? '').toString().toLowerCase().trim();
+  const isTargetMetAutoCompleted = (run: Run) => {
+    const status = (run.status || '').toString().toLowerCase().trim();
+    const message = (run.error_message || '').toString().toLowerCase().trim();
+
+    return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+  };
 
   const getEffectiveStatus = (run: Run): 'pending' | 'started' | 'completed' | 'failed' => {
+    // Target already complete before this run went to provider — show user "Completed".
+    if (isTargetMetAutoCompleted(run)) return 'completed';
+
     const ps = normalizeProviderStatus(run.provider_status);
 
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
@@ -104,10 +113,6 @@ export function TypeHistoryCard({
     if (ps === 'canceled' || ps === 'cancelled' || ps === 'refunded' || ps === 'failed' || ps === 'error') return 'failed';
 
     const s = (run.status || '').toString().toLowerCase().trim();
-    // Auto-cancelled because the target was already met → show as completed in UI
-    if ((s === 'cancelled' || s === 'canceled') && (run.error_message || '').toLowerCase().startsWith('target met')) {
-      return 'completed';
-    }
     if (s === 'processing') return 'started';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
     return 'pending';
@@ -119,8 +124,7 @@ export function TypeHistoryCard({
 
     // Auto-completed cancel ("Target met") — count as fully delivered
     if (
-      run.status === 'cancelled' &&
-      (run.error_message || '').toLowerCase().startsWith('target met')
+      isTargetMetAutoCompleted(run)
     ) {
       return run.quantity_to_send;
     }
@@ -357,12 +361,12 @@ export function TypeHistoryCard({
           <div className="max-h-[600px] overflow-y-auto">
             <div className="divide-y divide-border">
               {runsWithSchedule.map((run, idx) => {
-                const isAutoCompletedCancel = run.status === 'cancelled'
-                  && (run.error_message || '').toLowerCase().startsWith('target met');
-                const isPending = run.status === 'pending';
-                const isActive = run.status === 'started';
-                const isCompleted = run.status === 'completed' || isAutoCompletedCancel;
-                const isFailed = run.status === 'failed';
+                const isAutoCompletedCancel = isTargetMetAutoCompleted(run);
+                const effectiveStatus = getEffectiveStatus(run);
+                const isPending = effectiveStatus === 'pending';
+                const isActive = effectiveStatus === 'started';
+                const isCompleted = effectiveStatus === 'completed';
+                const isFailed = effectiveStatus === 'failed';
                 const scheduledDate = new Date(run.scheduled_at);
                 const isUpcoming = isPending && scheduledDate > now;
                 const isPastDue = scheduledDate < now && isPending;
@@ -370,6 +374,7 @@ export function TypeHistoryCard({
 
                 // Smart status: provider_status > mapped internal status
                 const getDisplayStatus = () => {
+                  if (isAutoCompletedCancel) return 'Completed';
                   if (run.provider_status) return run.provider_status;
                   if (run.status === 'cancelled') return isAutoCompletedCancel ? 'Completed' : 'CANCELLED';
                   if (isFailed) return 'FAILED';
@@ -467,14 +472,14 @@ export function TypeHistoryCard({
                       {/* Right Side - Provider Name + ID & Edit */}
                       <div className="flex items-center gap-4">
                         {/* Provider Account Name */}
-                        {run.provider_account_name && (
+                        {run.provider_account_name && !isAutoCompletedCancel && (
                           <div className="text-right">
                             <p className="text-xs text-muted-foreground uppercase">Provider</p>
                             <p className="text-sm font-bold text-purple-400">{run.provider_account_name}</p>
                           </div>
                         )}
 
-                        {run.provider_order_id && (
+                        {run.provider_order_id && !isAutoCompletedCancel && (
                           <div className="text-right">
                             <p className="text-xs text-muted-foreground uppercase">Order ID</p>
                             <p className="text-sm font-mono text-teal-400">{run.provider_order_id}</p>
