@@ -16,6 +16,7 @@ interface Run {
   started_at?: string;
   completed_at?: string;
   provider_remains?: number;
+  error_message?: string | null;
 }
 
 interface OrderProgressChartProps {
@@ -53,7 +54,11 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
 
     // Filter only runs that have ACTUAL delivery (completed or started with some delivery)
     const deliveredRuns = runs.filter(run => {
-      if (run.status === 'completed') return true;
+      const status = (run.status || '').toLowerCase().trim();
+      const message = (run.error_message || '').toLowerCase().trim();
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+
+      if (run.status === 'completed' || isTargetMetAutoCompleted) return true;
       if ((run.status === 'started' || run.status === 'failed') && 
           run.provider_remains !== null && run.provider_remains !== undefined) {
         return run.quantity_to_send - run.provider_remains > 0;
@@ -97,10 +102,13 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
     // Add each delivered run
     sortedRuns.forEach((run) => {
       const runTime = new Date(run.completed_at || run.started_at || run.scheduled_at);
+      const status = (run.status || '').toLowerCase().trim();
+      const message = (run.error_message || '').toLowerCase().trim();
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
       
       // Calculate ACTUAL delivered quantity
       let deliveredQty = 0;
-      if (run.status === 'completed') {
+      if (run.status === 'completed' || isTargetMetAutoCompleted) {
         deliveredQty = run.quantity_to_send;
       } else if ((run.status === 'started' || run.status === 'failed') && 
                  run.provider_remains !== null && run.provider_remains !== undefined) {
@@ -136,7 +144,12 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
     // Calculate stats
     const totalScheduled = perType.reduce((sum, t) => sum + t.scheduled, 0);
     const totalDelivered = perType.reduce((sum, t) => sum + t.delivered, 0);
-    const completedRuns = runs.filter(r => r.status === 'completed').length;
+    const completedRuns = runs.filter((r) => {
+      const status = (r.status || '').toLowerCase().trim();
+      const message = (r.error_message || '').toLowerCase().trim();
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+      return r.status === 'completed' || isTargetMetAutoCompleted;
+    }).length;
     const pendingRuns = runs.filter(r => r.status === 'pending').length;
     const startedRuns = runs.filter(r => r.status === 'started').length;
 

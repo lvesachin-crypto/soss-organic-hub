@@ -873,7 +873,11 @@ export default function EngagementOrderDetail() {
             }));
             // Calculate ACTUAL delivered from provider data
             const itemDelivered = itemRuns.reduce((sum: number, r: any) => {
-              if (r.status === 'completed') {
+              const status = (r.status || '').toString().toLowerCase().trim();
+              const message = (r.error_message || '').toString().toLowerCase().trim();
+              const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+
+              if (r.status === 'completed' || isTargetMetAutoCompleted) {
                 return sum + r.quantity_to_send;
               } else if ((r.status === 'started' || r.status === 'failed') && r.provider_remains !== null && r.provider_remains !== undefined) {
                 return sum + Math.max(0, r.quantity_to_send - r.provider_remains);
