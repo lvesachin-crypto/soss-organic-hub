@@ -54,8 +54,8 @@ interface TopUserRow {
 export default function AdminTopupPlan() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [usdToInr, setUsdToInr] = useState<number>(83.5);
-  const [safetyPct, setSafetyPct] = useState<number>(20); // 20% buffer
+  const usdToInr = 83.5; // fixed
+  const safetyPct = 0; // no buffer
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: pending, isLoading: pendingLoading, refetch: refetchPending, error: pendingError } = useQuery({
@@ -268,36 +268,6 @@ export default function AdminTopupPlan() {
           </div>
         </div>
 
-        {/* Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Calculation Settings</CardTitle>
-            <CardDescription>
-              Provider cost = user price ÷ (1 + markup%). Markup is fetched live from platform settings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label>USD → INR rate</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={usdToInr}
-                onChange={(e) => setUsdToInr(Math.max(1, Number(e.target.value) || 83.5))}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Safety buffer (%)</Label>
-              <Input
-                type="number"
-                step="5"
-                value={safetyPct}
-                onChange={(e) => setSafetyPct(Math.max(0, Number(e.target.value) || 0))}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card>
@@ -320,11 +290,65 @@ export default function AdminTopupPlan() {
           </Card>
           <Card className="border-orange-300">
             <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Total Top-up Needed</p>
+              <p className="text-xs text-muted-foreground">Short (₹)</p>
               <p className="text-2xl font-bold text-orange-600">₹{Math.ceil(totalTopup).toLocaleString()}</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Per-provider real-time balance vs need */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wallet className="h-4 w-4" /> Per-Provider Balance vs Need
+              <Badge variant="outline" className="ml-2 text-[10px] gap-1">
+                <Radio className="h-3 w-3 text-green-500 animate-pulse" /> Live
+              </Badge>
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Har provider ka real-time balance, kitna lagne wala hai, aur kitna short ya extra hai.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : plan.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No providers.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Provider</TableHead>
+                      <TableHead className="text-right">Need (₹)</TableHead>
+                      <TableHead className="text-right">Balance (₹)</TableHead>
+                      <TableHead className="text-right">Short / Extra</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {plan.map((r) => {
+                      const diff = r.balance_inr - r.provider_cost_inr;
+                      return (
+                        <TableRow key={r.provider_id}>
+                          <TableCell className="font-medium">{r.provider_name}</TableCell>
+                          <TableCell className="text-right tabular-nums">₹{Math.ceil(r.provider_cost_inr).toLocaleString()}</TableCell>
+                          <TableCell className="text-right tabular-nums">₹{Math.floor(r.balance_inr).toLocaleString()}</TableCell>
+                          <TableCell className="text-right tabular-nums font-bold">
+                            {diff >= 0 ? (
+                              <span className="text-green-600">+₹{Math.floor(diff).toLocaleString()} extra</span>
+                            ) : (
+                              <span className="text-orange-600">−₹{Math.ceil(-diff).toLocaleString()} short</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Service-wise pending totals */}
         <Card>
