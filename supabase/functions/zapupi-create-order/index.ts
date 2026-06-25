@@ -30,11 +30,13 @@ Deno.serve(async (req) => {
     const amountInr = Math.round(amount * 100) / 100
 
     const origin = (body?.origin as string) || req.headers.get('origin') || 'https://organicsmm.online'
-    const successUrl = `${origin}/wallet?status=success&order_id=`
-    const failedUrl = `${origin}/wallet?status=failed&order_id=`
+    const customerMobile = String(body?.customer_mobile || '').replace(/\D/g, '').slice(-10)
     const webhookUrl = `${SUPABASE_URL}/functions/v1/zapupi-webhook`
 
     const orderId = 'ZAP_' + crypto.randomUUID().replace(/-/g, '')
+    const successUrl = `${origin}/wallet?status=success&order_id=${orderId}`
+    const failedUrl  = `${origin}/wallet?status=failed&order_id=${orderId}`
+    const timeoutUrl = `${origin}/wallet?status=timeout&order_id=${orderId}`
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
     const { error: insErr } = await admin.from('zapupi_deposits').insert({
@@ -45,14 +47,21 @@ Deno.serve(async (req) => {
     })
     if (insErr) return json({ error: 'Failed to create deposit row', detail: insErr.message }, 500)
 
-    // Call ZapUPI (expects JSON body)
-    const gwPayload = {
+    // Call ZapUPI per official spec: POST /api/create-order (JSON)
+    // https://zapupi.com/docs — fields: zap_key, order_id, amount,
+    // customer_mobile (optional), remark (optional), webhook_url,
+    // success_url, failed_url, timeout_url
+    const gwPayload: Record<string, string> = {
       zap_key: ZAPUPI_KEY,
       order_id: orderId,
       amount: amountInr.toFixed(2),
-      redirect_url: successUrl + orderId,
       webhook_url: webhookUrl,
+      success_url: successUrl,
+      failed_url: failedUrl,
+      timeout_url: timeoutUrl,
+      remark: `Wallet topup | ${userId}`,
     }
+    if (customerMobile.length === 10) gwPayload.customer_mobile = customerMobile
 
     const gwRes = await fetch('https://pay.zapupi.com/api/create-order', {
       method: 'POST',
@@ -65,7 +74,8 @@ Deno.serve(async (req) => {
 
     const paymentUrl: string | undefined =
       gwData?.payment_url || gwData?.data?.payment_url || gwData?.url || gwData?.upi_url
-    const gwStatusOk = (gwData?.status === true || gwData?.status === 'success' || gwData?.success === true || !!paymentUrl)
+    const statusStr = String(gwData?.status ?? '').toLowerCase()
+    const gwStatusOk = (statusStr === 'success' || gwData?.status === true || gwData?.success === true || !!paymentUrl)
 
     if (!gwRes.ok || !gwStatusOk || !paymentUrl) {
       await admin.from('zapupi_deposits').update({
