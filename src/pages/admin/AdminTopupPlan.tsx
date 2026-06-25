@@ -115,6 +115,30 @@ export default function AdminTopupPlan() {
     return map;
   }, [breakdown]);
 
+  // Aggregate across providers — total per service
+  const serviceTotals = useMemo(() => {
+    const map = new Map<string, { key: string; service_name: string; service_category: string; pending_runs: number; pending_quantity: number; pending_user_usd: number }>();
+    (breakdown || []).forEach((r) => {
+      const key = (r.service_id || r.service_name) + "::" + r.service_category;
+      const existing = map.get(key);
+      if (existing) {
+        existing.pending_runs += Number(r.pending_runs);
+        existing.pending_quantity += Number(r.pending_quantity);
+        existing.pending_user_usd += Number(r.pending_user_usd);
+      } else {
+        map.set(key, {
+          key,
+          service_name: r.service_name,
+          service_category: r.service_category,
+          pending_runs: Number(r.pending_runs),
+          pending_quantity: Number(r.pending_quantity),
+          pending_user_usd: Number(r.pending_user_usd),
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.pending_quantity - a.pending_quantity);
+  }, [breakdown]);
+
   const plan = useMemo(() => {
     if (!pending || !accounts) return [];
     const accByProvider = new Map<string, AccountRow[]>();
