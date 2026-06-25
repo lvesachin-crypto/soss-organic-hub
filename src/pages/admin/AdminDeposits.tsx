@@ -179,7 +179,7 @@ export default function AdminDeposits() {
                             </h1>
                             <p className="text-sm text-muted-foreground flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
-                                Review and approve manual Razorpay payments
+                                Legacy manual deposits — Approve is permanently disabled. Only ZapUPI auto-credits funds.
                             </p>
                         </div>
                     </div>
@@ -312,16 +312,6 @@ export default function AdminDeposits() {
                                         <TableCell className="text-right">
                                             {tx.status === 'pending' && (
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="success"
-                                                        className="h-8 px-3 text-[11px] font-bold gap-1.5 hover:scale-105 transition-all"
-                                                        onClick={() => updateStatusMutation.mutate({ id: tx.id, status: 'completed', userId: tx.user_id, amount: Number(tx.amount) })}
-                                                        disabled={updateStatusMutation.isPending}
-                                                    >
-                                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                                        Approve
-                                                    </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="destructive"

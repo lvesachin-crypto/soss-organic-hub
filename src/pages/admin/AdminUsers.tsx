@@ -85,7 +85,7 @@ export default function AdminUsers() {
   const [activeTab, setActiveTab] = useState<UserTab>('all');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [balanceAmount, setBalanceAmount] = useState('');
-  const [balanceAction, setBalanceAction] = useState<'add' | 'subtract'>('add');
+  const [balanceAction, setBalanceAction] = useState<'subtract'>('subtract');
   const [removeSubUser, setRemoveSubUser] = useState<UserProfile | null>(null);
   const [pauseUser, setPauseUser] = useState<UserProfile | null>(null);
   const [cancelUser, setCancelUser] = useState<UserProfile | null>(null);
@@ -822,23 +822,8 @@ export default function AdminUsers() {
                   <p className="text-xs text-muted-foreground">Current Balance</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant={balanceAction === 'add' ? 'default' : 'outline'}
-                    onClick={() => setBalanceAction('add')}
-                    className="rounded-xl gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add
-                  </Button>
-                  <Button
-                    variant={balanceAction === 'subtract' ? 'default' : 'outline'}
-                    onClick={() => setBalanceAction('subtract')}
-                    className="rounded-xl gap-2"
-                  >
-                    <Minus className="h-4 w-4" />
-                    Subtract
-                  </Button>
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  🔒 Manual fund credits are permanently disabled. Wallets can only be credited via successful ZapUPI payments. Admin can only deduct balance here.
                 </div>
 
                 <div className="space-y-2">
@@ -864,7 +849,7 @@ export default function AdminUsers() {
                 disabled={updateBalanceMutation.isPending || !balanceAmount}
               >
                 {updateBalanceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {balanceAction === 'add' ? 'Add' : 'Subtract'} ₹{balanceAmount || '0'}
+                Subtract ₹{balanceAmount || '0'}
               </Button>
             </div>
           </DialogContent>

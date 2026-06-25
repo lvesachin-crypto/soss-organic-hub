@@ -38,6 +38,15 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { target_user_id, action, inr_amount, notes, transaction_id } = body ?? {};
 
+    // 🚫 HARD BLOCK: Admins can NO LONGER credit wallets manually.
+    // The ONLY way funds are added to a wallet is a successful ZapUPI payment
+    // verified by the zapupi-webhook / zapupi-sync-deposit pipeline.
+    if (action === "add" || action === "approve_pending") {
+      return json({
+        error: "Manual wallet credits are permanently disabled. Funds can only be added via successful ZapUPI payments.",
+      }, 403);
+    }
+
     // IP / UA (used by all branches)
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -46,8 +55,8 @@ Deno.serve(async (req) => {
       "unknown";
     const ua = req.headers.get("user-agent") || "unknown";
 
-    // ===== Branch: approve / reject a pending deposit transaction =====
-    if (action === "approve_pending" || action === "reject_pending") {
+    // ===== Branch: reject a pending deposit transaction (reject only — approve is disabled) =====
+    if (action === "reject_pending") {
       if (!transaction_id) return json({ error: "transaction_id required" }, 400);
 
       const { data: tx, error: txFetchErr } = await admin
@@ -60,54 +69,26 @@ Deno.serve(async (req) => {
         return json({ error: `Already ${tx.status}` }, 400);
       }
       if (tx.type !== "deposit") {
-        return json({ error: "Only deposit transactions can be approved here" }, 400);
+        return json({ error: "Only deposit transactions can be rejected here" }, 400);
       }
 
       const txUsd = Number(tx.amount) || 0;
       const { data: tProfile } = await admin
         .from("profiles").select("email").eq("user_id", tx.user_id).maybeSingle();
 
-      if (action === "reject_pending") {
-        await admin.from("transactions").update({ status: "failed" }).eq("id", tx.id);
-        await admin.from("admin_audit_log").insert({
-          actor_id: user.id, actor_email: user.email,
-          target_user_id: tx.user_id, target_email: tProfile?.email ?? null,
-          action: "deposit_rejected", amount_usd: txUsd, amount_inr: null,
-          notes: notes ?? null, ip_address: ip, user_agent: ua,
-          metadata: { transaction_id: tx.id },
-        });
-        return json({ success: true, status: "failed" });
-      }
-
-      // Approve: credit wallet
-      const { data: w, error: wE } = await admin
-        .from("wallets").select("balance, total_deposited").eq("user_id", tx.user_id).single();
-      if (wE || !w) return json({ error: "Wallet not found" }, 404);
-
-      const newBal = (Number(w.balance) || 0) + txUsd;
-      const newDep = (Number(w.total_deposited) || 0) + txUsd;
-      const { error: uE } = await admin.from("wallets")
-        .update({ balance: newBal, total_deposited: newDep })
-        .eq("user_id", tx.user_id);
-      if (uE) throw uE;
-
-      await admin.from("transactions")
-        .update({ status: "completed", balance_after: newBal })
-        .eq("id", tx.id);
-
+      await admin.from("transactions").update({ status: "failed" }).eq("id", tx.id);
       await admin.from("admin_audit_log").insert({
         actor_id: user.id, actor_email: user.email,
         target_user_id: tx.user_id, target_email: tProfile?.email ?? null,
-        action: "deposit_approved", amount_usd: txUsd, amount_inr: null,
+        action: "deposit_rejected", amount_usd: txUsd, amount_inr: null,
         notes: notes ?? null, ip_address: ip, user_agent: ua,
-        metadata: { transaction_id: tx.id, new_balance: newBal },
+        metadata: { transaction_id: tx.id },
       });
-
-      return json({ success: true, status: "completed", new_balance: newBal });
+      return json({ success: true, status: "failed" });
     }
 
-    // ===== Branch: direct add/subtract by INR amount =====
-    if (!target_user_id || !["add", "subtract"].includes(action)) {
+    // ===== Branch: direct subtract by INR amount (admin can only deduct, never add) =====
+    if (!target_user_id || action !== "subtract") {
       return json({ error: "Invalid payload" }, 400);
     }
     const inr = Number(inr_amount);
@@ -131,14 +112,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const currentBalance = Number(wallet.balance) || 0;
-    const newBalance =
-      action === "add" ? currentBalance + usd : currentBalance - usd;
+    const newBalance = currentBalance - usd;
     if (newBalance < 0) return json({ error: "Balance cannot be negative" }, 400);
 
-    const newDeposited =
-      action === "add"
-        ? (Number(wallet.total_deposited) || 0) + usd
-        : Number(wallet.total_deposited) || 0;
+    const newDeposited = Number(wallet.total_deposited) || 0;
 
     const { error: updErr } = await admin
       .from("wallets")
@@ -148,10 +125,10 @@ Deno.serve(async (req) => {
 
     const { error: txErr } = await admin.from("transactions").insert({
       user_id: target_user_id,
-      type: action === "add" ? "deposit" : "refund",
-      amount: action === "add" ? usd : -usd,
+      type: "refund",
+      amount: -usd,
       balance_after: newBalance,
-      description: `Admin ${action === "add" ? "deposit" : "withdrawal"} — ₹${inr.toFixed(2)}${notes ? " — " + notes : ""}`,
+      description: `Admin withdrawal — ₹${inr.toFixed(2)}${notes ? " — " + notes : ""}`,
       status: "completed",
     });
     if (txErr) throw txErr;
@@ -162,7 +139,7 @@ Deno.serve(async (req) => {
       actor_email: user.email,
       target_user_id,
       target_email: targetProfile?.email ?? null,
-      action: action === "add" ? "wallet_deposit" : "wallet_withdraw",
+      action: "wallet_withdraw",
       amount_usd: usd,
       amount_inr: inr,
       notes: notes ?? null,
