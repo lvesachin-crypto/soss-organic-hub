@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Copy, RefreshCw, Wallet, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Radio } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Wallet, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Radio, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -38,6 +38,17 @@ interface BreakdownRow {
   pending_runs: number;
   pending_quantity: number;
   pending_user_usd: number;
+}
+
+interface TopUserRow {
+  user_id: string;
+  email: string;
+  full_name: string;
+  wallet_balance: number;
+  total_deposited: number;
+  total_spent: number;
+  pending_orders: number;
+  pending_value_usd: number;
 }
 
 export default function AdminTopupPlan() {
@@ -84,6 +95,18 @@ export default function AdminTopupPlan() {
     refetchOnWindowFocus: true,
   });
 
+  const { data: topUsers, refetch: refetchTopUsers } = useQuery({
+    queryKey: ["topup-plan-top-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_top_pending_users" as any, { p_limit: 5 });
+      if (error) throw error;
+      return (data || []) as TopUserRow[];
+    },
+    staleTime: 0,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
   // Realtime: refetch when runs/orders change so pending qty decreases live
   useEffect(() => {
     const channel = supabase
@@ -91,10 +114,12 @@ export default function AdminTopupPlan() {
       .on("postgres_changes", { event: "*", schema: "public", table: "organic_run_schedule" }, () => {
         queryClient.invalidateQueries({ queryKey: ["topup-plan-breakdown"] });
         queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-top-users"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
         queryClient.invalidateQueries({ queryKey: ["topup-plan-breakdown"] });
         queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-top-users"] });
       })
       .subscribe();
     return () => {
