@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useWallet } from '@/hooks/useWallet';
 import { useTransactions, type TransactionFilter } from '@/hooks/useTransactions';
 import { useCurrency } from '@/hooks/useCurrency';
-import RazorpayDepositCard from '@/components/wallet/RazorpayDepositCard';
+import ZapUpiDepositCard from '@/components/wallet/ZapUpiDepositCard';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -21,6 +24,40 @@ export default function Wallet() {
   const { formatPrice, rates } = useCurrency();
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const { data: transactions } = useTransactions(filter);
+  const qc = useQueryClient();
+
+  // Handle ZapUPI return — server-verify the order_id and refresh wallet.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const orderId = url.searchParams.get('order_id');
+    const status = url.searchParams.get('status');
+    if (!orderId) return;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('zapupi-sync-deposit', {
+          body: { order_id: orderId },
+        });
+        if (error) throw new Error(error.message);
+        if ((data as any)?.credited) {
+          toast.success('Payment successful — wallet credited');
+        } else if (status === 'failed') {
+          toast.error('Payment failed or cancelled');
+        } else {
+          toast.info('Payment is being verified — refresh in a few seconds if balance not updated');
+        }
+      } catch (e: any) {
+        toast.error(e?.message || 'Could not verify payment');
+      } finally {
+        qc.invalidateQueries({ queryKey: ['wallet'] });
+        qc.invalidateQueries({ queryKey: ['transactions'] });
+        url.searchParams.delete('order_id');
+        url.searchParams.delete('status');
+        window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -204,8 +241,8 @@ export default function Wallet() {
           </div>
         </div>
 
-        {/* Deposit Section — UPI / Cards only (USDT removed for security) */}
-        <RazorpayDepositCard />
+        {/* Deposit Section — ZapUPI auto-credit (manual & screenshot flow removed) */}
+        <ZapUpiDepositCard />
 
         {/* Transaction History */}
         <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid rgba(0,0,0,.06)', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}>
