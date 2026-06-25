@@ -64,16 +64,14 @@ async function verifyOrder(orderId: string) {
   const text = await r.text()
   let data: any = {}
   try { data = JSON.parse(text) } catch { data = { raw: text } }
-  const statusStr = String(
-    data?.status ?? data?.data?.status ?? data?.payment_status ?? ''
-  ).toLowerCase()
-  const success =
-    statusStr === 'success' || statusStr === 'completed' || statusStr === 'paid' || data?.success === true
+  const d = data?.data ?? data
+  const statusStr = String(d?.status ?? data?.status ?? '').toLowerCase()
+  const success = statusStr === 'success' || statusStr === 'completed' || statusStr === 'paid'
   return {
     success,
     statusStr,
-    txn_id: data?.txn_id || data?.data?.txn_id || data?.transaction_id,
-    utr: data?.utr || data?.data?.utr || data?.upi_txn_id,
+    txn_id: d?.txn_id || data?.txn_id,
+    utr: d?.utr || data?.utr,
     raw: data,
   }
 }
