@@ -86,10 +86,17 @@ Deno.serve(async (req) => {
       return json({ error: 'Gateway error', detail: gwData?.message || gwText }, 502)
     }
 
-    await admin.from('zapupi_deposits').update({
+    // Return immediately — persist payment_url + gateway_response in the background
+    // so the user gets redirected without waiting for an extra DB round-trip.
+    const persist = admin.from('zapupi_deposits').update({
       payment_url: paymentUrl,
       gateway_response: gwData,
-    }).eq('order_id', orderId)
+    }).eq('order_id', orderId).then(() => {}, () => {})
+    // @ts-ignore — EdgeRuntime is provided by Supabase Deno runtime
+    if (typeof EdgeRuntime !== 'undefined' && (EdgeRuntime as any).waitUntil) {
+      // @ts-ignore
+      ;(EdgeRuntime as any).waitUntil(persist)
+    }
 
     return json({ order_id: orderId, payment_url: paymentUrl })
   } catch (e) {
