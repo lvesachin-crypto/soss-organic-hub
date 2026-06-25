@@ -261,7 +261,7 @@ export default function AdminTopupPlan() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => { refetchPending(); refetchAcc(); refetchBreakdown(); }}>
+            <Button variant="outline" size="sm" onClick={() => { refetchPending(); refetchAcc(); refetchBreakdown(); refetchTopUsers(); }}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
             <Button size="sm" onClick={copyPlan} disabled={totalTopup <= 0}>
