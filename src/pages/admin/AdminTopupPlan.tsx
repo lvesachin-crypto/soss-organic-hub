@@ -115,6 +115,30 @@ export default function AdminTopupPlan() {
     return map;
   }, [breakdown]);
 
+  // Aggregate across providers — total per service
+  const serviceTotals = useMemo(() => {
+    const map = new Map<string, { key: string; service_name: string; service_category: string; pending_runs: number; pending_quantity: number; pending_user_usd: number }>();
+    (breakdown || []).forEach((r) => {
+      const key = (r.service_id || r.service_name) + "::" + r.service_category;
+      const existing = map.get(key);
+      if (existing) {
+        existing.pending_runs += Number(r.pending_runs);
+        existing.pending_quantity += Number(r.pending_quantity);
+        existing.pending_user_usd += Number(r.pending_user_usd);
+      } else {
+        map.set(key, {
+          key,
+          service_name: r.service_name,
+          service_category: r.service_category,
+          pending_runs: Number(r.pending_runs),
+          pending_quantity: Number(r.pending_quantity),
+          pending_user_usd: Number(r.pending_user_usd),
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => b.pending_quantity - a.pending_quantity);
+  }, [breakdown]);
+
   const plan = useMemo(() => {
     if (!pending || !accounts) return [];
     const accByProvider = new Map<string, AccountRow[]>();
@@ -279,17 +303,17 @@ export default function AdminTopupPlan() {
           </Card>
         </div>
 
-        {/* Per-provider plan */}
+        {/* Service-wise pending totals */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> Per-Provider Action List
+              <Wallet className="h-4 w-4" /> Service-wise Pending Totals
               <Badge variant="outline" className="ml-2 text-[10px] gap-1">
                 <Radio className="h-3 w-3 text-green-500 animate-pulse" /> Live
               </Badge>
             </CardTitle>
             <CardDescription className="text-xs">
-              Click any provider row to see service-wise pending quantity (TikTok Views, Instagram Views, etc.). Updates live as orders are sent.
+              Total pending quantity per service (TikTok Views, Instagram Views, etc.) across all providers. Updates live as orders are sent.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -307,106 +331,32 @@ export default function AdminTopupPlan() {
             )}
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
-            ) : plan.length === 0 ? (
+            ) : (breakdown || []).length === 0 ? (
               <p className="text-sm text-muted-foreground">No data.</p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-8"></TableHead>
-                      <TableHead>Provider</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead className="text-right">Pending Runs</TableHead>
+                      <TableHead className="text-right">Pending Quantity</TableHead>
                       <TableHead className="text-right">User Value ($)</TableHead>
-                      <TableHead className="text-right">Provider Cost (₹)</TableHead>
-                      <TableHead className="text-right">Balance (₹)</TableHead>
-                      <TableHead className="text-right">Add (₹)</TableHead>
-                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {plan.map((r) => {
-                      const status =
-                        r.pending_runs === 0
-                          ? { label: "Idle", color: "secondary" as const, icon: CheckCircle2 }
-                          : r.topup_inr === 0
-                            ? { label: "Sufficient", color: "default" as const, icon: CheckCircle2 }
-                            : { label: "Add Funds", color: "destructive" as const, icon: AlertCircle };
-                      const Icon = status.icon;
-                      const services = breakdownByProvider.get(r.provider_id) || [];
-                      const isOpen = !!expanded[r.provider_id];
-                      return (
-                        <Fragment key={r.provider_id}>
-                        <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => toggleExpand(r.provider_id)}>
-                          <TableCell>
-                            {services.length > 0 ? (
-                              isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{r.provider_name}</div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {r.account_count} account{r.account_count === 1 ? "" : "s"}
-                              {services.length > 0 && <span> · {services.length} service{services.length === 1 ? "" : "s"}</span>}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">{r.pending_runs.toLocaleString()}</TableCell>
-                          <TableCell className="text-right tabular-nums">${r.user_usd.toFixed(2)}</TableCell>
-                          <TableCell className="text-right tabular-nums">₹{r.provider_cost_inr.toFixed(2)}</TableCell>
-                          <TableCell className="text-right tabular-nums">₹{r.balance_inr.toFixed(2)}</TableCell>
-                          <TableCell className="text-right tabular-nums font-bold">
-                            {r.topup_inr > 0 ? (
-                              <span className="text-orange-600">₹{Math.ceil(r.topup_inr).toLocaleString()}</span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={status.color} className="text-[10px]">
-                              <Icon className="h-3 w-3 mr-1" />
-                              {status.label}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                        {isOpen && services.length > 0 && (
-                          <TableRow className="bg-muted/20 hover:bg-muted/30">
-                            <TableCell></TableCell>
-                            <TableCell colSpan={7} className="py-2">
-                              <div className="text-[11px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                                Service-wise pending breakdown
-                              </div>
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="text-muted-foreground border-b">
-                                      <th className="text-left py-1 pr-3">Service</th>
-                                      <th className="text-left py-1 pr-3">Category</th>
-                                      <th className="text-right py-1 pr-3">Runs</th>
-                                      <th className="text-right py-1 pr-3">Pending Qty</th>
-                                      <th className="text-right py-1">User Value</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {services.map((sv) => (
-                                      <tr key={(sv.service_id || sv.service_name) + sv.service_category} className="border-b border-muted/40">
-                                        <td className="py-1.5 pr-3">{sv.service_name}</td>
-                                        <td className="py-1.5 pr-3 text-muted-foreground">{sv.service_category}</td>
-                                        <td className="py-1.5 pr-3 text-right tabular-nums">{Number(sv.pending_runs).toLocaleString()}</td>
-                                        <td className="py-1.5 pr-3 text-right tabular-nums font-semibold text-orange-600">
-                                          {Number(sv.pending_quantity).toLocaleString()}
-                                        </td>
-                                        <td className="py-1.5 text-right tabular-nums">${Number(sv.pending_user_usd).toFixed(2)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        </Fragment>
-                      );
-                    })}
+                    {serviceTotals.map((sv) => (
+                      <TableRow key={sv.key}>
+                        <TableCell className="font-medium">{sv.service_name}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{sv.service_category}</TableCell>
+                        <TableCell className="text-right tabular-nums">{sv.pending_runs.toLocaleString()}</TableCell>
+                        <TableCell className="text-right tabular-nums font-bold text-orange-600">
+                          {sv.pending_quantity.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">${sv.pending_user_usd.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
