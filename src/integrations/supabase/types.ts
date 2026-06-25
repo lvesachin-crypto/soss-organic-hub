@@ -1306,6 +1306,19 @@ export type Database = {
       }
       get_admin_dashboard_stats: { Args: never; Returns: Json }
       get_admin_users_summary: { Args: never; Returns: Json }
+      get_provider_topup_breakdown: {
+        Args: never
+        Returns: {
+          pending_quantity: number
+          pending_runs: number
+          pending_user_usd: number
+          provider_id: string
+          provider_name: string
+          service_category: string
+          service_id: string
+          service_name: string
+        }[]
+      }
       get_provider_topup_plan: {
         Args: never
         Returns: {
