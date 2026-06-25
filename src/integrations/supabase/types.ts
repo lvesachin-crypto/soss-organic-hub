@@ -1330,6 +1330,19 @@ export type Database = {
         }[]
       }
       get_public_markup: { Args: never; Returns: number }
+      get_top_pending_users: {
+        Args: { p_limit?: number }
+        Returns: {
+          email: string
+          full_name: string
+          pending_orders: number
+          pending_value_usd: number
+          total_deposited: number
+          total_spent: number
+          user_id: string
+          wallet_balance: number
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
