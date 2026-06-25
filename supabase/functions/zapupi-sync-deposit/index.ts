@@ -56,13 +56,10 @@ Deno.serve(async (req) => {
 })
 
 async function verifyOrder(orderId: string) {
-  const form = new URLSearchParams()
-  form.append('zap_key', ZAPUPI_KEY)
-  form.append('order_id', orderId)
   const r = await fetch('https://pay.zapupi.com/api/order-status', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form.toString(),
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ zap_key: ZAPUPI_KEY, order_id: orderId }),
   })
   const text = await r.text()
   let data: any = {}
