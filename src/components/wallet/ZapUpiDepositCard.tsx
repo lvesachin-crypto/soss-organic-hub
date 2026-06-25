@@ -225,30 +225,7 @@ export default function ZapUpiDepositCard() {
         </p>
       </div>
 
-      {/* Support links */}
-      <div className="flex items-center justify-center gap-2 mt-3 pt-3" style={{ borderTop: '1px dashed #eef1f6' }}>
-        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>
-          Need help?
-        </span>
-        <a
-          href="https://t.me/HenryMiller08"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(34,158,217,.08)', color: '#229ED9', border: '1px solid rgba(34,158,217,.18)' }}
-        >
-          <Send className="h-2.5 w-2.5" /> Telegram
-        </a>
-        <a
-          href="https://wa.me/255637520201"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
-          style={{ background: 'rgba(37,211,102,.08)', color: '#1DA851', border: '1px solid rgba(37,211,102,.18)' }}
-        >
-          <MessageCircle className="h-2.5 w-2.5" /> WhatsApp
-        </a>
-      </div>
+      {/* Support links hidden temporarily — will re-enable after subscription is taken */}
     </div>
   );
 }
