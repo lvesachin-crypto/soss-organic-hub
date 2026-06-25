@@ -169,99 +169,123 @@ export default function Wallet() {
           <p className="text-[13px] mt-1" style={{ color: '#999' }}>Manage your balance and transactions.</p>
         </div>
 
-        {/* Balance Card — Credit-card inspired (orange brand) */}
+        {/* Balance Card — Clean light SaaS (Cloud White) */}
         <div
-          className="relative overflow-hidden rounded-[28px] p-6 md:p-8 text-white"
+          className="relative overflow-hidden rounded-[24px] p-7 md:p-9"
           style={{
-            background:
-              'linear-gradient(135deg, #ff7a18 0%, #ea580c 45%, #c2410c 100%)',
+            background: '#ffffff',
+            border: '1px solid #e8ecf1',
             boxShadow:
-              '0 20px 40px -12px rgba(234,88,12,.45), inset 0 1px 0 rgba(255,255,255,.18)',
+              '0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.08)',
+            fontFamily: "'Manrope', system-ui, sans-serif",
           }}
         >
-          {/* faint grid texture */}
+          {/* subtle accent orb */}
           <div
             aria-hidden
-            className="absolute inset-0 opacity-[0.18] pointer-events-none"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px)',
-              backgroundSize: '28px 28px',
-              maskImage:
-                'radial-gradient(ellipse at top left, black 30%, transparent 75%)',
-              WebkitMaskImage:
-                'radial-gradient(ellipse at top left, black 30%, transparent 75%)',
-            }}
-          />
-          {/* glossy highlight */}
-          <div
-            aria-hidden
-            className="absolute -top-24 -right-16 w-64 h-64 rounded-full pointer-events-none"
-            style={{ background: 'rgba(255,255,255,.18)', filter: 'blur(50px)' }}
-          />
-
-          {/* EMV chip */}
-          <div
-            aria-hidden
-            className="absolute top-6 right-6 md:top-8 md:right-8 w-11 h-8 rounded-md"
+            className="absolute -top-24 -right-20 w-72 h-72 rounded-full pointer-events-none"
             style={{
               background:
-                'linear-gradient(135deg, #fde68a 0%, #f59e0b 60%, #b45309 100%)',
-              boxShadow:
-                'inset 0 0 0 1px rgba(255,255,255,.4), 0 2px 6px rgba(0,0,0,.2)',
+                'radial-gradient(circle, rgba(59,130,246,.10) 0%, rgba(59,130,246,0) 70%)',
             }}
-          >
-            <div className="grid grid-cols-3 gap-px h-full w-full p-1 opacity-60">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <span key={i} className="bg-amber-900/40 rounded-[1px]" />
-              ))}
-            </div>
-          </div>
+          />
 
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-8">
-              <WalletIcon className="h-3.5 w-3.5 text-white/90" />
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/80">
-                Available Balance
+          <div className="relative z-10 flex items-start justify-between gap-6 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-md"
+                  style={{ background: '#eef4ff' }}
+                >
+                  <WalletIcon className="h-3.5 w-3.5" style={{ color: '#3b82f6' }} />
+                </span>
+                <p
+                  className="text-[10px] font-semibold uppercase"
+                  style={{ color: '#94a3b8', letterSpacing: '0.18em' }}
+                >
+                  Available Balance
+                </p>
+              </div>
+
+              <p
+                className="text-5xl md:text-6xl tracking-tight"
+                style={{
+                  fontFamily: "'Sora', system-ui, sans-serif",
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.05,
+                }}
+              >
+                {formatPrice(wallet?.balance || 0)}
+              </p>
+
+              <p className="text-[12px] mt-2" style={{ color: '#94a3b8' }}>
+                Real-time balance · auto-synced
               </p>
             </div>
 
-            <p className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">
-              {formatPrice(wallet?.balance || 0)}
-            </p>
+            <div
+              className="px-3 py-1.5 rounded-full text-[11px] font-semibold"
+              style={{
+                background: '#eef4ff',
+                color: '#3b82f6',
+                fontFamily: "'Sora', system-ui, sans-serif",
+                letterSpacing: '0.04em',
+              }}
+            >
+              INR
+            </div>
+          </div>
 
-            <div className="flex items-end justify-between gap-4 mt-8">
-              <div className="flex gap-2">
-                <div
-                  className="rounded-xl px-3 py-2 backdrop-blur-sm"
-                  style={{
-                    background: 'rgba(255,255,255,.14)',
-                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.18)',
-                  }}
+          {/* stats row */}
+          <div
+            className="relative z-10 mt-7 pt-5 grid grid-cols-2 gap-4"
+            style={{ borderTop: '1px solid #eef2f6' }}
+          >
+            <div>
+              <div className="flex items-center gap-1.5">
+                <ArrowDownLeft className="h-3 w-3" style={{ color: '#10b981' }} />
+                <p
+                  className="text-[10px] font-semibold uppercase"
+                  style={{ color: '#94a3b8', letterSpacing: '0.16em' }}
                 >
-                  <p className="text-[9px] font-semibold tracking-widest text-white/70">IN</p>
-                  <p className="text-sm font-bold leading-tight">
-                    {formatPrice(wallet?.total_deposited || 0)}
-                  </p>
-                </div>
-                <div
-                  className="rounded-xl px-3 py-2 backdrop-blur-sm"
-                  style={{
-                    background: 'rgba(0,0,0,.12)',
-                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.12)',
-                  }}
+                  Total In
+                </p>
+              </div>
+              <p
+                className="mt-1.5 text-xl"
+                style={{
+                  fontFamily: "'Sora', system-ui, sans-serif",
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {formatPrice(wallet?.total_deposited || 0)}
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <ArrowUpRight className="h-3 w-3" style={{ color: '#ef4444' }} />
+                <p
+                  className="text-[10px] font-semibold uppercase"
+                  style={{ color: '#94a3b8', letterSpacing: '0.16em' }}
                 >
-                  <p className="text-[9px] font-semibold tracking-widest text-white/70">OUT</p>
-                  <p className="text-sm font-bold leading-tight text-white/90">
-                    {formatPrice(wallet?.total_spent || 0)}
-                  </p>
-                </div>
+                  Total Out
+                </p>
               </div>
-
-              <div className="text-right">
-                <p className="text-[9px] font-semibold tracking-[0.2em] text-white/60">CURRENCY</p>
-                <p className="text-base font-extrabold italic tracking-wide">INR</p>
-              </div>
+              <p
+                className="mt-1.5 text-xl"
+                style={{
+                  fontFamily: "'Sora', system-ui, sans-serif",
+                  fontWeight: 600,
+                  color: '#0f172a',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {formatPrice(wallet?.total_spent || 0)}
+              </p>
             </div>
           </div>
         </div>
