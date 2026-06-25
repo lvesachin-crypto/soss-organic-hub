@@ -140,28 +140,26 @@ export default function AdminTopupPlan() {
     return map;
   }, [breakdown]);
 
-  // Aggregate across providers — total per service
-  const serviceTotals = useMemo(() => {
-    const map = new Map<string, { key: string; service_name: string; service_category: string; pending_runs: number; pending_quantity: number; pending_user_usd: number }>();
+  // Aggregate only TikTok Views and Instagram Views totals (views only)
+  const viewsTotals = useMemo(() => {
+    const buckets: Record<string, { label: string; pending_runs: number; pending_quantity: number; pending_user_usd: number }> = {
+      tiktok: { label: "TikTok Views", pending_runs: 0, pending_quantity: 0, pending_user_usd: 0 },
+      instagram: { label: "Instagram Views", pending_runs: 0, pending_quantity: 0, pending_user_usd: 0 },
+    };
     (breakdown || []).forEach((r) => {
-      const key = (r.service_id || r.service_name) + "::" + r.service_category;
-      const existing = map.get(key);
-      if (existing) {
-        existing.pending_runs += Number(r.pending_runs);
-        existing.pending_quantity += Number(r.pending_quantity);
-        existing.pending_user_usd += Number(r.pending_user_usd);
-      } else {
-        map.set(key, {
-          key,
-          service_name: r.service_name,
-          service_category: r.service_category,
-          pending_runs: Number(r.pending_runs),
-          pending_quantity: Number(r.pending_quantity),
-          pending_user_usd: Number(r.pending_user_usd),
-        });
-      }
+      const name = (r.service_name || "").toLowerCase();
+      const cat = (r.service_category || "").toLowerCase();
+      const isView = name.includes("view") || cat.includes("view");
+      if (!isView) return;
+      const isTiktok = name.includes("tiktok") || cat.includes("tiktok");
+      const isInsta = name.includes("instagram") || cat.includes("instagram") || name.includes("reels");
+      const bucket = isTiktok ? buckets.tiktok : isInsta ? buckets.instagram : null;
+      if (!bucket) return;
+      bucket.pending_runs += Number(r.pending_runs);
+      bucket.pending_quantity += Number(r.pending_quantity);
+      bucket.pending_user_usd += Number(r.pending_user_usd);
     });
-    return Array.from(map.values()).sort((a, b) => b.pending_quantity - a.pending_quantity);
+    return [buckets.tiktok, buckets.instagram];
   }, [breakdown]);
 
   const plan = useMemo(() => {
@@ -356,34 +354,19 @@ export default function AdminTopupPlan() {
             )}
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
-            ) : (breakdown || []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No data.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Pending Runs</TableHead>
-                      <TableHead className="text-right">Pending Quantity</TableHead>
-                      <TableHead className="text-right">User Value ($)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {serviceTotals.map((sv) => (
-                      <TableRow key={sv.key}>
-                        <TableCell className="font-medium">{sv.service_name}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{sv.service_category}</TableCell>
-                        <TableCell className="text-right tabular-nums">{sv.pending_runs.toLocaleString()}</TableCell>
-                        <TableCell className="text-right tabular-nums font-bold text-orange-600">
-                          {sv.pending_quantity.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">${sv.pending_user_usd.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {viewsTotals.map((b) => (
+                  <div key={b.label} className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">{b.label}</p>
+                    <p className="text-3xl font-bold text-orange-600 tabular-nums mt-1">
+                      {b.pending_quantity.toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {b.pending_runs.toLocaleString()} pending runs · ${b.pending_user_usd.toFixed(2)} user value
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
