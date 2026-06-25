@@ -336,8 +336,8 @@ export default function AdminTopupPlan() {
                       const services = breakdownByProvider.get(r.provider_id) || [];
                       const isOpen = !!expanded[r.provider_id];
                       return (
-                        <>
-                        <TableRow key={r.provider_id} className="cursor-pointer hover:bg-muted/40" onClick={() => toggleExpand(r.provider_id)}>
+                        <Fragment key={r.provider_id}>
+                        <TableRow className="cursor-pointer hover:bg-muted/40" onClick={() => toggleExpand(r.provider_id)}>
                           <TableCell>
                             {services.length > 0 ? (
                               isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
@@ -369,7 +369,7 @@ export default function AdminTopupPlan() {
                           </TableCell>
                         </TableRow>
                         {isOpen && services.length > 0 && (
-                          <TableRow key={r.provider_id + "-sub"} className="bg-muted/20 hover:bg-muted/30">
+                          <TableRow className="bg-muted/20 hover:bg-muted/30">
                             <TableCell></TableCell>
                             <TableCell colSpan={7} className="py-2">
                               <div className="text-[11px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
@@ -404,7 +404,7 @@ export default function AdminTopupPlan() {
                             </TableCell>
                           </TableRow>
                         )}
-                        </>
+                        </Fragment>
                       );
                     })}
                   </TableBody>
