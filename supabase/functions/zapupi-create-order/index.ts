@@ -35,9 +35,9 @@ Deno.serve(async (req) => {
     const webhookUrl = `${SUPABASE_URL}/functions/v1/zapupi-webhook`
 
     const orderId = 'ZAP_' + crypto.randomUUID().replace(/-/g, '')
-    const successUrl = callbackUrl(returnBaseUrl, 'success', orderId)
-    const failedUrl = callbackUrl(returnBaseUrl, 'failed', orderId)
-    const timeoutUrl = callbackUrl(returnBaseUrl, 'timeout', orderId)
+    const successUrl = gatewayReturnUrl(returnBaseUrl, 'success', orderId)
+    const failedUrl = gatewayReturnUrl(returnBaseUrl, 'failed', orderId)
+    const timeoutUrl = gatewayReturnUrl(returnBaseUrl, 'timeout', orderId)
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
     const { error: insErr } = await admin.from('zapupi_deposits').insert({
@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       success_url: successUrl,
       failed_url: failedUrl,
       timeout_url: timeoutUrl,
+      redirect_url: successUrl,
       remark: `Wallet topup | ${userId}`,
     }
     if (customerMobile.length === 10) gwPayload.customer_mobile = customerMobile
@@ -135,9 +136,10 @@ function safeReturnUrl(value: unknown, origin: string) {
   return new URL('/wallet', origin)
 }
 
-function callbackUrl(base: URL, status: 'success' | 'failed' | 'timeout', orderId: string) {
-  const url = new URL(base.toString())
+function gatewayReturnUrl(returnUrl: URL, status: 'success' | 'failed' | 'timeout', orderId: string) {
+  const url = new URL(`${SUPABASE_URL}/functions/v1/zapupi-return`)
   url.searchParams.set('status', status)
-  url.searchParams.set('order_id', orderId)
+  url.searchParams.set('deposit_order_id', orderId)
+  url.searchParams.set('return_url', returnUrl.toString())
   return url.toString()
 }

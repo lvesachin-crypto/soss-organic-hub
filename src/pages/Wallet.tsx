@@ -29,8 +29,8 @@ export default function Wallet() {
   // Handle ZapUPI return — poll server-verify until the order is credited (or give up after ~3 min).
   useEffect(() => {
     const url = new URL(window.location.href);
-    const orderId = url.searchParams.get('order_id');
-    const status = url.searchParams.get('status');
+    const orderId = url.searchParams.get('zapupi_order_id') || url.searchParams.get('deposit_order_id') || url.searchParams.get('order_id');
+    const status = (url.searchParams.get('status') || '').toLowerCase();
     if (!orderId) return;
 
     let cancelled = false;
@@ -40,9 +40,20 @@ export default function Wallet() {
 
     const cleanUrl = () => {
       url.searchParams.delete('order_id');
+      url.searchParams.delete('zapupi_order_id');
+      url.searchParams.delete('deposit_order_id');
+      url.searchParams.delete('gateway_order_id');
+      url.searchParams.delete('txn_id');
+      url.searchParams.delete('utr');
       url.searchParams.delete('status');
       window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
     };
+
+    if (status === 'failed' || status === 'timeout' || status === 'cancelled' || status === 'cancel') {
+      toast.error(status === 'timeout' ? 'Payment timed out' : 'Payment cancelled or failed', { id: pendingToast });
+      cleanUrl();
+      return;
+    }
 
     const poll = async () => {
       if (cancelled) return;
@@ -74,7 +85,7 @@ export default function Wallet() {
         cleanUrl();
         return;
       }
-      setTimeout(poll, 5000);
+      setTimeout(poll, 3000);
     };
 
     poll();

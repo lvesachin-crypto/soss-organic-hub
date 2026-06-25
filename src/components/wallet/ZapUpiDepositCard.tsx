@@ -39,15 +39,33 @@ export default function ZapUpiDepositCard() {
   };
 
   const openPaymentPage = (payUrl: string) => {
+    const isEmbedded = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
+
     try {
+      if (isEmbedded) {
+        const opened = window.open(payUrl, '_blank');
+        if (opened) {
+          opened.opener = null;
+          setLoading(false);
+          toast.info('Payment opened in a secure tab. Complete it to return to wallet.');
+          return;
+        }
+      }
+
       if (window.top && window.top !== window) {
-        window.top.location.replace(payUrl);
+        window.top.location.href = payUrl;
         return;
       }
     } catch {
       // If iframe top navigation is blocked, fall back to same-frame navigation.
     }
-    window.location.replace(payUrl);
+    window.location.href = payUrl;
   };
 
   const handlePay = async () => {
