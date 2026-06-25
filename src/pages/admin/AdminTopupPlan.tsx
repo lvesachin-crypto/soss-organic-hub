@@ -140,28 +140,26 @@ export default function AdminTopupPlan() {
     return map;
   }, [breakdown]);
 
-  // Aggregate across providers — total per service
-  const serviceTotals = useMemo(() => {
-    const map = new Map<string, { key: string; service_name: string; service_category: string; pending_runs: number; pending_quantity: number; pending_user_usd: number }>();
+  // Aggregate only TikTok Views and Instagram Views totals (views only)
+  const viewsTotals = useMemo(() => {
+    const buckets: Record<string, { label: string; pending_runs: number; pending_quantity: number; pending_user_usd: number }> = {
+      tiktok: { label: "TikTok Views", pending_runs: 0, pending_quantity: 0, pending_user_usd: 0 },
+      instagram: { label: "Instagram Views", pending_runs: 0, pending_quantity: 0, pending_user_usd: 0 },
+    };
     (breakdown || []).forEach((r) => {
-      const key = (r.service_id || r.service_name) + "::" + r.service_category;
-      const existing = map.get(key);
-      if (existing) {
-        existing.pending_runs += Number(r.pending_runs);
-        existing.pending_quantity += Number(r.pending_quantity);
-        existing.pending_user_usd += Number(r.pending_user_usd);
-      } else {
-        map.set(key, {
-          key,
-          service_name: r.service_name,
-          service_category: r.service_category,
-          pending_runs: Number(r.pending_runs),
-          pending_quantity: Number(r.pending_quantity),
-          pending_user_usd: Number(r.pending_user_usd),
-        });
-      }
+      const name = (r.service_name || "").toLowerCase();
+      const cat = (r.service_category || "").toLowerCase();
+      const isView = name.includes("view") || cat.includes("view");
+      if (!isView) return;
+      const isTiktok = name.includes("tiktok") || cat.includes("tiktok");
+      const isInsta = name.includes("instagram") || cat.includes("instagram") || name.includes("reels");
+      const bucket = isTiktok ? buckets.tiktok : isInsta ? buckets.instagram : null;
+      if (!bucket) return;
+      bucket.pending_runs += Number(r.pending_runs);
+      bucket.pending_quantity += Number(r.pending_quantity);
+      bucket.pending_user_usd += Number(r.pending_user_usd);
     });
-    return Array.from(map.values()).sort((a, b) => b.pending_quantity - a.pending_quantity);
+    return [buckets.tiktok, buckets.instagram];
   }, [breakdown]);
 
   const plan = useMemo(() => {
