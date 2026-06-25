@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Copy, RefreshCw, Wallet, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Radio } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Wallet, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Radio, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -38,6 +38,17 @@ interface BreakdownRow {
   pending_runs: number;
   pending_quantity: number;
   pending_user_usd: number;
+}
+
+interface TopUserRow {
+  user_id: string;
+  email: string;
+  full_name: string;
+  wallet_balance: number;
+  total_deposited: number;
+  total_spent: number;
+  pending_orders: number;
+  pending_value_usd: number;
 }
 
 export default function AdminTopupPlan() {
@@ -84,6 +95,18 @@ export default function AdminTopupPlan() {
     refetchOnWindowFocus: true,
   });
 
+  const { data: topUsers, refetch: refetchTopUsers } = useQuery({
+    queryKey: ["topup-plan-top-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_top_pending_users" as any, { p_limit: 5 });
+      if (error) throw error;
+      return (data || []) as TopUserRow[];
+    },
+    staleTime: 0,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
   // Realtime: refetch when runs/orders change so pending qty decreases live
   useEffect(() => {
     const channel = supabase
@@ -91,10 +114,12 @@ export default function AdminTopupPlan() {
       .on("postgres_changes", { event: "*", schema: "public", table: "organic_run_schedule" }, () => {
         queryClient.invalidateQueries({ queryKey: ["topup-plan-breakdown"] });
         queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-top-users"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
         queryClient.invalidateQueries({ queryKey: ["topup-plan-breakdown"] });
         queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-top-users"] });
       })
       .subscribe();
     return () => {
@@ -236,7 +261,7 @@ export default function AdminTopupPlan() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => { refetchPending(); refetchAcc(); refetchBreakdown(); }}>
+            <Button variant="outline" size="sm" onClick={() => { refetchPending(); refetchAcc(); refetchBreakdown(); refetchTopUsers(); }}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
             <Button size="sm" onClick={copyPlan} disabled={totalTopup <= 0}>
@@ -357,6 +382,74 @@ export default function AdminTopupPlan() {
                         <TableCell className="text-right tabular-nums">${sv.pending_user_usd.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top 5 users by pending order value — fraud watch */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-600" /> Top 5 Users — Pending Order Value
+              <Badge variant="outline" className="ml-2 text-[10px] gap-1">
+                <Radio className="h-3 w-3 text-green-500 animate-pulse" /> Live
+              </Badge>
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Users with the highest current pending order value. Watch for fraud: low deposit + high pending value = suspicious.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!topUsers || topUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No pending orders.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead className="text-right">Pending Orders</TableHead>
+                      <TableHead className="text-right">Pending Value ($)</TableHead>
+                      <TableHead className="text-right">Wallet ($)</TableHead>
+                      <TableHead className="text-right">Deposited ($)</TableHead>
+                      <TableHead className="text-right">Spent ($)</TableHead>
+                      <TableHead>Risk</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {topUsers.map((u, i) => {
+                      const deposited = Number(u.total_deposited);
+                      const pending = Number(u.pending_value_usd);
+                      const ratio = deposited > 0 ? pending / deposited : pending > 0 ? 999 : 0;
+                      const risk = ratio >= 2
+                        ? { label: "High", color: "destructive" as const }
+                        : ratio >= 1
+                          ? { label: "Watch", color: "default" as const }
+                          : { label: "OK", color: "secondary" as const };
+                      return (
+                        <TableRow key={u.user_id}>
+                          <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                          <TableCell>
+                            <div className="font-medium text-xs">{u.email}</div>
+                            {u.full_name && <div className="text-[10px] text-muted-foreground">{u.full_name}</div>}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{Number(u.pending_orders).toLocaleString()}</TableCell>
+                          <TableCell className="text-right tabular-nums font-bold text-orange-600">
+                            ${pending.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">${Number(u.wallet_balance).toFixed(2)}</TableCell>
+                          <TableCell className="text-right tabular-nums">${deposited.toFixed(2)}</TableCell>
+                          <TableCell className="text-right tabular-nums">${Number(u.total_spent).toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Badge variant={risk.color} className="text-[10px]">{risk.label}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
