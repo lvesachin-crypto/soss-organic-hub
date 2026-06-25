@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
   }
 })
 
-export async function verifyOrder(orderId: string): Promise<{ success: boolean; txn_id?: string; utr?: string; raw: any }> {
+export async function verifyOrder(orderId: string): Promise<{ success: boolean; txn_id?: string; utr?: string; environment?: string; raw: any }> {
   const r = await fetch('https://pay.zapupi.com/api/order-status', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -66,18 +66,14 @@ export async function verifyOrder(orderId: string): Promise<{ success: boolean; 
   let data: any = {}
   try { data = JSON.parse(text) } catch { data = { raw: text } }
 
-  const statusStr = String(
-    data?.status ?? data?.data?.status ?? data?.payment_status ?? ''
-  ).toLowerCase()
-  const success =
-    statusStr === 'success' ||
-    statusStr === 'completed' ||
-    statusStr === 'paid' ||
-    data?.success === true
-
-  const txn_id = data?.txn_id || data?.data?.txn_id || data?.transaction_id
-  const utr = data?.utr || data?.data?.utr || data?.upi_txn_id
-  return { success, txn_id, utr, raw: data }
+  // Per ZapUPI spec, the order-status payload is nested under `data`.
+  const d = data?.data ?? data
+  const orderStatusStr = String(d?.status ?? data?.status ?? '').toLowerCase()
+  const success = orderStatusStr === 'success' || orderStatusStr === 'completed' || orderStatusStr === 'paid'
+  const txn_id = d?.txn_id || data?.txn_id
+  const utr = d?.utr || data?.utr
+  const environment = d?.environment || data?.environment
+  return { success, txn_id, utr, environment, raw: data }
 }
 
 function json(b: unknown, status = 200) {
