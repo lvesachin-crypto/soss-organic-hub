@@ -12,6 +12,82 @@ const MAX_RUN_RETRIES = 9999
 const ACTIVE_ORDER_RETRY_MS = 5 * 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
 
+// Inline status-check cache for this execution (avoids re-polling same account row).
+const inlineProviderAccountCache = new Map<string, { api_key: string; api_url: string } | null>()
+const TERMINAL_PROVIDER_STATUSES = new Set([
+  'completed','complete','partial','refunded','canceled','cancelled','error','failed','success','refund','canscelled',
+])
+
+async function inlineRefreshRunStatus(supabase: SupabaseClient, run: any): Promise<any> {
+  try {
+    if (!run?.provider_order_id || !run?.provider_account_id) return run
+    const lastCheck = run.last_status_check ? new Date(run.last_status_check).getTime() : 0
+    // Only re-poll if we haven't checked in the last 25s (cron is every 1-2min, this is the inline safety net)
+    if (Date.now() - lastCheck < 25_000) return run
+    const curStatus = (run.provider_status || '').toLowerCase()
+    if (TERMINAL_PROVIDER_STATUSES.has(curStatus)) return run
+
+    let acct = inlineProviderAccountCache.get(run.provider_account_id)
+    if (acct === undefined) {
+      const { data } = await supabase
+        .from('provider_accounts')
+        .select('api_key, api_url')
+        .eq('id', run.provider_account_id)
+        .maybeSingle()
+      acct = data && data.api_key && data.api_url ? { api_key: data.api_key, api_url: data.api_url } : null
+      inlineProviderAccountCache.set(run.provider_account_id, acct)
+    }
+    if (!acct) return run
+
+    const formData = new URLSearchParams()
+    formData.append('key', acct.api_key)
+    formData.append('action', 'status')
+    formData.append('order', String(run.provider_order_id))
+
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+    let result: any
+    try {
+      const response = await fetch(acct.api_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString(),
+        signal: controller.signal,
+      })
+      const txt = await response.text()
+      try { result = JSON.parse(txt) } catch { result = { error: txt } }
+    } finally {
+      clearTimeout(timeoutId)
+    }
+
+    if (!result || result.error) return run
+
+    const providerStatus = result.status || result.Status || run.provider_status
+    const remains = result.remains !== undefined ? Number(result.remains) : run.provider_remains
+    const startCount = result.start_count !== undefined ? Number(result.start_count) : run.provider_start_count
+    const charge = result.charge !== undefined ? Number(result.charge) : run.provider_charge
+
+    await supabase.from('organic_run_schedule').update({
+      provider_status: providerStatus,
+      provider_remains: Number.isFinite(remains) ? remains : run.provider_remains,
+      provider_start_count: Number.isFinite(startCount) ? startCount : run.provider_start_count,
+      provider_charge: Number.isFinite(charge) ? charge : run.provider_charge,
+      last_status_check: new Date().toISOString(),
+    }).eq('id', run.id)
+
+    return {
+      ...run,
+      provider_status: providerStatus,
+      provider_remains: Number.isFinite(remains) ? remains : run.provider_remains,
+      provider_start_count: Number.isFinite(startCount) ? startCount : run.provider_start_count,
+      provider_charge: Number.isFinite(charge) ? charge : run.provider_charge,
+      last_status_check: new Date().toISOString(),
+    }
+  } catch (_e) {
+    return run
+  }
+}
+
 // Substrings (lowercase) that indicate the provider rejected the order because
 // another order for the same link is still active/processing on their side.
 const ACTIVE_ORDER_PATTERNS = [
@@ -1157,7 +1233,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       }
       
       if (startedRunsForLink && startedRunsForLink.length > 0) {
-        for (const stuckRun of startedRunsForLink) {
+        for (let stuckRun of startedRunsForLink) {
+          // INLINE STATUS REFRESH: don't trust stale DB status — re-poll provider live so we
+          // never block the next run just because check-order-status cron hasn't run yet.
+          stuckRun = await inlineRefreshRunStatus(supabase, stuckRun)
           const terminalStatuses = ['Completed', 'Complete', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed', 'Success', 'Refund', 'Canscelled']
           const isTerminal = stuckRun.provider_status && terminalStatuses.includes(stuckRun.provider_status)
           const hasNoRemains = typeof stuckRun.provider_remains === 'number' && stuckRun.provider_remains <= 0 && !!stuckRun.provider_order_id
