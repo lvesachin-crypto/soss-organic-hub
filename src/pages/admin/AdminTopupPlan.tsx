@@ -81,6 +81,8 @@ export default function AdminTopupPlan() {
     },
     staleTime: 0,
     refetchOnMount: true,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: breakdown, refetch: refetchBreakdown } = useQuery({
@@ -121,10 +123,31 @@ export default function AdminTopupPlan() {
         queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
         queryClient.invalidateQueries({ queryKey: ["topup-plan-top-users"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "provider_accounts" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-accounts"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
+  }, [queryClient]);
+
+  // Trigger live provider balance sync from upstream provider APIs
+  useEffect(() => {
+    let cancelled = false;
+    const syncBalances = async () => {
+      try {
+        await supabase.functions.invoke("check-provider-balance", { body: {} });
+        if (!cancelled) {
+          queryClient.invalidateQueries({ queryKey: ["topup-plan-accounts"] });
+        }
+      } catch (e) {
+        console.error("balance sync failed", e);
+      }
+    };
+    syncBalances();
+    const id = setInterval(syncBalances, 60000);
+    return () => { cancelled = true; clearInterval(id); };
   }, [queryClient]);
 
   // Group breakdown rows per provider
