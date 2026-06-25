@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Zap, IndianRupee } from 'lucide-react';
+import { Loader2, Zap, IndianRupee, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const QUICK = [100, 500, 1000, 2000, 5000];
 
@@ -68,29 +68,59 @@ export default function ZapUpiDepositCard() {
 
   return (
     <div
-      className="rounded-2xl p-6"
-      style={{ background: 'white', border: '1px solid rgba(0,0,0,.06)', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}
+      className="relative overflow-hidden rounded-3xl p-7"
+      style={{
+        background: 'white',
+        border: '1px solid #eef1f6',
+        boxShadow: '0 4px 24px -8px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04)',
+        fontFamily: 'Manrope, system-ui, sans-serif',
+      }}
     >
-      <div className="flex items-center gap-2 mb-1">
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #ff7a18, #ea580c)' }}
-        >
-          <Zap className="h-4 w-4 text-white" />
+      {/* accent orb */}
+      <div
+        className="absolute -top-16 -right-16 w-56 h-56 rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(closest-side, rgba(234,88,12,.10), transparent 70%)' }}
+      />
+
+      <div className="relative flex items-start justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm"
+            style={{ background: 'linear-gradient(135deg, #ff8a3d, #ea580c)', boxShadow: '0 6px 16px -6px rgba(234,88,12,.5)' }}
+          >
+            <Zap className="h-5 w-5 text-white" strokeWidth={2.5} />
+          </div>
+          <div>
+            <h2 className="text-[17px] font-bold tracking-tight" style={{ color: '#0f172a', fontFamily: 'Sora, system-ui, sans-serif' }}>
+              Add Funds
+            </h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] mt-0.5" style={{ color: '#ea580c' }}>
+              Instant UPI · Auto-credit
+            </p>
+          </div>
         </div>
-        <h2 className="text-lg font-bold" style={{ color: '#1a1a2e' }}>
-          Add Funds — Instant UPI
-        </h2>
+        <div
+          className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
+          style={{ background: 'rgba(16,185,129,.08)', color: '#059669', border: '1px solid rgba(16,185,129,.18)' }}
+        >
+          <ShieldCheck className="h-3 w-3" /> SECURE
+        </div>
       </div>
-      <p className="text-[12px] mb-5" style={{ color: '#888' }}>
-        Pay via UPI / GPay / PhonePe / Paytm — wallet auto-credit hota hai turant. No screenshot, no approval.
+
+      <p className="text-[13px] leading-relaxed mb-6" style={{ color: '#64748b' }}>
+        UPI · GPay · PhonePe · Paytm — payment hote hi wallet me turant credit. Koi screenshot ya approval nahi.
       </p>
 
-      <Label htmlFor="zap-amount" className="text-[12px]" style={{ color: '#666' }}>
-        Amount (INR)
+      <Label htmlFor="zap-amount" className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#64748b' }}>
+        Enter Amount
       </Label>
-      <div className="relative mt-1.5">
-        <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#999' }} />
+      <div className="relative mt-2">
+        <div
+          className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-lg"
+          style={{ background: 'rgba(234,88,12,.08)' }}
+        >
+          <IndianRupee className="h-3.5 w-3.5" style={{ color: '#ea580c' }} strokeWidth={2.5} />
+        </div>
         <Input
           id="zap-amount"
           type="number"
@@ -99,50 +129,70 @@ export default function ZapUpiDepositCard() {
           max={100000}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="pl-9"
           placeholder="500"
+          className="pl-14 pr-4 h-14 text-2xl font-bold border-2 rounded-xl"
+          style={{
+            color: '#0f172a',
+            borderColor: '#e2e8f0',
+            background: '#f8fafc',
+            fontFamily: 'Sora, system-ui, sans-serif',
+          }}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2 mt-3">
-        {QUICK.map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setAmount(String(v))}
-            className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
-            style={{
-              background: amount === String(v) ? '#ea580c' : 'rgba(234,88,12,.08)',
-              color: amount === String(v) ? 'white' : '#ea580c',
-              border: '1px solid rgba(234,88,12,.18)',
-            }}
-          >
-            ₹{v.toLocaleString('en-IN')}
-          </button>
-        ))}
+      <div className="grid grid-cols-5 gap-2 mt-3">
+        {QUICK.map((v) => {
+          const active = amount === String(v);
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setAmount(String(v))}
+              className="py-2.5 rounded-xl text-[12px] font-bold transition-all active:scale-95"
+              style={{
+                background: active ? 'linear-gradient(135deg, #ff8a3d, #ea580c)' : 'white',
+                color: active ? 'white' : '#475569',
+                border: active ? '1px solid transparent' : '1.5px solid #e2e8f0',
+                boxShadow: active ? '0 4px 12px -4px rgba(234,88,12,.45)' : 'none',
+              }}
+            >
+              ₹{v >= 1000 ? `${v / 1000}k` : v}
+            </button>
+          );
+        })}
       </div>
 
-      <Button
+      <button
         onClick={handlePay}
-        disabled={loading}
-        className="w-full mt-5"
-        size="lg"
-        variant="gradient"
+        disabled={loading || !amount}
+        className="w-full mt-6 h-14 rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
+        style={{
+          background: 'linear-gradient(135deg, #ff8a3d 0%, #ea580c 50%, #c2410c 100%)',
+          color: 'white',
+          boxShadow: '0 10px 24px -8px rgba(234,88,12,.55), inset 0 1px 0 rgba(255,255,255,.25)',
+          fontFamily: 'Sora, system-ui, sans-serif',
+          letterSpacing: '-0.01em',
+        }}
       >
         {loading ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" /> Redirecting…
+            <Loader2 className="h-5 w-5 animate-spin" /> Redirecting to UPI…
           </>
         ) : (
           <>
-            <Zap className="h-4 w-4" /> Pay ₹{Number(amount || 0).toLocaleString('en-IN')} with UPI
+            <Zap className="h-5 w-5" fill="white" strokeWidth={2.5} />
+            Pay ₹{Number(amount || 0).toLocaleString('en-IN')} Now
+            <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
           </>
         )}
-      </Button>
+      </button>
 
-      <p className="text-[11px] mt-3 text-center" style={{ color: '#bbb' }}>
-        Payment is auto-verified by server. Refresh isn't required.
-      </p>
+      <div className="flex items-center justify-center gap-1.5 mt-4">
+        <ShieldCheck className="h-3 w-3" style={{ color: '#94a3b8' }} />
+        <p className="text-[11px]" style={{ color: '#94a3b8' }}>
+          Server auto-verifies payment · Refresh ki zaroorat nahi
+        </p>
+      </div>
     </div>
   );
 }
