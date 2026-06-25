@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Zap, IndianRupee, ShieldCheck, ArrowRight, Send, MessageCircle } from 'lucide-react';
+import { Loader2, Zap, IndianRupee, ShieldCheck, ArrowRight, Send, MessageCircle, Lock } from 'lucide-react';
 
 const QUICK = [100, 500, 1000, 2000, 5000];
 
@@ -112,6 +112,59 @@ export default function ZapUpiDepositCard() {
         className="absolute -top-16 -right-16 w-56 h-56 rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(closest-side, rgba(234,88,12,.10), transparent 70%)' }}
       />
+
+      {/* Maintenance overlay — auto fund add temporarily unavailable */}
+      <div
+        className="absolute inset-0 z-30 flex items-center justify-center p-5"
+        style={{ background: 'rgba(255,255,255,.78)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+      >
+        <div
+          className="w-full max-w-sm rounded-2xl p-6 text-center"
+          style={{
+            background: 'white',
+            border: '1px solid #fde4cf',
+            boxShadow: '0 18px 40px -16px rgba(234,88,12,.25), 0 2px 6px rgba(15,23,42,.05)',
+          }}
+        >
+          <div
+            className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
+            style={{ background: 'linear-gradient(135deg, #ff8a3d, #ea580c)', boxShadow: '0 8px 18px -6px rgba(234,88,12,.5)' }}
+          >
+            <Lock className="h-5 w-5 text-white" strokeWidth={2.5} />
+          </div>
+          <h3 className="text-[16px] font-bold tracking-tight" style={{ color: '#0f172a', fontFamily: 'Sora, system-ui, sans-serif' }}>
+            Auto Fund Add Temporarily Unavailable
+          </h3>
+          <p className="text-[12.5px] leading-relaxed mt-2" style={{ color: '#64748b' }}>
+            We're upgrading the payment gateway. For now, please add funds via our support team — it only takes a minute.
+          </p>
+
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <a
+              href="https://t.me/HenryMiller08"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-semibold transition-all hover:scale-105"
+              style={{ background: 'rgba(34,158,217,.10)', color: '#229ED9', border: '1px solid rgba(34,158,217,.22)' }}
+            >
+              <Send className="h-3.5 w-3.5" /> Telegram
+            </a>
+            <a
+              href="https://wa.me/255637520201"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-semibold transition-all hover:scale-105"
+              style={{ background: 'rgba(37,211,102,.10)', color: '#1DA851', border: '1px solid rgba(37,211,102,.22)' }}
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+            </a>
+          </div>
+
+          <p className="text-[10.5px] mt-3" style={{ color: '#94a3b8' }}>
+            Funds are credited manually within minutes by our team.
+          </p>
+        </div>
+      </div>
 
       <div className="relative flex items-start justify-between mb-5">
         <div className="flex items-center gap-3">
