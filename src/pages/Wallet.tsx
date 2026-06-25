@@ -26,36 +26,61 @@ export default function Wallet() {
   const { data: transactions } = useTransactions(filter);
   const qc = useQueryClient();
 
-  // Handle ZapUPI return — server-verify the order_id and refresh wallet.
+  // Handle ZapUPI return — poll server-verify until the order is credited (or give up after ~3 min).
   useEffect(() => {
     const url = new URL(window.location.href);
     const orderId = url.searchParams.get('order_id');
     const status = url.searchParams.get('status');
     if (!orderId) return;
 
-    (async () => {
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 36; // ~3 minutes at 5s
+    const pendingToast = toast.loading('Verifying payment…');
+
+    const cleanUrl = () => {
+      url.searchParams.delete('order_id');
+      url.searchParams.delete('status');
+      window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
+    };
+
+    const poll = async () => {
+      if (cancelled) return;
+      attempts++;
       try {
         const { data, error } = await supabase.functions.invoke('zapupi-sync-deposit', {
           body: { order_id: orderId },
         });
         if (error) throw new Error(error.message);
-        if ((data as any)?.credited) {
-          toast.success('Payment successful — wallet credited');
-        } else if (status === 'failed') {
-          toast.error('Payment failed or cancelled');
-        } else {
-          toast.info('Payment is being verified — refresh in a few seconds if balance not updated');
+        const credited = (data as any)?.credited;
+        if (credited) {
+          toast.success('Payment successful — wallet credited', { id: pendingToast });
+          qc.invalidateQueries({ queryKey: ['wallet'] });
+          qc.invalidateQueries({ queryKey: ['transactions'] });
+          cleanUrl();
+          return;
         }
-      } catch (e: any) {
-        toast.error(e?.message || 'Could not verify payment');
-      } finally {
+      } catch {
+        // ignore and retry
+      }
+      if (attempts >= maxAttempts) {
+        if (status === 'failed') {
+          toast.error('Payment failed or cancelled', { id: pendingToast });
+        } else {
+          toast.info('Payment not confirmed yet. If you paid, balance will update shortly.', { id: pendingToast });
+        }
         qc.invalidateQueries({ queryKey: ['wallet'] });
         qc.invalidateQueries({ queryKey: ['transactions'] });
-        url.searchParams.delete('order_id');
-        url.searchParams.delete('status');
-        window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
+        cleanUrl();
+        return;
       }
-    })();
+      setTimeout(poll, 5000);
+    };
+
+    poll();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
