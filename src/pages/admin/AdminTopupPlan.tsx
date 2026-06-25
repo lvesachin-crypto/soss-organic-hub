@@ -288,12 +288,20 @@ export default function AdminTopupPlan() {
               <p className="text-2xl font-bold text-green-600">₹{Math.floor(totalBalance).toLocaleString()}</p>
             </CardContent>
           </Card>
-          <Card className="border-orange-300">
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Short (₹)</p>
-              <p className="text-2xl font-bold text-orange-600">₹{Math.ceil(totalTopup).toLocaleString()}</p>
-            </CardContent>
-          </Card>
+          {(() => {
+            const overall = totalBalance - totalProviderCost;
+            const isExtra = overall >= 0;
+            return (
+              <Card className={isExtra ? "border-green-300" : "border-orange-300"}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">{isExtra ? "Extra (₹)" : "Short (₹)"}</p>
+                  <p className={`text-2xl font-bold ${isExtra ? "text-green-600" : "text-orange-600"}`}>
+                    {isExtra ? "+" : "−"}₹{Math.floor(Math.abs(overall)).toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         {/* Per-provider real-time balance vs need */}
