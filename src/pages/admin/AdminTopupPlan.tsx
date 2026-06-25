@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Copy, RefreshCw, Wallet, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Copy, RefreshCw, Wallet, AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Radio } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -29,10 +29,23 @@ interface AccountRow {
   is_active: boolean;
 }
 
+interface BreakdownRow {
+  provider_id: string;
+  provider_name: string;
+  service_id: string | null;
+  service_name: string;
+  service_category: string;
+  pending_runs: number;
+  pending_quantity: number;
+  pending_user_usd: number;
+}
+
 export default function AdminTopupPlan() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [usdToInr, setUsdToInr] = useState<number>(83.5);
   const [safetyPct, setSafetyPct] = useState<number>(20); // 20% buffer
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: pending, isLoading: pendingLoading, refetch: refetchPending, error: pendingError } = useQuery({
     queryKey: ["topup-plan-pending"],
@@ -58,6 +71,49 @@ export default function AdminTopupPlan() {
     staleTime: 0,
     refetchOnMount: true,
   });
+
+  const { data: breakdown, refetch: refetchBreakdown } = useQuery({
+    queryKey: ["topup-plan-breakdown"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_provider_topup_breakdown" as any);
+      if (error) throw error;
+      return (data || []) as BreakdownRow[];
+    },
+    staleTime: 0,
+    refetchInterval: 15000, // poll every 15s as fallback
+    refetchOnWindowFocus: true,
+  });
+
+  // Realtime: refetch when runs/orders change so pending qty decreases live
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-topup-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "organic_run_schedule" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-breakdown"] });
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-breakdown"] });
+        queryClient.invalidateQueries({ queryKey: ["topup-plan-pending"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  // Group breakdown rows per provider
+  const breakdownByProvider = useMemo(() => {
+    const map = new Map<string, BreakdownRow[]>();
+    (breakdown || []).forEach((r) => {
+      const arr = map.get(r.provider_id) || [];
+      arr.push(r);
+      map.set(r.provider_id, arr);
+    });
+    // sort each provider's services by pending qty desc
+    map.forEach((arr) => arr.sort((a, b) => Number(b.pending_quantity) - Number(a.pending_quantity)));
+    return map;
+  }, [breakdown]);
 
   const plan = useMemo(() => {
     if (!pending || !accounts) return [];
@@ -138,6 +194,8 @@ export default function AdminTopupPlan() {
 
   const loading = pendingLoading || accLoading;
 
+  const toggleExpand = (pid: string) => setExpanded((e) => ({ ...e, [pid]: !e[pid] }));
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -154,7 +212,7 @@ export default function AdminTopupPlan() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => { refetchPending(); refetchAcc(); }}>
+            <Button variant="outline" size="sm" onClick={() => { refetchPending(); refetchAcc(); refetchBreakdown(); }}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
             <Button size="sm" onClick={copyPlan} disabled={totalTopup <= 0}>
@@ -226,7 +284,13 @@ export default function AdminTopupPlan() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Wallet className="h-4 w-4" /> Per-Provider Action List
+              <Badge variant="outline" className="ml-2 text-[10px] gap-1">
+                <Radio className="h-3 w-3 text-green-500 animate-pulse" /> Live
+              </Badge>
             </CardTitle>
+            <CardDescription className="text-xs">
+              Click any provider row to see service-wise pending quantity (TikTok Views, Instagram Views, etc.). Updates live as orders are sent.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {(pendingError || accError) && (
@@ -250,6 +314,7 @@ export default function AdminTopupPlan() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-8"></TableHead>
                       <TableHead>Provider</TableHead>
                       <TableHead className="text-right">Pending Runs</TableHead>
                       <TableHead className="text-right">User Value ($)</TableHead>
@@ -268,12 +333,21 @@ export default function AdminTopupPlan() {
                             ? { label: "Sufficient", color: "default" as const, icon: CheckCircle2 }
                             : { label: "Add Funds", color: "destructive" as const, icon: AlertCircle };
                       const Icon = status.icon;
+                      const services = breakdownByProvider.get(r.provider_id) || [];
+                      const isOpen = !!expanded[r.provider_id];
                       return (
-                        <TableRow key={r.provider_id}>
+                        <>
+                        <TableRow key={r.provider_id} className="cursor-pointer hover:bg-muted/40" onClick={() => toggleExpand(r.provider_id)}>
+                          <TableCell>
+                            {services.length > 0 ? (
+                              isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+                            ) : null}
+                          </TableCell>
                           <TableCell>
                             <div className="font-medium">{r.provider_name}</div>
                             <div className="text-[10px] text-muted-foreground">
                               {r.account_count} account{r.account_count === 1 ? "" : "s"}
+                              {services.length > 0 && <span> · {services.length} service{services.length === 1 ? "" : "s"}</span>}
                             </div>
                           </TableCell>
                           <TableCell className="text-right tabular-nums">{r.pending_runs.toLocaleString()}</TableCell>
@@ -294,6 +368,43 @@ export default function AdminTopupPlan() {
                             </Badge>
                           </TableCell>
                         </TableRow>
+                        {isOpen && services.length > 0 && (
+                          <TableRow key={r.provider_id + "-sub"} className="bg-muted/20 hover:bg-muted/30">
+                            <TableCell></TableCell>
+                            <TableCell colSpan={7} className="py-2">
+                              <div className="text-[11px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+                                Service-wise pending breakdown
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-muted-foreground border-b">
+                                      <th className="text-left py-1 pr-3">Service</th>
+                                      <th className="text-left py-1 pr-3">Category</th>
+                                      <th className="text-right py-1 pr-3">Runs</th>
+                                      <th className="text-right py-1 pr-3">Pending Qty</th>
+                                      <th className="text-right py-1">User Value</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {services.map((sv) => (
+                                      <tr key={(sv.service_id || sv.service_name) + sv.service_category} className="border-b border-muted/40">
+                                        <td className="py-1.5 pr-3">{sv.service_name}</td>
+                                        <td className="py-1.5 pr-3 text-muted-foreground">{sv.service_category}</td>
+                                        <td className="py-1.5 pr-3 text-right tabular-nums">{Number(sv.pending_runs).toLocaleString()}</td>
+                                        <td className="py-1.5 pr-3 text-right tabular-nums font-semibold text-orange-600">
+                                          {Number(sv.pending_quantity).toLocaleString()}
+                                        </td>
+                                        <td className="py-1.5 text-right tabular-nums">${Number(sv.pending_user_usd).toFixed(2)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        </>
                       );
                     })}
                   </TableBody>
