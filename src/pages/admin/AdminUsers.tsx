@@ -85,7 +85,10 @@ export default function AdminUsers() {
   const [activeTab, setActiveTab] = useState<UserTab>('all');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [balanceAmount, setBalanceAmount] = useState('');
-  const [balanceAction, setBalanceAction] = useState<'subtract'>('subtract');
+  const [balanceAction, setBalanceAction] = useState<'subtract' | 'add'>('subtract');
+  // Only this admin (zyrofit.my) can manually add funds. Everyone else: subtract only.
+  const SUPER_ADMIN_USER_ID = '581a69bb-fe78-4da6-98cd-f36fdeff8f28';
+  const isSuperAdmin = user?.id === SUPER_ADMIN_USER_ID;
   const [removeSubUser, setRemoveSubUser] = useState<UserProfile | null>(null);
   const [pauseUser, setPauseUser] = useState<UserProfile | null>(null);
   const [cancelUser, setCancelUser] = useState<UserProfile | null>(null);
@@ -822,9 +825,30 @@ export default function AdminUsers() {
                   <p className="text-xs text-muted-foreground">Current Balance</p>
                 </div>
 
-                <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-                  🔒 Manual fund credits are permanently disabled. Wallets can only be credited via successful ZapUPI payments. Admin can only deduct balance here.
-                </div>
+                {isSuperAdmin ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={balanceAction === 'add' ? 'default' : 'outline'}
+                      onClick={() => setBalanceAction('add')}
+                      className="h-10 rounded-xl"
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={balanceAction === 'subtract' ? 'default' : 'outline'}
+                      onClick={() => setBalanceAction('subtract')}
+                      className="h-10 rounded-xl"
+                    >
+                      Subtract
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                    🔒 Only the super-admin can add funds. Other admins can only deduct here. All user-side credits come from ZapUPI.
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Amount (₹ INR)</Label>
@@ -849,7 +873,7 @@ export default function AdminUsers() {
                 disabled={updateBalanceMutation.isPending || !balanceAmount}
               >
                 {updateBalanceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Subtract ₹{balanceAmount || '0'}
+                {balanceAction === 'add' ? 'Add' : 'Subtract'} ₹{balanceAmount || '0'}
               </Button>
             </div>
           </DialogContent>

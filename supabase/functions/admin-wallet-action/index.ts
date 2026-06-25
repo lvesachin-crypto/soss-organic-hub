@@ -7,6 +7,9 @@ const corsHeaders = {
 };
 
 const INR_RATE = 83.5;
+// Only THIS admin user can manually add funds. Everyone else (admin or not) is blocked.
+// Funds otherwise come exclusively from successful ZapUPI payments.
+const SUPER_ADMIN_USER_ID = "581a69bb-fe78-4da6-98cd-f36fdeff8f28"; // zyrofit.my@gmail.com
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -38,12 +41,17 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { target_user_id, action, inr_amount, notes, transaction_id } = body ?? {};
 
-    // 🚫 HARD BLOCK: Admins can NO LONGER credit wallets manually.
-    // The ONLY way funds are added to a wallet is a successful ZapUPI payment
-    // verified by the zapupi-webhook / zapupi-sync-deposit pipeline.
-    if (action === "add" || action === "approve_pending") {
+    // 🚫 HARD BLOCK: legacy pending-deposit approvals stay disabled forever.
+    if (action === "approve_pending") {
       return json({
-        error: "Manual wallet credits are permanently disabled. Funds can only be added via successful ZapUPI payments.",
+        error: "Manual approvals are permanently disabled. Funds can only be added via ZapUPI.",
+      }, 403);
+    }
+
+    // 🔒 Manual `add` is allowed ONLY for the super-admin (zyrofit.my). All other admins blocked.
+    if (action === "add" && user.id !== SUPER_ADMIN_USER_ID) {
+      return json({
+        error: "Only the super-admin can add funds manually. All other credits must come via ZapUPI.",
       }, 403);
     }
 
@@ -87,8 +95,8 @@ Deno.serve(async (req) => {
       return json({ success: true, status: "failed" });
     }
 
-    // ===== Branch: direct subtract by INR amount (admin can only deduct, never add) =====
-    if (!target_user_id || action !== "subtract") {
+    // ===== Branch: direct add / subtract by INR amount =====
+    if (!target_user_id || (action !== "subtract" && action !== "add")) {
       return json({ error: "Invalid payload" }, 400);
     }
     const inr = Number(inr_amount);
@@ -112,10 +120,15 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const currentBalance = Number(wallet.balance) || 0;
-    const newBalance = currentBalance - usd;
+    const isAdd = action === "add";
+    const delta = isAdd ? usd : -usd;
+    const newBalance = Math.trunc((currentBalance + delta) * 10000) / 10000;
     if (newBalance < 0) return json({ error: "Balance cannot be negative" }, 400);
 
-    const newDeposited = Number(wallet.total_deposited) || 0;
+    const currentDeposited = Number(wallet.total_deposited) || 0;
+    const newDeposited = isAdd
+      ? Math.trunc((currentDeposited + usd) * 10000) / 10000
+      : currentDeposited;
 
     const { error: updErr } = await admin
       .from("wallets")
@@ -125,11 +138,12 @@ Deno.serve(async (req) => {
 
     const { error: txErr } = await admin.from("transactions").insert({
       user_id: target_user_id,
-      type: "refund",
-      amount: -usd,
+      type: isAdd ? "deposit" : "refund",
+      amount: isAdd ? usd : -usd,
       balance_after: newBalance,
-      description: `Admin withdrawal — ₹${inr.toFixed(2)}${notes ? " — " + notes : ""}`,
+      description: `${isAdd ? "Admin manual credit" : "Admin withdrawal"} — ₹${inr.toFixed(2)}${notes ? " — " + notes : ""}`,
       status: "completed",
+      payment_method: isAdd ? "manual_admin" : undefined,
     });
     if (txErr) throw txErr;
 
@@ -139,7 +153,7 @@ Deno.serve(async (req) => {
       actor_email: user.email,
       target_user_id,
       target_email: targetProfile?.email ?? null,
-      action: "wallet_withdraw",
+      action: isAdd ? "wallet_credit_manual" : "wallet_withdraw",
       amount_usd: usd,
       amount_inr: inr,
       notes: notes ?? null,
