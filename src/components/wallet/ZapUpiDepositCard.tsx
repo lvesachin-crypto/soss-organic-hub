@@ -12,6 +12,31 @@ export default function ZapUpiDepositCard() {
   const [amount, setAmount] = useState<string>('500');
   const [loading, setLoading] = useState(false);
 
+  const buildReturnUrl = () => {
+    const current = new URL(window.location.href);
+    const returnUrl = new URL('/wallet', window.location.origin);
+
+    current.searchParams.forEach((value, key) => {
+      if (key.startsWith('__lovable_')) {
+        returnUrl.searchParams.set(key, value);
+      }
+    });
+
+    return returnUrl.toString();
+  };
+
+  const openPaymentPage = (payUrl: string) => {
+    try {
+      if (window.top && window.top !== window) {
+        window.top.location.href = payUrl;
+        return;
+      }
+    } catch {
+      // If iframe top navigation is blocked, fall back to same-frame navigation.
+    }
+    window.location.href = payUrl;
+  };
+
   const handlePay = async () => {
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt < 50) {
@@ -25,12 +50,16 @@ export default function ZapUpiDepositCard() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('zapupi-create-order', {
-        body: { amount_inr: amt, origin: window.location.origin },
+        body: {
+          amount_inr: amt,
+          origin: window.location.origin,
+          return_url: buildReturnUrl(),
+        },
       });
       if (error) throw new Error(error.message || 'Failed to create order');
       const payUrl = (data as any)?.payment_url;
       if (!payUrl) throw new Error('Gateway did not return a payment URL');
-      window.location.href = payUrl;
+      openPaymentPage(payUrl);
     } catch (e: any) {
       toast.error(e?.message || 'Could not start payment');
       setLoading(false);

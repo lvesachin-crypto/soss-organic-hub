@@ -29,14 +29,15 @@ Deno.serve(async (req) => {
     }
     const amountInr = Math.round(amount * 100) / 100
 
-    const origin = (body?.origin as string) || req.headers.get('origin') || 'https://organicsmm.online'
+    const origin = safeOrigin(req.headers.get('origin') || (body?.origin as string) || 'https://organicsmm.online')
+    const returnBaseUrl = safeReturnUrl(body?.return_url, origin)
     const customerMobile = String(body?.customer_mobile || '').replace(/\D/g, '').slice(-10)
     const webhookUrl = `${SUPABASE_URL}/functions/v1/zapupi-webhook`
 
     const orderId = 'ZAP_' + crypto.randomUUID().replace(/-/g, '')
-    const successUrl = `${origin}/wallet?status=success&order_id=${orderId}`
-    const failedUrl  = `${origin}/wallet?status=failed&order_id=${orderId}`
-    const timeoutUrl = `${origin}/wallet?status=timeout&order_id=${orderId}`
+    const successUrl = callbackUrl(returnBaseUrl, 'success', orderId)
+    const failedUrl = callbackUrl(returnBaseUrl, 'failed', orderId)
+    const timeoutUrl = callbackUrl(returnBaseUrl, 'timeout', orderId)
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
     const { error: insErr } = await admin.from('zapupi_deposits').insert({
@@ -101,4 +102,35 @@ function json(b: unknown, status = 200) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status,
   })
+}
+
+function safeOrigin(value: string) {
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.origin
+  } catch { /* fallback below */ }
+  return 'https://organicsmm.online'
+}
+
+function safeReturnUrl(value: unknown, origin: string) {
+  try {
+    if (typeof value === 'string' && value.length <= 2048) {
+      const url = new URL(value)
+      if (url.origin === origin && url.pathname.replace(/\/$/, '') === '/wallet') {
+        url.hash = ''
+        url.searchParams.delete('status')
+        url.searchParams.delete('order_id')
+        url.searchParams.delete('utr')
+        return url
+      }
+    }
+  } catch { /* fallback below */ }
+  return new URL('/wallet', origin)
+}
+
+function callbackUrl(base: URL, status: 'success' | 'failed' | 'timeout', orderId: string) {
+  const url = new URL(base.toString())
+  url.searchParams.set('status', status)
+  url.searchParams.set('order_id', orderId)
+  return url.toString()
 }
