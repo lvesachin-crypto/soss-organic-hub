@@ -389,6 +389,74 @@ export default function AdminTopupPlan() {
           </CardContent>
         </Card>
 
+        {/* Top 5 users by pending order value — fraud watch */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-orange-600" /> Top 5 Users — Pending Order Value
+              <Badge variant="outline" className="ml-2 text-[10px] gap-1">
+                <Radio className="h-3 w-3 text-green-500 animate-pulse" /> Live
+              </Badge>
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Users with the highest current pending order value. Watch for fraud: low deposit + high pending value = suspicious.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!topUsers || topUsers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No pending orders.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead className="text-right">Pending Orders</TableHead>
+                      <TableHead className="text-right">Pending Value ($)</TableHead>
+                      <TableHead className="text-right">Wallet ($)</TableHead>
+                      <TableHead className="text-right">Deposited ($)</TableHead>
+                      <TableHead className="text-right">Spent ($)</TableHead>
+                      <TableHead>Risk</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {topUsers.map((u, i) => {
+                      const deposited = Number(u.total_deposited);
+                      const pending = Number(u.pending_value_usd);
+                      const ratio = deposited > 0 ? pending / deposited : pending > 0 ? 999 : 0;
+                      const risk = ratio >= 2
+                        ? { label: "High", color: "destructive" as const }
+                        : ratio >= 1
+                          ? { label: "Watch", color: "default" as const }
+                          : { label: "OK", color: "secondary" as const };
+                      return (
+                        <TableRow key={u.user_id}>
+                          <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                          <TableCell>
+                            <div className="font-medium text-xs">{u.email}</div>
+                            {u.full_name && <div className="text-[10px] text-muted-foreground">{u.full_name}</div>}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{Number(u.pending_orders).toLocaleString()}</TableCell>
+                          <TableCell className="text-right tabular-nums font-bold text-orange-600">
+                            ${pending.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">${Number(u.wallet_balance).toFixed(2)}</TableCell>
+                          <TableCell className="text-right tabular-nums">${deposited.toFixed(2)}</TableCell>
+                          <TableCell className="text-right tabular-nums">${Number(u.total_spent).toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Badge variant={risk.color} className="text-[10px]">{risk.label}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <p className="text-xs text-muted-foreground">
           Formula: <code>provider_cost = pending_user_value ÷ (1 + markup%)</code>, converted to INR at the rate above,
           then a safety buffer is added before subtracting the current provider balance.
