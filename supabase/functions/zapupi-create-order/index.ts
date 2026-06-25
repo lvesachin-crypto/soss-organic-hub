@@ -45,18 +45,19 @@ Deno.serve(async (req) => {
     })
     if (insErr) return json({ error: 'Failed to create deposit row', detail: insErr.message }, 500)
 
-    // Call ZapUPI
-    const gwForm = new URLSearchParams()
-    gwForm.append('zap_key', ZAPUPI_KEY)
-    gwForm.append('order_id', orderId)
-    gwForm.append('amount', amountInr.toFixed(2))
-    gwForm.append('redirect_url', successUrl + orderId)
-    gwForm.append('webhook_url', webhookUrl)
+    // Call ZapUPI (expects JSON body)
+    const gwPayload = {
+      zap_key: ZAPUPI_KEY,
+      order_id: orderId,
+      amount: amountInr.toFixed(2),
+      redirect_url: successUrl + orderId,
+      webhook_url: webhookUrl,
+    }
 
     const gwRes = await fetch('https://pay.zapupi.com/api/create-order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: gwForm.toString(),
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(gwPayload),
     })
     const gwText = await gwRes.text()
     let gwData: any = {}
