@@ -1326,6 +1326,17 @@ export type Database = {
         }
         Relationships: []
       }
+      v_orders_missing_debit: {
+        Row: {
+          amt: number | null
+          created_at: string | null
+          id: string | null
+          kind: string | null
+          order_number: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cancel_order_with_refund: {
