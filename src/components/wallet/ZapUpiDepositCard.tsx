@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Zap, IndianRupee, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Loader2, Zap, IndianRupee, ShieldCheck, ArrowRight, Send, MessageCircle } from 'lucide-react';
 
 const QUICK = [100, 500, 1000, 2000, 5000];
 
@@ -108,7 +108,7 @@ export default function ZapUpiDepositCard() {
       </div>
 
       <p className="text-[13px] leading-relaxed mb-6" style={{ color: '#64748b' }}>
-        UPI · GPay · PhonePe · Paytm — payment hote hi wallet me turant credit. Koi screenshot ya approval nahi.
+        Pay via UPI · GPay · PhonePe · Paytm — your wallet is credited instantly after payment.
       </p>
 
       <Label htmlFor="zap-amount" className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#64748b' }}>
@@ -190,8 +190,33 @@ export default function ZapUpiDepositCard() {
       <div className="flex items-center justify-center gap-1.5 mt-4">
         <ShieldCheck className="h-3 w-3" style={{ color: '#94a3b8' }} />
         <p className="text-[11px]" style={{ color: '#94a3b8' }}>
-          Server auto-verifies payment · Refresh ki zaroorat nahi
+          Auto-verified by server · No refresh needed
         </p>
+      </div>
+
+      {/* Support links */}
+      <div className="flex items-center justify-center gap-2 mt-3 pt-3" style={{ borderTop: '1px dashed #eef1f6' }}>
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>
+          Need help?
+        </span>
+        <a
+          href="https://t.me/organicsmm"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
+          style={{ background: 'rgba(34,158,217,.08)', color: '#229ED9', border: '1px solid rgba(34,158,217,.18)' }}
+        >
+          <Send className="h-2.5 w-2.5" /> Telegram
+        </a>
+        <a
+          href="https://wa.me/919999999999"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
+          style={{ background: 'rgba(37,211,102,.08)', color: '#1DA851', border: '1px solid rgba(37,211,102,.18)' }}
+        >
+          <MessageCircle className="h-2.5 w-2.5" /> WhatsApp
+        </a>
       </div>
     </div>
   );
