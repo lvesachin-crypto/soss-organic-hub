@@ -200,7 +200,7 @@ export default function ZapUpiDepositCard() {
           Need help?
         </span>
         <a
-          href="https://t.me/organicsmm"
+          href="https://t.me/HenryMiller08"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
@@ -209,7 +209,7 @@ export default function ZapUpiDepositCard() {
           <Send className="h-2.5 w-2.5" /> Telegram
         </a>
         <a
-          href="https://wa.me/919999999999"
+          href="https://wa.me/255637520201"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all hover:scale-105"
