@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,19 @@ const QUICK = [100, 500, 1000, 2000, 5000];
 export default function ZapUpiDepositCard() {
   const [amount, setAmount] = useState<string>('500');
   const [loading, setLoading] = useState(false);
+
+  // Warm up the edge function on mount so the cold start doesn't happen on Pay click.
+  useEffect(() => {
+    let cancelled = false;
+    const warm = async () => {
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zapupi-create-order`;
+        await fetch(url, { method: 'OPTIONS', mode: 'cors' });
+      } catch { /* ignore */ }
+    };
+    warm();
+    return () => { cancelled = true; void cancelled; };
+  }, []);
 
   const buildReturnUrl = () => {
     const current = new URL(window.location.href);
@@ -28,13 +41,13 @@ export default function ZapUpiDepositCard() {
   const openPaymentPage = (payUrl: string) => {
     try {
       if (window.top && window.top !== window) {
-        window.top.location.href = payUrl;
+        window.top.location.replace(payUrl);
         return;
       }
     } catch {
       // If iframe top navigation is blocked, fall back to same-frame navigation.
     }
-    window.location.href = payUrl;
+    window.location.replace(payUrl);
   };
 
   const handlePay = async () => {
