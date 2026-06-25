@@ -354,34 +354,19 @@ export default function AdminTopupPlan() {
             )}
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
-            ) : (breakdown || []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No data.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Pending Runs</TableHead>
-                      <TableHead className="text-right">Pending Quantity</TableHead>
-                      <TableHead className="text-right">User Value ($)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {serviceTotals.map((sv) => (
-                      <TableRow key={sv.key}>
-                        <TableCell className="font-medium">{sv.service_name}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{sv.service_category}</TableCell>
-                        <TableCell className="text-right tabular-nums">{sv.pending_runs.toLocaleString()}</TableCell>
-                        <TableCell className="text-right tabular-nums font-bold text-orange-600">
-                          {sv.pending_quantity.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">${sv.pending_user_usd.toFixed(2)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {viewsTotals.map((b) => (
+                  <div key={b.label} className="rounded-lg border p-4">
+                    <p className="text-xs text-muted-foreground">{b.label}</p>
+                    <p className="text-3xl font-bold text-orange-600 tabular-nums mt-1">
+                      {b.pending_quantity.toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {b.pending_runs.toLocaleString()} pending runs · ${b.pending_user_usd.toFixed(2)} user value
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
