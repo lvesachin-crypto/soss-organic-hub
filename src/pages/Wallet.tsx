@@ -169,123 +169,104 @@ export default function Wallet() {
           <p className="text-[13px] mt-1" style={{ color: '#999' }}>Manage your balance and transactions.</p>
         </div>
 
-        {/* Balance Card — Clean light SaaS (Cloud White) */}
+        {/* Balance Card — Compact Emerald */}
         <div
-          className="relative overflow-hidden rounded-[24px] p-7 md:p-9"
+          className="relative overflow-hidden rounded-2xl p-4"
           style={{
-            background: '#ffffff',
-            border: '1px solid #e8ecf1',
-            boxShadow:
-              '0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.08)',
+            background: 'linear-gradient(135deg, #047857 0%, #059669 55%, #10b981 100%)',
+            boxShadow: '0 10px 28px -12px rgba(5,150,105,.55), inset 0 1px 0 rgba(255,255,255,.18)',
             fontFamily: "'Manrope', system-ui, sans-serif",
           }}
         >
-          {/* subtle accent orb */}
+          {/* decorative orbs */}
           <div
             aria-hidden
-            className="absolute -top-24 -right-20 w-72 h-72 rounded-full pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(circle, rgba(59,130,246,.10) 0%, rgba(59,130,246,0) 70%)',
-            }}
+            className="absolute -top-16 -right-12 w-48 h-48 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,.22), transparent 70%)' }}
+          />
+          <div
+            aria-hidden
+            className="absolute -bottom-20 -left-10 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(closest-side, rgba(16,185,129,.45), transparent 70%)' }}
           />
 
-          <div className="relative z-10 flex items-start justify-between gap-6 flex-wrap">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-3">
-                <span
-                  className="inline-flex items-center justify-center w-6 h-6 rounded-md"
-                  style={{ background: '#eef4ff' }}
-                >
-                  <WalletIcon className="h-3.5 w-3.5" style={{ color: '#3b82f6' }} />
-                </span>
-                <p
-                  className="text-[10px] font-semibold uppercase"
-                  style={{ color: '#94a3b8', letterSpacing: '0.18em' }}
-                >
-                  Available Balance
-                </p>
-              </div>
-
-              <p
-                className="text-5xl md:text-6xl tracking-tight"
-                style={{
-                  fontFamily: "'Sora', system-ui, sans-serif",
-                  fontWeight: 700,
-                  color: '#0f172a',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.05,
-                }}
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center justify-center w-7 h-7 rounded-lg"
+                style={{ background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(4px)' }}
               >
-                {formatPrice(wallet?.balance || 0)}
-              </p>
-
-              <p className="text-[12px] mt-2" style={{ color: '#94a3b8' }}>
-                Real-time balance · auto-synced
+                <WalletIcon className="h-3.5 w-3.5 text-white" />
+              </span>
+              <p
+                className="text-[10px] font-semibold uppercase text-white/80"
+                style={{ letterSpacing: '0.16em' }}
+              >
+                Available Balance
               </p>
             </div>
-
             <div
-              className="px-3 py-1.5 rounded-full text-[11px] font-semibold"
-              style={{
-                background: '#eef4ff',
-                color: '#3b82f6',
-                fontFamily: "'Sora', system-ui, sans-serif",
-                letterSpacing: '0.04em',
-              }}
+              className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+              style={{ background: 'rgba(255,255,255,.18)', letterSpacing: '0.05em' }}
             >
               INR
             </div>
           </div>
 
+          <p
+            className="relative z-10 mt-2 text-3xl md:text-4xl text-white"
+            style={{
+              fontFamily: "'Sora', system-ui, sans-serif",
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.05,
+            }}
+          >
+            {formatPrice(wallet?.balance || 0)}
+          </p>
+
           {/* stats row */}
           <div
-            className="relative z-10 mt-7 pt-5 grid grid-cols-2 gap-4"
-            style={{ borderTop: '1px solid #eef2f6' }}
+            className="relative z-10 mt-3 pt-3 grid grid-cols-2 gap-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,.18)' }}
           >
-            <div>
-              <div className="flex items-center gap-1.5">
-                <ArrowDownLeft className="h-3 w-3" style={{ color: '#10b981' }} />
-                <p
-                  className="text-[10px] font-semibold uppercase"
-                  style={{ color: '#94a3b8', letterSpacing: '0.16em' }}
-                >
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
+                style={{ background: 'rgba(255,255,255,.18)' }}
+              >
+                <ArrowDownLeft className="h-3.5 w-3.5 text-white" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[9px] font-semibold uppercase text-white/70" style={{ letterSpacing: '0.14em' }}>
                   Total In
                 </p>
-              </div>
-              <p
-                className="mt-1.5 text-xl"
-                style={{
-                  fontFamily: "'Sora', system-ui, sans-serif",
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {formatPrice(wallet?.total_deposited || 0)}
-              </p>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <ArrowUpRight className="h-3 w-3" style={{ color: '#ef4444' }} />
                 <p
-                  className="text-[10px] font-semibold uppercase"
-                  style={{ color: '#94a3b8', letterSpacing: '0.16em' }}
+                  className="text-[13px] text-white truncate"
+                  style={{ fontFamily: "'Sora', system-ui, sans-serif", fontWeight: 600 }}
                 >
-                  Total Out
+                  {formatPrice(wallet?.total_deposited || 0)}
                 </p>
               </div>
-              <p
-                className="mt-1.5 text-xl"
-                style={{
-                  fontFamily: "'Sora', system-ui, sans-serif",
-                  fontWeight: 600,
-                  color: '#0f172a',
-                  letterSpacing: '-0.01em',
-                }}
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
+                style={{ background: 'rgba(255,255,255,.18)' }}
               >
-                {formatPrice(wallet?.total_spent || 0)}
-              </p>
+                <ArrowUpRight className="h-3.5 w-3.5 text-white" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[9px] font-semibold uppercase text-white/70" style={{ letterSpacing: '0.14em' }}>
+                  Total Out
+                </p>
+                <p
+                  className="text-[13px] text-white truncate"
+                  style={{ fontFamily: "'Sora', system-ui, sans-serif", fontWeight: 600 }}
+                >
+                  {formatPrice(wallet?.total_spent || 0)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
