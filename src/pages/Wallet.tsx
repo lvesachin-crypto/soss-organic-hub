@@ -33,11 +33,6 @@ export default function Wallet() {
     const status = (url.searchParams.get('status') || '').toLowerCase();
     if (!orderId) return;
 
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 36; // ~3 minutes at 5s
-    const pendingToast = toast.loading('Verifying payment…');
-
     const cleanUrl = () => {
       url.searchParams.delete('order_id');
       url.searchParams.delete('zapupi_order_id');
@@ -49,8 +44,32 @@ export default function Wallet() {
       window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
     };
 
+    const claimedKey = `zapupi_claimed_${orderId}`;
+    const inflightKey = `zapupi_inflight_${orderId}`;
+
+    // Already credited in a previous visit/tab → instant message, no re-claim.
+    if (sessionStorage.getItem(claimedKey) === 'done' || localStorage.getItem(claimedKey) === 'done') {
+      toast.success('This payment is already credited to your wallet.');
+      cleanUrl();
+      return;
+    }
+
+    // Another tab/poll is already verifying the same order → don't duplicate.
+    const inflightAt = Number(sessionStorage.getItem(inflightKey) || '0');
+    if (inflightAt && Date.now() - inflightAt < 60_000) {
+      toast.info('Payment is already being verified…');
+      return;
+    }
+    sessionStorage.setItem(inflightKey, String(Date.now()));
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 36; // ~3 minutes at 5s
+    const pendingToast = toast.loading('Verifying payment…');
+
     if (status === 'failed' || status === 'timeout' || status === 'cancelled' || status === 'cancel') {
       toast.error(status === 'timeout' ? 'Payment timed out' : 'Payment cancelled or failed', { id: pendingToast });
+      sessionStorage.removeItem(inflightKey);
       cleanUrl();
       return;
     }
@@ -63,9 +82,17 @@ export default function Wallet() {
           body: { order_id: orderId },
         });
         if (error) throw new Error(error.message);
-        const credited = (data as any)?.credited;
-        if (credited) {
-          toast.success('Payment successful — wallet credited', { id: pendingToast });
+        const res = data as any;
+        const credited = res?.credited;
+        const already = res?.already || res?.result?.duplicate;
+        if (credited || already) {
+          localStorage.setItem(claimedKey, 'done');
+          sessionStorage.setItem(claimedKey, 'done');
+          sessionStorage.removeItem(inflightKey);
+          toast.success(
+            already ? 'Already credited to your wallet.' : 'Payment successful — wallet credited',
+            { id: pendingToast },
+          );
           qc.invalidateQueries({ queryKey: ['wallet'] });
           qc.invalidateQueries({ queryKey: ['transactions'] });
           cleanUrl();
@@ -80,6 +107,7 @@ export default function Wallet() {
         } else {
           toast.info('Payment not confirmed yet. If you paid, balance will update shortly.', { id: pendingToast });
         }
+        sessionStorage.removeItem(inflightKey);
         qc.invalidateQueries({ queryKey: ['wallet'] });
         qc.invalidateQueries({ queryKey: ['transactions'] });
         cleanUrl();
@@ -91,6 +119,7 @@ export default function Wallet() {
     poll();
     return () => {
       cancelled = true;
+      sessionStorage.removeItem(inflightKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
