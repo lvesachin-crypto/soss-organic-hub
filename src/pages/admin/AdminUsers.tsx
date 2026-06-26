@@ -846,7 +846,7 @@ export default function AdminUsers() {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-                    🔒 Only the super-admin can add funds. Other admins can only deduct here. All user-side credits come from ZapUPI.
+                    🔒 Only the super-admin (zyrofit.my) can add or subtract funds. All other credits come from ZapUPI.
                   </div>
                 )}
 
@@ -870,7 +870,7 @@ export default function AdminUsers() {
               </Button>
               <Button
                 onClick={() => updateBalanceMutation.mutate()}
-                disabled={updateBalanceMutation.isPending || !balanceAmount}
+                disabled={updateBalanceMutation.isPending || !balanceAmount || !isSuperAdmin}
               >
                 {updateBalanceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 {balanceAction === 'add' ? 'Add' : 'Subtract'} ₹{balanceAmount || '0'}
