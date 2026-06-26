@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
       p_gateway_response: { sync_verify: verify.raw },
     })
     if (error) return json({ error: error.message }, 500)
+    if ((data as any)?.credited && !(data as any)?.duplicate) {
+      notifyTelegram(admin, orderId).catch((e) => console.error('tg notify', e))
+    }
     return json({ credited: true, result: data })
   } catch (e) {
     return json({ error: String((e as Error).message || e) }, 500)
@@ -80,5 +83,35 @@ function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status,
+  })
+}
+
+async function notifyTelegram(admin: any, orderId: string) {
+  const { data: dep } = await admin
+    .from('zapupi_deposits')
+    .select('user_id, amount_inr, txn_id, utr')
+    .eq('order_id', orderId)
+    .maybeSingle()
+  if (!dep) return
+  const { data: prof } = await admin
+    .from('profiles').select('email').eq('user_id', dep.user_id).maybeSingle()
+  const { data: wal } = await admin
+    .from('wallets').select('balance').eq('user_id', dep.user_id).maybeSingle()
+  const balInr = wal?.balance ? (Number(wal.balance) * 83.5).toFixed(2) : '?'
+  const msg = [
+    `💰 <b>Auto Fund Added (ZapUPI)</b>`,
+    ``,
+    `👤 <b>User:</b> ${prof?.email ?? dep.user_id}`,
+    `💵 <b>Amount:</b> ₹${Number(dep.amount_inr).toFixed(2)}`,
+    `🏦 <b>New Balance:</b> ₹${balInr}`,
+    `🆔 <b>Order:</b> <code>${orderId}</code>`,
+    dep.utr ? `🔁 <b>UTR:</b> <code>${dep.utr}</code>` : '',
+    dep.txn_id ? `🧾 <b>Txn:</b> <code>${dep.txn_id}</code>` : '',
+    `📡 <b>Source:</b> sync (manual verify)`,
+  ].filter(Boolean).join('\n')
+  await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-notification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+    body: JSON.stringify({ message: msg, parse_mode: 'HTML' }),
   })
 }

@@ -162,6 +162,30 @@ Deno.serve(async (req) => {
       metadata: { new_balance: newBalance },
     });
 
+    // Real-time Telegram alert (non-blocking)
+    try {
+      const balInr = (newBalance * INR_RATE).toFixed(2);
+      const msg = [
+        isAdd ? `🟢 <b>Manual Fund Added (Admin)</b>` : `🔴 <b>Manual Withdrawal (Admin)</b>`,
+        ``,
+        `👤 <b>User:</b> ${targetProfile?.email ?? target_user_id}`,
+        `💵 <b>Amount:</b> ₹${inr.toFixed(2)}`,
+        `🏦 <b>New Balance:</b> ₹${balInr}`,
+        `🛡️ <b>Admin:</b> ${user.email ?? user.id}`,
+        notes ? `📝 <b>Notes:</b> ${notes}` : '',
+      ].filter(Boolean).join('\n');
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-telegram-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ message: msg, parse_mode: "HTML" }),
+      });
+    } catch (e) {
+      console.error("tg notify failed", e);
+    }
+
     return json({ success: true, new_balance: newBalance });
   } catch (e: any) {
     console.error("admin-wallet-action error", e);
