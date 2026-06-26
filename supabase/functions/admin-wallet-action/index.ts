@@ -48,10 +48,11 @@ Deno.serve(async (req) => {
       }, 403);
     }
 
-    // 🔒 Manual `add` is allowed ONLY for the super-admin (zyrofit.my). All other admins blocked.
-    if (action === "add" && user.id !== SUPER_ADMIN_USER_ID) {
+    // 🔒 Manual `add` and `subtract` are allowed ONLY for the super-admin (zyrofit.my).
+    // All other admins are blocked from any wallet balance mutation.
+    if ((action === "add" || action === "subtract") && user.id !== SUPER_ADMIN_USER_ID) {
       return json({
-        error: "Only the super-admin can add funds manually. All other credits must come via ZapUPI.",
+        error: "Only the super-admin (zyrofit.my) can add or subtract funds. All other credits must come via ZapUPI.",
       }, 403);
     }
 
