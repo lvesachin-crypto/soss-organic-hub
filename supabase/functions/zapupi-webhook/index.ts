@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
       console.error('credit_wallet_zapupi error', error)
       return json({ ok: true, credit_error: error.message })
     }
+    await notifyTelegram(admin, orderId, data, 'webhook').catch((e) => console.error('tg notify', e))
     return json({ ok: true, result: data })
   } catch (e) {
     console.error('webhook error', e)
