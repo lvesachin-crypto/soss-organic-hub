@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
       p_gateway_response: { sync_verify: verify.raw },
     })
     if (error) return json({ error: error.message }, 500)
+    if ((data as any)?.credited && !(data as any)?.duplicate) {
+      notifyTelegram(admin, orderId).catch((e) => console.error('tg notify', e))
+    }
     return json({ credited: true, result: data })
   } catch (e) {
     return json({ error: String((e as Error).message || e) }, 500)
