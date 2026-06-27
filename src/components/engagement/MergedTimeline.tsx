@@ -76,11 +76,14 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     const ps = normalizeProviderStatus(run.provider_status);
 
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
-    if (ps === 'pending') return 'pending';
+    // Once a provider order id exists, the order has already left our queue.
+    // Provider "Pending" means their side is processing/queued, not user-editable overdue.
+    if (ps === 'pending') return run.provider_order_id ? 'started' : 'pending';
     if (ps === 'in progress' || ps === 'processing') return 'started';
     if (ps === 'canceled' || ps === 'cancelled' || ps === 'refunded' || ps === 'failed' || ps === 'error') return 'failed';
 
     const s = (run.status || '').toString().toLowerCase().trim();
+    if (run.provider_order_id && (s === 'pending' || s === 'started' || s === 'processing')) return 'started';
     if (s === 'processing') return 'started';
     if (s === 'cancelled' || s === 'canceled') return 'cancelled';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
@@ -256,6 +259,8 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             const isCompleted = effectiveStatus === 'completed';
             const isFailed = effectiveStatus === 'failed';
             const isCancelled = effectiveStatus === 'cancelled';
+            const providerStatus = normalizeProviderStatus(run.provider_status);
+            const hasProviderOrder = Boolean(run.provider_order_id) && !isAutoCompletedCancel;
 
             const isAlreadyExecuted = isCompleted || isFailed || isActive;
             const isScheduledInPast = scheduledDate < now;
@@ -266,10 +271,10 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             // If pending + future = "Scheduled", pending + past = "Queued"
             const getDisplayStatus = () => {
               if (isAutoCompletedCancel) return 'Completed';
+              if (isActive) return 'Processing';
               if (run.provider_status) return run.provider_status;
               if (isCancelled) return 'CANCELLED';
               if (isFailed) return 'FAILED';
-              if (isActive) return 'Processing';
               if (isPending && isUpcoming) return 'Scheduled';
               if (isPending) return 'Queued';
               if (isCompleted) return 'Completed';
@@ -424,9 +429,9 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                     {!isAutoCompletedCancel && (run.error_message || run.provider_status || run.provider_order_id) && (
                       <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${run.provider_status === 'Completed' || run.provider_status === 'Partial'
                         ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                        : run.provider_status === 'In progress' || run.provider_status === 'Processing'
+                        : run.provider_status === 'In progress' || run.provider_status === 'Processing' || (providerStatus === 'pending' && hasProviderOrder)
                           ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
-                          : run.provider_status === 'Pending'
+                          : providerStatus === 'pending'
                             ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
                             : run.error_message?.includes('Auto-completed')
                               ? 'bg-teal-500/10 border border-teal-500/30 text-teal-400'
@@ -454,7 +459,16 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                               )}
                             </span>
                           )}
-                          {run.provider_status === 'Pending' && (
+                          {providerStatus === 'pending' && hasProviderOrder && (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              🔄 Provider ne order receive kar liya, delivery processing hai
+                              {run.provider_remains !== null && run.provider_remains !== undefined && (
+                                <span className="text-xs opacity-80">({run.provider_remains} remaining)</span>
+                              )}
+                            </span>
+                          )}
+                          {providerStatus === 'pending' && !hasProviderOrder && (
                             <span className="flex items-center gap-2">
                               <Clock className="h-3.5 w-3.5" />
                               ⏳ Queued at provider, starting soon...
