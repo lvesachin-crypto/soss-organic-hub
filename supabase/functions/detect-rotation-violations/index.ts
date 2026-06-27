@@ -36,7 +36,6 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
   // Auth: service-role key only (cron-internal endpoint)
@@ -125,7 +124,7 @@ serve(async (req) => {
           `<b>Active orders on same link:</b> ${g.count}\n\n` +
           `<b>Link:</b> <code>${g.link}</code>\n\n` +
           `Same provider has ${g.count} active orders on this link+type — rotation guard failed (persisted across multiple scans).`;
-        await sendTelegram(supabaseUrl, anonKey, msg);
+        await sendTelegram(supabaseUrl, serviceKey, msg);
         alertsSent.push(key);
       }
       upserts.push({
