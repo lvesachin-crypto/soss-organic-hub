@@ -274,6 +274,16 @@ serve(async (req) => {
     }
     const user_id = user.id
 
+    // ============ BAN CHECK ============
+    const { data: banRow } = await supabase
+      .from('profiles')
+      .select('is_banned, banned_reason')
+      .eq('user_id', user_id)
+      .maybeSingle()
+    if ((banRow as any)?.is_banned) {
+      return new Response(JSON.stringify({ error: 'Account suspended: ' + ((banRow as any).banned_reason || 'fraud') }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
     const body = await req.json()
     const { bundle_id, link, total_price, engagements, base_quantity } = body
 

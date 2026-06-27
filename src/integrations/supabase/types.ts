@@ -697,11 +697,14 @@ export type Database = {
         Row: {
           api_key: string | null
           avatar_url: string | null
+          banned_at: string | null
+          banned_reason: string | null
           created_at: string | null
           currency: string | null
           email: string
           full_name: string | null
           id: string
+          is_banned: boolean
           is_organic_mode_default: boolean | null
           organic_peak_hours_enabled: boolean | null
           organic_ratios: Json | null
@@ -716,11 +719,14 @@ export type Database = {
         Insert: {
           api_key?: string | null
           avatar_url?: string | null
+          banned_at?: string | null
+          banned_reason?: string | null
           created_at?: string | null
           currency?: string | null
           email: string
           full_name?: string | null
           id?: string
+          is_banned?: boolean
           is_organic_mode_default?: boolean | null
           organic_peak_hours_enabled?: boolean | null
           organic_ratios?: Json | null
@@ -735,11 +741,14 @@ export type Database = {
         Update: {
           api_key?: string | null
           avatar_url?: string | null
+          banned_at?: string | null
+          banned_reason?: string | null
           created_at?: string | null
           currency?: string | null
           email?: string
           full_name?: string | null
           id?: string
+          is_banned?: boolean
           is_organic_mode_default?: boolean | null
           organic_peak_hours_enabled?: boolean | null
           organic_ratios?: Json | null
@@ -1414,6 +1423,7 @@ export type Database = {
         Returns: boolean
       }
       is_maintenance_mode: { Args: never; Returns: boolean }
+      is_user_banned: { Args: { _user_id: string }; Returns: boolean }
       pg_advisory_xact_lock: { Args: { key: number }; Returns: undefined }
       reschedule_organic_run: {
         Args: { p_quantity: number; p_run_id: string; p_scheduled_at: string }

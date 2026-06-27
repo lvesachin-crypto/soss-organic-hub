@@ -34,6 +34,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ============ BAN CHECK ============
+    const { data: banRow } = await supabaseAdmin
+      .from("profiles")
+      .select("is_banned, banned_reason")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (banRow?.is_banned) {
+      return new Response(JSON.stringify({ error: "Account suspended: " + (banRow.banned_reason || "fraud") }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
     const { orderData, totalPrice, runs } = body;
 
