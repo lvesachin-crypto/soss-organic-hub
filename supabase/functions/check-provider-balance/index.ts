@@ -46,6 +46,31 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    // Auth: service-role key (cron) OR admin user JWT only
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    const token = authHeader.replace('Bearer ', '').trim()
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    if (token !== serviceKey) {
+      const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
+      if (claimsErr || !claims?.claims?.sub) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      const { data: role } = await supabase
+        .from('user_roles').select('role').eq('user_id', claims.claims.sub).eq('role','admin').maybeSingle()
+      if (!role) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
+
     const usdToInr = await getUsdToInrRate()
     console.log(`USD->INR rate: ${usdToInr}`)
 
