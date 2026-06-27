@@ -245,6 +245,7 @@ export function EngagementTypeCard({
     providerMin,
     config.runCount,
     customCurvePoints,
+    previewSchedule,
   ]);
 
   const handleToggle = (enabled: boolean) => {
