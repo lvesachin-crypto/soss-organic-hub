@@ -10,6 +10,15 @@ const corsHeaders = {
 const lastAlertTimes: { [key: string]: number } = {}
 const COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes cooldown
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 interface AlertPayload {
   job_name: string
   execution_id: string
@@ -34,32 +43,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check - only allow calls with valid auth (admin or service role from other edge functions)
+    // Auth: service-role key ONLY (internal endpoint called by edge functions / cron)
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    if (!token || token !== serviceKey) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
-    }
-
-    const supabaseAuth = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Verify token is valid (either user token or service role)
-    const token = authHeader.replace('Bearer ', '')
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    
-    // Allow service role key (from cron/other edge functions) or valid user token
-    if (token !== serviceKey && token !== anonKey) {
-      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
-      if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
     }
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
@@ -146,14 +137,21 @@ Deno.serve(async (req) => {
     const appUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '') || 'your-app'
     const cronMonitorUrl = `https://orgincwlaa.lovable.app/admin/cron-monitor`
 
-    // Format error details
+    // Format error details (HTML-escape every interpolated value)
     let errorDetailsHtml = ''
     if (payload.error_details && payload.error_details.length > 0) {
       errorDetailsHtml = payload.error_details
-        .slice(0, 10) // Limit to 10 errors
-        .map((e, i) => `${i + 1}. Run #${e.run_number || 'N/A'} (${e.type || 'Unknown'}) - ${e.error || 'Unknown error'}`)
+        .slice(0, 10)
+        .map((e, i) => `${i + 1}. Run #${escapeHtml(e.run_number ?? 'N/A')} (${escapeHtml(e.type ?? 'Unknown')}) - ${escapeHtml(e.error ?? 'Unknown error')}`)
         .join('<br/>')
     }
+    const safeJobName = escapeHtml(payload.job_name)
+    const safeExecId = escapeHtml(payload.execution_id)
+    const safeFailed = escapeHtml(payload.failed_count)
+    const safeProcessed = escapeHtml(payload.processed_count ?? payload.completed_count ?? 0)
+    const safeSkipped = escapeHtml(payload.skipped_count ?? payload.still_processing_count ?? 0)
+    const processedLabel = payload.processed_count !== undefined ? 'Processed' : 'Completed'
+    const skippedLabel = payload.skipped_count !== undefined ? 'Skipped' : 'Processing'
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -173,7 +171,7 @@ Deno.serve(async (req) => {
             <td style="padding: 40px 40px 30px 40px; text-align: center; border-bottom: 1px solid #333333;">
               <div style="font-size: 56px; margin-bottom: 16px;">🚨</div>
               <h1 style="margin: 0 0 16px 0; font-size: 28px; font-weight: 700; color: #ef4444;">Cron Job Failure Alert</h1>
-              <span style="display: inline-block; background-color: #ef4444; color: #ffffff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">${payload.job_name}</span>
+              <span style="display: inline-block; background-color: #ef4444; color: #ffffff; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">${safeJobName}</span>
             </td>
           </tr>
           
@@ -183,16 +181,16 @@ Deno.serve(async (req) => {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                 <tr>
                   <td width="33%" style="text-align: center; padding: 20px 10px;">
-                    <div style="font-size: 48px; font-weight: 800; color: #ef4444; line-height: 1;">${payload.failed_count}</div>
+                    <div style="font-size: 48px; font-weight: 800; color: #ef4444; line-height: 1;">${safeFailed}</div>
                     <div style="font-size: 13px; font-weight: 700; color: #ef4444; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">Failed</div>
                   </td>
                   <td width="33%" style="text-align: center; padding: 20px 10px; border-left: 1px solid #333333; border-right: 1px solid #333333;">
-                    <div style="font-size: 48px; font-weight: 800; color: #22c55e; line-height: 1;">${payload.processed_count ?? payload.completed_count ?? 0}</div>
-                    <div style="font-size: 13px; font-weight: 700; color: #22c55e; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">${payload.processed_count !== undefined ? 'Processed' : 'Completed'}</div>
+                    <div style="font-size: 48px; font-weight: 800; color: #22c55e; line-height: 1;">${safeProcessed}</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #22c55e; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">${processedLabel}</div>
                   </td>
                   <td width="33%" style="text-align: center; padding: 20px 10px;">
-                    <div style="font-size: 48px; font-weight: 800; color: #f59e0b; line-height: 1;">${payload.skipped_count ?? payload.still_processing_count ?? 0}</div>
-                    <div style="font-size: 13px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">${payload.skipped_count !== undefined ? 'Skipped' : 'Processing'}</div>
+                    <div style="font-size: 48px; font-weight: 800; color: #f59e0b; line-height: 1;">${safeSkipped}</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px; margin-top: 8px;">${skippedLabel}</div>
                   </td>
                 </tr>
               </table>
@@ -206,8 +204,8 @@ Deno.serve(async (req) => {
                 <tr>
                   <td style="padding: 20px;">
                     <div style="font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 14px; color: #a0a0a0; line-height: 1.8;">
-                      <span style="color: #666666;">Execution ID:</span> <span style="color: #ffffff;">${payload.execution_id}</span><br/>
-                      <span style="color: #666666;">Time:</span> <span style="color: #ffffff;">${timestamp}</span>
+                      <span style="color: #666666;">Execution ID:</span> <span style="color: #ffffff;">${safeExecId}</span><br/>
+                      <span style="color: #666666;">Time:</span> <span style="color: #ffffff;">${escapeHtml(timestamp)}</span>
                     </div>
                   </td>
                 </tr>
@@ -264,7 +262,7 @@ Deno.serve(async (req) => {
     const { data: emailResult, error: emailError } = await resend.emails.send({
       from: 'Alerts <onboarding@resend.dev>', // Use resend.dev for testing, replace with verified domain
       to: adminEmails,
-      subject: `⚠️ Cron Job Failure: ${payload.job_name} (${payload.failed_count} failed)`,
+      subject: `⚠️ Cron Job Failure: ${payload.job_name} (${payload.failed_count} failed)`.slice(0, 200),
       html: emailHtml,
     })
 

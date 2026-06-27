@@ -808,7 +808,7 @@ serve(async (req) => {
 
         fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/execute-all-runs`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
           body: JSON.stringify({ instant: true, order_id: order.id })
         }).catch(() => {})
       } catch (err: any) {
