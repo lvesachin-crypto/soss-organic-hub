@@ -429,7 +429,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                     {/* SMART STATUS MESSAGE - Shows real-time provider status */}
                     {/* Hide for auto-completed (target-met) cancellations — no provider order, badge already says Completed */}
                     {!isAutoCompletedCancel && (run.error_message || run.provider_status || run.provider_order_id) && (
-                      <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${run.provider_status === 'Completed' || run.provider_status === 'Partial'
+                      <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${run.provider_status === 'Completed' || run.provider_status === 'Partial' || (hasProviderOrder && run.provider_remains === 0)
                         ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
                         : run.provider_status === 'In progress' || run.provider_status === 'Processing' || (providerStatus === 'pending' && hasProviderOrder)
                           ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
@@ -477,7 +477,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                             </span>
                           )}
                           {/* Auto-completed = Order IS placed, delivery continues at provider */}
-                          {run.error_message?.includes('Auto-completed') && !run.provider_status?.includes('Completed') && (
+                          {run.error_message?.includes('Auto-completed') && !run.provider_status?.includes('Completed') && run.provider_remains !== 0 && (
                             <div className="flex flex-col gap-0.5">
                               <span className="flex items-center gap-2">
                                 <CheckCircle2 className="h-4 w-4" />
