@@ -75,6 +75,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
 
     const ps = normalizeProviderStatus(run.provider_status);
 
+    if (run.provider_order_id && run.provider_remains === 0) return 'completed';
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
     // Once a provider order id exists, the order has already left our queue.
     // Provider "Pending" means their side is processing/queued, not user-editable overdue.
@@ -271,6 +272,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
             // If pending + future = "Scheduled", pending + past = "Queued"
             const getDisplayStatus = () => {
               if (isAutoCompletedCancel) return 'Completed';
+              if (isCompleted) return 'Completed';
               if (isActive) return 'Processing';
               if (run.provider_status) return run.provider_status;
               if (isCancelled) return 'CANCELLED';
@@ -441,7 +443,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                         }`}>
                         <div className="flex items-center gap-2">
                           {/* Provider Status with Real-time Info */}
-                          {run.provider_status === 'Completed' && (
+                          {(run.provider_status === 'Completed' || (hasProviderOrder && run.provider_remains === 0)) && (
                             <span className="flex items-center gap-2">
                               <CheckCircle2 className="h-4 w-4" />
                               ✅ Provider delivery completed
@@ -459,7 +461,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                               )}
                             </span>
                           )}
-                          {providerStatus === 'pending' && hasProviderOrder && (
+                          {providerStatus === 'pending' && hasProviderOrder && run.provider_remains !== 0 && (
                             <span className="flex items-center gap-2">
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               🔄 Provider ne order receive kar liya, delivery processing hai
