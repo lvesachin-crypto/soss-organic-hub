@@ -130,10 +130,13 @@ export default function AdminUsers() {
 
       // All admin wallet changes go through the audited edge function.
       // Direct client-side wallet/transaction writes are blocked at the RLS layer.
-      if (!session?.access_token) throw new Error('Admin session expired. Please login again.');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const freshToken = sessionData.session?.access_token;
+      if (sessionError || !freshToken) throw new Error('Admin session expired. Please login again.');
+
       const { data, error } = await supabase.functions.invoke('admin-wallet-action', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${freshToken}`,
         },
         body: {
           target_user_id: selectedUser.user_id,
