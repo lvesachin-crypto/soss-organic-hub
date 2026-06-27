@@ -997,6 +997,7 @@ export default function EngagementOrder() {
                   minQuantity={engagements[type]?.minQuantity}
                   customCurvePoints={drawModeState.isEnabled ? drawModeState.points[type] : undefined}
                   pricePerK={servicePrices[type]?.pricePerK}
+                  previewSchedule={previewSchedules[type]}
                 />
               )
             ))}
