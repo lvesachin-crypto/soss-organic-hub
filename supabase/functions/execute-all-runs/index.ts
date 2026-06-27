@@ -688,41 +688,25 @@ serve(async (req) => {
   }
 
   try {
-    // Auth check
+    // Auth: service-role (cron) OR a verified user JWT. Reject anon and unsigned tokens.
     const authHeader = req.headers.get('Authorization')
     const supabase = supabaseModule
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '')
-      const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    {
+      const token = authHeader.replace('Bearer ', '').trim()
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      const isSystemCall = (anonKey && token === anonKey) || (serviceKey && token === serviceKey)
-      
-      if (!isSystemCall) {
-        const parts = token.split('.')
-        if (parts.length === 3) {
-          try {
-            const payload = JSON.parse(atob(parts[1]))
-            if (payload.role !== 'anon' && payload.role !== 'service_role' && !payload.sub) {
-              return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-              })
-            }
-          } catch {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-              status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            })
-          }
-        } else {
+      if (token !== serviceKey) {
+        const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
+        if (claimsErr || !claims?.claims?.sub) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
             status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           })
         }
       }
-    } else if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
     }
 
     const executionId = crypto.randomUUID().slice(0, 8)
