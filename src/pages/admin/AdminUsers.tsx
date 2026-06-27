@@ -79,7 +79,7 @@ interface UserProfile {
 type UserTab = 'all' | 'normal' | 'monthly' | 'lifetime';
 
 export default function AdminUsers() {
-  const { user, session, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<UserTab>('all');
