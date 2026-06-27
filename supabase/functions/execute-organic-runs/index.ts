@@ -20,19 +20,16 @@ serve(async (req) => {
   }
 
   try {
-    // Auth check - allow cron (anon key) or authenticated users
+    // Auth: service-role key (cron) OR a verified user JWT. Reject anon-key calls.
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-
-    // Verify token is valid
-    const token = authHeader.replace('Bearer ', '')
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    const token = authHeader.replace('Bearer ', '').trim()
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    if (token !== anonKey && token !== serviceKey) {
+    if (token !== serviceKey) {
       const { data: { user }, error: authError } = await supabase.auth.getUser(token)
       if (authError || !user) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
