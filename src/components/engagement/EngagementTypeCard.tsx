@@ -39,6 +39,10 @@ interface EngagementTypeCardProps {
   minQuantity?: number;
   customCurvePoints?: ControlPoint[];
   pricePerK?: number; // Price per 1000 units for accurate price recalculation
+  // EXACT schedule (from DeliveryPreview / saved to backend on submit).
+  // When provided, the in-card Schedule Preview mirrors it byte-for-byte,
+  // so the user sees the same runs/quantity/timing they'll get post-order.
+  previewSchedule?: { scheduled_at: string; quantity_to_send: number }[];
 }
 
 // All icons from ENGAGEMENT_CONFIG
@@ -72,6 +76,7 @@ export function EngagementTypeCard({
   minQuantity,
   customCurvePoints,
   pricePerK = 0,
+  previewSchedule,
 }: EngagementTypeCardProps) {
   const { formatPrice } = useCurrency();
   const [customHoursInput, setCustomHoursInput] = useState('24');
