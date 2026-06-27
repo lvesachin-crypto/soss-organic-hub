@@ -15,14 +15,14 @@ const isTerminal = (s?: string | null) => TERMINAL.has((s || "").toLowerCase().t
 const normLink = (s?: string | null) =>
   (s || "").toLowerCase().trim().replace(/\/$/, "");
 
-async function sendTelegram(supabaseUrl: string, anonKey: string, text: string) {
+async function sendTelegram(supabaseUrl: string, serviceKey: string, text: string) {
   try {
     await fetch(`${supabaseUrl}/functions/v1/send-telegram-notification`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${anonKey}`,
-        apikey: anonKey,
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
       },
       body: JSON.stringify({ message: text, parse_mode: "HTML" }),
     });
@@ -38,6 +38,15 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Auth: service-role key only (cron-internal endpoint)
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token || token !== serviceKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
 
   try {
     const { data: runs, error } = await supabase
