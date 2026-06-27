@@ -108,11 +108,13 @@ export function TypeHistoryCard({
     const ps = normalizeProviderStatus(run.provider_status);
 
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
-    if (ps === 'pending') return 'pending';
+    // Provider pending with provider_order_id means provider accepted it; show as Processing, not overdue/pending.
+    if (ps === 'pending') return run.provider_order_id ? 'started' : 'pending';
     if (ps === 'in progress' || ps === 'processing') return 'started';
     if (ps === 'canceled' || ps === 'cancelled' || ps === 'refunded' || ps === 'failed' || ps === 'error') return 'failed';
 
     const s = (run.status || '').toString().toLowerCase().trim();
+    if (run.provider_order_id && (s === 'pending' || s === 'started' || s === 'processing')) return 'started';
     if (s === 'processing') return 'started';
     if (s === 'pending' || s === 'started' || s === 'completed' || s === 'failed') return s as any;
     return 'pending';
@@ -375,10 +377,10 @@ export function TypeHistoryCard({
                 // Smart status: provider_status > mapped internal status
                 const getDisplayStatus = () => {
                   if (isAutoCompletedCancel) return 'Completed';
+                  if (isActive) return 'Processing';
                   if (run.provider_status) return run.provider_status;
                   if (run.status === 'cancelled') return isAutoCompletedCancel ? 'Completed' : 'CANCELLED';
                   if (isFailed) return 'FAILED';
-                  if (isActive) return 'Processing';
                   if (isUpcoming) return 'Scheduled';
                   if (isPending) return 'Queued';
                   if (isCompleted) return 'Completed';
@@ -448,8 +450,8 @@ export function TypeHistoryCard({
                         <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
                             📅 Scheduled: {format(scheduledDate, 'MMM d, hh:mm a')}
-                            <span className={`ml-1 font-medium ${isPastDue ? 'text-orange-400' : 'text-teal-400'}`}>
-                              ({isPastDue ? `${relativeTime} ago` : `in ${relativeTime}`})
+                            <span className={`ml-1 font-medium ${isActive ? 'text-blue-400' : isPastDue ? 'text-amber-500' : 'text-teal-400'}`}>
+                              ({isActive ? `${relativeTime} ago` : isPastDue ? `${relativeTime} ago` : `in ${relativeTime}`})
                             </span>
                           </span>
 
