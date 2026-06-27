@@ -79,7 +79,7 @@ interface UserProfile {
 type UserTab = 'all' | 'normal' | 'monthly' | 'lifetime';
 
 export default function AdminUsers() {
-  const { user, session, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<UserTab>('all');
@@ -130,10 +130,13 @@ export default function AdminUsers() {
 
       // All admin wallet changes go through the audited edge function.
       // Direct client-side wallet/transaction writes are blocked at the RLS layer.
-      if (!session?.access_token) throw new Error('Admin session expired. Please login again.');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const freshToken = sessionData.session?.access_token;
+      if (sessionError || !freshToken) throw new Error('Admin session expired. Please login again.');
+
       const { data, error } = await supabase.functions.invoke('admin-wallet-action', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${freshToken}`,
         },
         body: {
           target_user_id: selectedUser.user_id,
@@ -141,7 +144,20 @@ export default function AdminUsers() {
           inr_amount: inrAmount,
         },
       });
-      if (error) throw new Error(error.message || 'Action failed');
+      if (error) {
+        const response = (error as any)?.context;
+        if (response && typeof response.json === 'function') {
+          try {
+            const body = await response.json();
+            throw new Error(body?.error || error.message || 'Action failed');
+          } catch (parseError) {
+            if (parseError instanceof Error && parseError.message !== 'Unexpected end of JSON input') {
+              throw parseError;
+            }
+          }
+        }
+        throw new Error(error.message || 'Action failed');
+      }
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
