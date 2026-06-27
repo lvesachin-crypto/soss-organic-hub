@@ -402,8 +402,8 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                           ⏰ Next in {formatDistanceToNow(scheduledDate)}
                         </span>
                       ) : (
-                        <span className="font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded">
-                          ⚠️ Overdue by {formatDistanceToNow(scheduledDate)}
+                        <span className="font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded">
+                          ⏳ Processing • scheduled {formatDistanceToNow(scheduledDate)} ago
                         </span>
                       )}
 
