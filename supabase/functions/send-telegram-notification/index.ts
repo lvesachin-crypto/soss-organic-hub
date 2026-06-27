@@ -31,20 +31,28 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Authentication: require either a valid signed-in user JWT or the service-role key.
-    // This blocks anonymous internet abuse of the admin Telegram channel.
+    // Authentication: service-role key OR an authenticated ADMIN user only.
+    // Regular users can no longer post to the admin Telegram channel.
     const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     let authorized = !!token && !!serviceKey && token === serviceKey;
     if (!authorized && token) {
       try {
         const supa = createClient(
           Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          serviceKey,
         );
         const { data, error } = await supa.auth.getUser(token);
-        authorized = !error && !!data?.user;
+        if (!error && data?.user) {
+          const { data: roleRow } = await supa
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", data.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          authorized = !!roleRow;
+        }
       } catch (_) {
         authorized = false;
       }
