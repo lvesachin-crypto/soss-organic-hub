@@ -32,7 +32,7 @@ import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 
 export default function AdminDeposits() {
-    const { isAdmin, isLoading: authLoading } = useAuth();
+    const { session, isAdmin, isLoading: authLoading } = useAuth();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -86,7 +86,11 @@ export default function AdminDeposits() {
         mutationFn: async ({ id, status, userId, amount }: { id: string, status: 'completed' | 'failed', userId: string, amount: number }) => {
             // All approvals/rejections go through the audited edge function.
             // Direct wallet/transaction writes are blocked by RLS.
+            if (!session?.access_token) throw new Error('Admin session expired. Please login again.');
             const { data, error } = await supabase.functions.invoke('admin-wallet-action', {
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                },
                 body: {
                     action: status === 'completed' ? 'approve_pending' : 'reject_pending',
                     transaction_id: id,
