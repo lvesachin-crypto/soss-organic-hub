@@ -552,15 +552,26 @@ serve(async (req) => {
           const totalTargetQty = engagement.quantity
 
           if (previewRuns.length > 0) {
-            validatedEntries = uniquifyScheduledRuns(previewRuns, totalTargetQty, providerMin, maxBatchCap)
-              .map((run) => ({
+            // ✅ Trust the client preview verbatim — user already saw and
+            // approved exactly these timings + quantities. Do NOT re-roll
+            // through uniquifyScheduledRuns (that mutated 100→101→102…).
+            validatedEntries = previewRuns
+              .map((r) => ({
+                scheduled_at: new Date(r.scheduled_at).toISOString(),
+                quantity_to_send: Math.max(0, Math.round(Number(r.quantity_to_send) || 0)),
+                base_quantity: Math.max(0, Math.round(Number(r.base_quantity ?? r.quantity_to_send) || 0)),
+                variance_applied: Number(r.variance_applied ?? 0),
+                peak_multiplier: Number(r.peak_multiplier ?? 1),
+              }))
+              .filter((r) => r.quantity_to_send > 0)
+              .map((r, idx) => ({
                 engagement_order_item_id: itemId,
-                run_number: run.run_number,
-                scheduled_at: run.scheduled_at,
-                quantity_to_send: run.quantity_to_send,
-                base_quantity: run.base_quantity,
-                variance_applied: run.variance_applied,
-                peak_multiplier: run.peak_multiplier,
+                run_number: idx + 1,
+                scheduled_at: r.scheduled_at,
+                quantity_to_send: r.quantity_to_send,
+                base_quantity: r.base_quantity,
+                variance_applied: r.variance_applied,
+                peak_multiplier: r.peak_multiplier,
                 status: 'pending'
               }))
           }
