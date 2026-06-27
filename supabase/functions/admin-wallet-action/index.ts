@@ -131,12 +131,8 @@ Deno.serve(async (req) => {
       ? Math.trunc((currentDeposited + usd) * 10000) / 10000
       : currentDeposited;
 
-    const { error: updErr } = await admin
-      .from("wallets")
-      .update({ balance: newBalance, total_deposited: newDeposited })
-      .eq("user_id", target_user_id);
-    if (updErr) throw updErr;
-
+    // IMPORTANT: insert transaction FIRST so the wallet credit-trail trigger
+    // (enforce_wallet_credit_trail) finds a matching row when balance increases.
     const { error: txErr } = await admin.from("transactions").insert({
       user_id: target_user_id,
       type: isAdd ? "deposit" : "refund",
@@ -144,9 +140,15 @@ Deno.serve(async (req) => {
       balance_after: newBalance,
       description: `${isAdd ? "Admin manual credit" : "Admin withdrawal"} — ₹${inr.toFixed(2)}${notes ? " — " + notes : ""}`,
       status: "completed",
-      payment_method: isAdd ? "manual_admin" : undefined,
+      payment_method: isAdd ? "manual_admin" : "manual_admin",
     });
     if (txErr) throw txErr;
+
+    const { error: updErr } = await admin
+      .from("wallets")
+      .update({ balance: newBalance, total_deposited: newDeposited })
+      .eq("user_id", target_user_id);
+    if (updErr) throw updErr;
 
     // Audit log — never let logging failure block the action result
     await admin.from("admin_audit_log").insert({
