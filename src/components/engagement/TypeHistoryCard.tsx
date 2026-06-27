@@ -107,6 +107,7 @@ export function TypeHistoryCard({
 
     const ps = normalizeProviderStatus(run.provider_status);
 
+    if (run.provider_order_id && run.provider_remains === 0) return 'completed';
     if (ps === 'completed' || ps === 'complete' || ps === 'partial') return 'completed';
     // Provider pending with provider_order_id means provider accepted it; show as Processing, not overdue/pending.
     if (ps === 'pending') return run.provider_order_id ? 'started' : 'pending';
@@ -377,6 +378,7 @@ export function TypeHistoryCard({
                 // Smart status: provider_status > mapped internal status
                 const getDisplayStatus = () => {
                   if (isAutoCompletedCancel) return 'Completed';
+                  if (isCompleted) return 'Completed';
                   if (isActive) return 'Processing';
                   if (run.provider_status) return run.provider_status;
                   if (run.status === 'cancelled') return isAutoCompletedCancel ? 'Completed' : 'CANCELLED';
