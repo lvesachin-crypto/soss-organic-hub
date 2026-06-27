@@ -177,18 +177,8 @@ Request ID: ${requestData.id}`;
         console.error('Failed to send chat message:', msgError);
       }
 
-      // Step 4: Send Telegram alert to admin
-      const appUrl = window.location.origin;
-      supabase.functions.invoke('send-telegram-notification', {
-        body: {
-          message: `<b>👑 NEW SUBSCRIPTION REQUEST</b>\n\n` +
-            `👤 <b>Name:</b> ${validation.data.full_name}\n` +
-            `📧 <b>Email:</b> ${profile?.email || user.email}\n` +
-            `📞 <b>Phone:</b> ${validation.data.phone}\n` +
-            `💎 <b>Plan:</b> ${planType.toUpperCase()}\n\n` +
-            `<a href="${appUrl}/admin/subscriptions">Open Admin Panel</a>`,
-        },
-      }).catch(err => console.error('TG alert failed:', err));
+      // Admin notification handled server-side via the subscription_requests row +
+      // existing admin dashboard / chat. (Direct Telegram from user blocked for security.)
     },
     onSuccess: () => {
       toast.success('Request submitted! Opening Live Chat...');
