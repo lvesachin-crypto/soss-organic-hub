@@ -9,7 +9,7 @@ const C = {
   bg: '#FAFAF7',
   ink: '#0B0B12',
   ink2: '#5B5B6B',
-  muted: '#8A8A99',
+  muted: '#6B6B78',
   line: 'rgba(11,11,18,.07)',
   card: '#FFFFFF',
   orange: '#10B981',
@@ -83,6 +83,7 @@ const Index = () => {
       </nav>
 
       {/* ═══ HERO ═══ */}
+      <main>
       <section className="pt-14 sm:pt-20 lg:pt-28 pb-12 sm:pb-16 text-center px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 mb-6">
@@ -385,6 +386,7 @@ const Index = () => {
           </div>
         </div>
       </section>
+      </main>
 
       {/* ═══ FOOTER ═══ */}
       <footer className="py-12 px-4 sm:px-6 lg:px-8" style={{ background: C.bg, borderTop: `1px solid ${C.line}` }}>
