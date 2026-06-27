@@ -647,9 +647,9 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
 async function triggerContinuation(executionId: string, reason: string) {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-    if (!supabaseUrl || !anonKey) {
+    if (!supabaseUrl || !serviceKey) {
       console.error(`⚠️ Cannot continue [${executionId}] - missing backend env vars`)
       return false
     }
@@ -658,8 +658,8 @@ async function triggerContinuation(executionId: string, reason: string) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${anonKey}`,
-        'apikey': anonKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': serviceKey,
       },
       body: JSON.stringify({ continued_from: executionId, reason }),
     })
