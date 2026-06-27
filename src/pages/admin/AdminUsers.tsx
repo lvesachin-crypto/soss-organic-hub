@@ -144,7 +144,20 @@ export default function AdminUsers() {
           inr_amount: inrAmount,
         },
       });
-      if (error) throw new Error(error.message || 'Action failed');
+      if (error) {
+        const response = (error as any)?.context;
+        if (response && typeof response.json === 'function') {
+          try {
+            const body = await response.json();
+            throw new Error(body?.error || error.message || 'Action failed');
+          } catch (parseError) {
+            if (parseError instanceof Error && parseError.message !== 'Unexpected end of JSON input') {
+              throw parseError;
+            }
+          }
+        }
+        throw new Error(error.message || 'Action failed');
+      }
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
