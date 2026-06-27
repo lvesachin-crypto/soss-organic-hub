@@ -302,8 +302,8 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                   {/* Run Number Circle - Colorful Gradient */}
                   <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full font-bold text-sm sm:text-base shrink-0 ${isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
                     isActive ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white animate-pulse' :
-                      isFailed ? 'bg-gradient-to-br from-green-500 to-red-500 text-white' :
-                        'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
+                        isFailed ? 'bg-gradient-to-br from-green-500 to-red-500 text-white' :
+                          'bg-gradient-to-br from-amber-400 to-yellow-500 text-white'
                     }`}>
                     #{index + 1}
                   </div>
@@ -315,8 +315,8 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                       <Badge className={`text-sm px-3 py-1 ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
                         isActive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
                           isFailed ? 'bg-green-500/20 text-green-400 border border-green-500/40' :
-                            isUpcoming ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' :
-                              'bg-violet-500/20 text-violet-400 border border-violet-500/40'
+                            isUpcoming ? 'bg-amber-400/20 text-amber-500 border border-amber-400/40' :
+                              'bg-amber-400/20 text-amber-500 border border-amber-400/40'
                         }`}>
                         {isCompleted && <CheckCircle2 className="h-4 w-4 mr-1.5" />}
                         {isActive && <Play className="h-4 w-4 mr-1.5" />}
