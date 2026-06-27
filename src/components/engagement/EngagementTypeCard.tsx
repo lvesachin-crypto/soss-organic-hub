@@ -124,6 +124,35 @@ export function EngagementTypeCard({
   const scheduleData = useMemo(() => {
     if (!config.enabled || config.quantity < providerMin) return null;
 
+    // ✅ Single source of truth: when DeliveryPreview has already produced the
+    // exact schedule that will be saved on submit, mirror it here so the user
+    // never sees a different number of runs / interval / finish time before
+    // vs after placing the order.
+    if (previewSchedule && previewSchedule.length > 0) {
+      const runs: OrganicRunConfig[] = previewSchedule.map((r, idx) => {
+        const scheduledAt = new Date(r.scheduled_at);
+        return {
+          runNumber: idx + 1,
+          scheduledAt,
+          quantity: r.quantity_to_send,
+          baseQuantity: r.quantity_to_send,
+          varianceApplied: 0,
+          peakMultiplier: 1,
+          dayOfWeek: scheduledAt.getDay(),
+          hourOfDay: scheduledAt.getHours(),
+          sessionType: 'normal',
+          humanBehaviorScore: 85,
+          patternBreaker: false,
+        };
+      });
+      const totalDuration = runs.length > 1
+        ? runs[runs.length - 1].scheduledAt.getTime() - runs[0].scheduledAt.getTime()
+        : 0;
+      const avgInterval = runs.length > 1 ? Math.round(totalDuration / (runs.length - 1) / 60000) : 0;
+      const finishTime = runs.length > 0 ? runs[runs.length - 1].scheduledAt : new Date();
+      return { runs, runCount: runs.length, avgInterval, finishTime, duration: totalDuration };
+    }
+
     // For custom mode, use the actual timeLimitHours value (already stored in config)
     // For preset modes, use timeLimitHours directly
     const effectiveTimeLimit = timeLimitHours;
