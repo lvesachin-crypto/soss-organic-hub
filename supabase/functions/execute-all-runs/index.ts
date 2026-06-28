@@ -513,7 +513,26 @@ const calculateObservedRunDelivery = (run: any) => {
   return 0
 }
 
-const calculateObservedItemDelivery = (runs: any[]) => {
+// Configurable under-delivery buffer for publicCountDelta.
+// Organic (real) viewers can inflate the post's public view count and trick
+// the over-delivery guard into stopping orders too early. To absorb that
+// genuine growth, we discount publicCountDelta by a buffer = max(MIN, target * PERCENT/100)
+// before treating it as "already delivered". Tune via env vars without redeploying logic.
+const PUBLIC_DELTA_BUFFER_PERCENT = Math.max(
+  0,
+  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_PERCENT') ?? '15'),
+)
+const PUBLIC_DELTA_BUFFER_MIN = Math.max(
+  0,
+  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_MIN') ?? '50'),
+)
+
+const computePublicDeltaBuffer = (targetQty: number) => {
+  const pctBuffer = Math.floor((Math.max(0, targetQty) * PUBLIC_DELTA_BUFFER_PERCENT) / 100)
+  return Math.max(PUBLIC_DELTA_BUFFER_MIN, pctBuffer)
+}
+
+const calculateObservedItemDelivery = (runs: any[], targetQty: number = 0) => {
   const askedSent = (runs || []).reduce((sum: number, run: any) => {
     if (run?.status === 'started' || run?.status === 'completed') {
       return sum + Number(run?.quantity_to_send || 0)
@@ -534,17 +553,26 @@ const calculateObservedItemDelivery = (runs: any[]) => {
     ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
     : 0
 
+  // Discount organic growth: only the portion of publicCountDelta that exceeds
+  // the buffer is attributed to provider over-delivery.
+  const publicDeltaBuffer = computePublicDeltaBuffer(targetQty)
+  const adjustedPublicCountDelta = Math.max(0, publicCountDelta - publicDeltaBuffer)
+
   return {
     askedSent,
     observedByRuns,
     publicCountDelta,
+    publicDeltaBuffer,
+    adjustedPublicCountDelta,
     // STRICT MODE: include publicCountDelta so provider over-delivery
     // (e.g. we ask 5k views and the provider pushes 50k to the public post)
     // is treated as already-delivered. This was previously excluded to allow
     // for organic growth from real users, but it caused massive over-delivery
     // complaints (10k ordered → 150k delivered). Better to slightly under-deliver
     // when a post also has organic traffic than to overshoot 10-15×.
-    delivered: Math.max(askedSent, observedByRuns, publicCountDelta),
+    // Organic buffer (PUBLIC_DELTA_BUFFER_PERCENT / PUBLIC_DELTA_BUFFER_MIN) softens
+    // the publicCountDelta so genuine organic viewers don't prematurely stop the order.
+    delivered: Math.max(askedSent, observedByRuns, adjustedPublicCountDelta),
   }
 }
 
