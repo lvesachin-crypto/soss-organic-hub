@@ -538,12 +538,13 @@ const calculateObservedItemDelivery = (runs: any[]) => {
     askedSent,
     observedByRuns,
     publicCountDelta,
-    // NOTE: publicCountDelta is intentionally EXCLUDED from `delivered`.
-    // The public like/view count on a real post grows organically (natural users),
-    // so including it inflates our "delivered" total and causes future scheduled
-    // runs to be capped/cancelled even though we haven't actually sent that quantity.
-    // We only trust what we asked the provider to send + what the provider reports remaining.
-    delivered: Math.max(askedSent, observedByRuns),
+    // STRICT MODE: include publicCountDelta so provider over-delivery
+    // (e.g. we ask 5k views and the provider pushes 50k to the public post)
+    // is treated as already-delivered. This was previously excluded to allow
+    // for organic growth from real users, but it caused massive over-delivery
+    // complaints (10k ordered → 150k delivered). Better to slightly under-deliver
+    // when a post also has organic traffic than to overshoot 10-15×.
+    delivered: Math.max(askedSent, observedByRuns, publicCountDelta),
   }
 }
 
