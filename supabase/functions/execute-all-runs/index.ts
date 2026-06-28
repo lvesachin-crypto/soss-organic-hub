@@ -1085,25 +1085,25 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             .eq('engagement_order_item_id', item.id)
             .in('status', ['completed', 'started', 'failed'])
 
-          const observed = calculateObservedItemDelivery(sentRows || [])
+          const observed = calculateObservedItemDelivery(sentRows || [], orderedQty)
           const alreadySent = observed.delivered
           const remaining = orderedQty - alreadySent
           if (remaining <= 0) {
             // Target met (or exceeded via over-delivery) — cancel ALL remaining pending runs
             await supabase.from('organic_run_schedule').update({
               status: 'cancelled',
-              error_message: `Target met (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, target=${orderedQty}) — cancelling remaining runs`,
+              error_message: `Target met (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — cancelling remaining runs`,
               completed_at: new Date().toISOString(),
             }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
             await supabase.from('engagement_order_items').update({
               status: 'completed', updated_at: new Date().toISOString(),
             }).eq('id', item.id).neq('status', 'completed')
             skipped++
-            console.log(`🛡️ Item ${item.id} target met — asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, target=${orderedQty}. Cancelling remaining.`)
+            console.log(`🛡️ Item ${item.id} target met — asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}. Cancelling remaining.`)
             continue
           }
           if (run.quantity_to_send > remaining) {
-            console.log(`🛡️ Capping run #${run.run_number} qty ${run.quantity_to_send} → ${remaining} (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, target=${orderedQty})`)
+            console.log(`🛡️ Capping run #${run.run_number} qty ${run.quantity_to_send} → ${remaining} (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty})`)
             await supabase.from('organic_run_schedule').update({
               quantity_to_send: remaining,
             }).eq('id', run.id)
