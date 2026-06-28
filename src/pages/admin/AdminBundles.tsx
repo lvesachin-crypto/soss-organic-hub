@@ -978,9 +978,9 @@ function BundleCard({
                 )}
 
                 {/* Manual Price (INR per 1K) — overrides linked service price */}
-                <div className="flex items-center gap-2 pl-12">
+                <div className="flex flex-wrap items-center gap-2 pl-4 sm:pl-12">
                   <span className="text-xs text-muted-foreground shrink-0">INR / 1K:</span>
-                  <div className="relative flex-1 max-w-[160px]">
+                  <div className="relative flex-1 min-w-[120px] max-w-[160px]">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
                     <Input
                       type="number"
@@ -1018,7 +1018,7 @@ function BundleCard({
                 </div>
 
                 {/* Service Info + Provider Config */}
-                <div className="flex items-center gap-2 pl-12">
+                <div className="flex flex-wrap items-center gap-2 pl-4 sm:pl-12">
                   {(() => {
                     // Use the JOIN data (item.service) as primary source
                     const joinedService = item.service as any;
@@ -1028,11 +1028,11 @@ function BundleCard({
                     const displayPrice = linkedService?.price ?? null;
 
                     return (
-                      <div className="flex-1 h-9 px-3 rounded-lg border border-border bg-background flex items-center text-xs gap-2">
+                      <div className="flex-1 min-w-[200px] min-h-9 py-1.5 px-3 rounded-lg border border-border bg-background flex flex-wrap items-center text-xs gap-2">
                         {linkedService ? (
                           <>
-                            <span className="text-foreground font-medium truncate">
-                              {linkedService.name?.slice(0, 40)}
+                            <span className="text-foreground font-medium break-all flex-1 min-w-0">
+                              {linkedService.name}
                             </span>
                             <Badge variant="outline" className="text-[10px] shrink-0 font-bold border-primary/30 text-primary">
                               ${displayPrice ?? '?'}/1K
