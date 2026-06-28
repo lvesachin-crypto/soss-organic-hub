@@ -520,11 +520,11 @@ const calculateObservedRunDelivery = (run: any) => {
 // before treating it as "already delivered". Tune via env vars without redeploying logic.
 const PUBLIC_DELTA_BUFFER_PERCENT = Math.max(
   0,
-  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_PERCENT') ?? '40'),
+  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_PERCENT') ?? '0'),
 )
 const PUBLIC_DELTA_BUFFER_MIN = Math.max(
   0,
-  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_MIN') ?? '100'),
+  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_MIN') ?? '0'),
 )
 
 const computePublicDeltaBuffer = (targetQty: number) => {
