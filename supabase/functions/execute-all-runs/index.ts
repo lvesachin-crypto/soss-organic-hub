@@ -1286,9 +1286,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         supabase, item.service.id, busyAccountIds, executionId
       )
       
-      // Default provider fallback
+      // Default provider fallback — ONLY when the admin has NOT configured any
+      // service_provider_mapping for this service. If a mapping exists, we must
+      // strictly respect it (so admins can route a service away from its original
+      // imported provider, e.g. map Instagram Shares [S3] to Indsm only).
       let defaultProvider: ProviderAccount | null = null
-      if (item.service.provider_id) {
+      if (item.service.provider_id && !mappingCache.hasAnyForService(item.service.id)) {
         // FIX: provider_account_id column is UUID. Resolve text provider_id → matching
         // provider_accounts row (UUID). If none exists, skip the fallback to avoid
         // "invalid input syntax for type uuid" errors that block all runs.
