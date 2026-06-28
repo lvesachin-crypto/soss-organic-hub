@@ -524,7 +524,7 @@ const PUBLIC_DELTA_BUFFER_PERCENT = Math.max(
 )
 const PUBLIC_DELTA_BUFFER_MIN = Math.max(
   0,
-  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_MIN') ?? '50'),
+  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_MIN') ?? '100'),
 )
 
 const computePublicDeltaBuffer = (targetQty: number) => {
