@@ -1901,21 +1901,52 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         }
       }
 
-      const { data: provider } = await supabase
-        .from('providers').select('*')
-        .eq('id', order.service.provider_id).maybeSingle()
+      // STRICT MAPPING — legacy orders must also respect service_provider_mapping
+      // when configured. If no mapping is configured, postpone (so admin can add one).
+      const mappedAccountsLegacy = await mappingCache.getForService(
+        supabase, order.service.id, [], executionId
+      )
+      const hasLegacyMapping = mappingCache.hasConfiguredMappingForService(order.service.id)
 
-      if (!provider) {
+      let provider: any = null
+      let providerServiceIdOverride: string | null = null
+
+      if (hasLegacyMapping) {
+        if (mappedAccountsLegacy.length === 0) {
+          const postponeMs = ACTIVE_ORDER_RETRY_MS
+          await supabase.from('organic_run_schedule').update({
+            scheduled_at: new Date(Date.now() + postponeMs).toISOString(),
+            error_message: '[Postponed] All mapped providers busy for this link',
+            last_status_check: new Date().toISOString(),
+          }).eq('id', run.id)
+          skipped++
+          continue
+        }
+        const chosen = mappedAccountsLegacy[0]
+        provider = {
+          id: chosen.account.id,
+          provider_id: chosen.account.provider_id,
+          name: chosen.account.name,
+          api_key: chosen.account.api_key,
+          api_url: chosen.account.api_url,
+        }
+        providerServiceIdOverride = chosen.providerServiceId || null
+      } else {
+        // No mapping configured — wait until admin maps a provider in
+        // Admin → Service Provider Mapping. Do NOT fall back to service.provider_id.
+        const postponeMs = 5 * 60 * 1000
         await supabase.from('organic_run_schedule').update({
-          status: 'failed', error_message: 'Provider not found',
+          scheduled_at: new Date(Date.now() + postponeMs).toISOString(),
+          error_message: '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping',
+          last_status_check: new Date().toISOString(),
         }).eq('id', run.id)
-        failed++
+        skipped++
         continue
       }
 
-      if (!isValidHttpUrl(provider.api_url)) {
+      if (!provider || !isValidHttpUrl(provider.api_url)) {
         await supabase.from('organic_run_schedule').update({
-          status: 'failed', error_message: 'Provider has invalid API URL',
+          status: 'failed', error_message: 'Mapped provider has invalid API URL',
         }).eq('id', run.id)
         failed++
         continue
