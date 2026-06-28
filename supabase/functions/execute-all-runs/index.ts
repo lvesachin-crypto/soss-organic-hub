@@ -520,7 +520,7 @@ const calculateObservedRunDelivery = (run: any) => {
 // before treating it as "already delivered". Tune via env vars without redeploying logic.
 const PUBLIC_DELTA_BUFFER_PERCENT = Math.max(
   0,
-  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_PERCENT') ?? '15'),
+  Number(Deno.env.get('PUBLIC_DELTA_BUFFER_PERCENT') ?? '40'),
 )
 const PUBLIC_DELTA_BUFFER_MIN = Math.max(
   0,
@@ -547,7 +547,7 @@ const calculateObservedItemDelivery = (runs: any[], targetQty: number = 0) => {
 
   const startCounts = (runs || [])
     .map((run: any) => Number(run?.provider_start_count))
-    .filter((value: number) => Number.isFinite(value) && value > 0)
+    .filter((value: number) => Number.isFinite(value) && value >= 0)
 
   const publicCountDelta = startCounts.length > 0
     ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
