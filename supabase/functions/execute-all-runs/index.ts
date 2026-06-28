@@ -1309,32 +1309,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         supabase, item.service.id, busyAccountIds, executionId
       )
       
-      // Default provider fallback — ONLY when the admin has NOT configured any
-      // service_provider_mapping row for this service. If a mapping exists, we must
-      // strictly respect it even if the mapped account is currently busy/unavailable
-      // (so Instagram Shares mapped to Indsm cannot silently fall back to cheapxbhi).
-      let defaultProvider: ProviderAccount | null = null
-      if (item.service.provider_id && !mappingCache.hasConfiguredMappingForService(item.service.id)) {
-        // FIX: provider_account_id column is UUID. Resolve text provider_id → matching
-        // provider_accounts row (UUID). If none exists, skip the fallback to avoid
-        // "invalid input syntax for type uuid" errors that block all runs.
-        const { data: acct } = await supabase
-          .from('provider_accounts').select('*')
-          .eq('provider_id', item.service.provider_id)
-          .eq('is_active', true)
-          .order('priority', { ascending: false })
-          .limit(1).maybeSingle()
-
-        if (acct && isValidHttpUrl(acct.api_url) &&
-            !busyAccountIds.includes(acct.id) &&
-            !availableAccounts.some(a => a.account.id === acct.id)) {
-          defaultProvider = {
-            id: acct.id, provider_id: acct.provider_id, name: acct.name,
-            api_key: acct.api_key, api_url: acct.api_url,
-            priority: 999, is_active: acct.is_active, last_used_at: acct.last_used_at
-          }
-        }
-      }
+      // STRICT MAPPING MODE — no automatic default-provider fallback.
+      // Only providers explicitly mapped via service_provider_mapping for this
+      // service are eligible. If admin hasn't mapped any, the run is postponed
+      // until a mapping is configured (prevents accidental routing to a service's
+      // legacy default provider_id).
       
       const zeroDeliveryRetry = isRetry && isZeroDeliveryProviderFailure(run)
       const accountsToTry: ProviderCandidate[] = [...availableAccounts]
@@ -1347,14 +1326,6 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         if (aRecent !== bRecent) return aRecent - bRecent
         return (a.sortOrder || 999) - (b.sortOrder || 999)
       })
-      if (defaultProvider && !accountsToTry.some(a => a.account.id === defaultProvider!.id)) {
-        accountsToTry.push({
-          account: defaultProvider,
-          providerServiceId: item.service.provider_service_id,
-          minQuantity: Number(item.service.min_quantity || 0),
-          sortOrder: 999,
-        })
-      }
       
       if (accountsToTry.length === 0) {
         if (mappingCache.hasConfiguredMappingForService(item.service.id)) {
@@ -1371,10 +1342,20 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           results.push({ run_id: run.id, run_number: run.run_number, type: item.engagement_type,
             success: false, skipped: true, reason: `All providers busy - postponed ${postponeMs / 60000}min` })
         } else {
+          // No mapping configured for this service — postpone (don't fail) so that
+          // as soon as admin maps a provider in Service → Provider Mapping, the
+          // run picks up automatically on the next cron tick.
+          const postponeMs = 5 * 60 * 1000
+          const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
           await supabase.from('organic_run_schedule').update({
-            status: 'failed', error_message: 'No provider accounts configured',
+            scheduled_at: newScheduledAt,
+            error_message: '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping',
+            last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
-          failed++
+          skipped++
+          console.log(`⏸️ Run #${run.run_number} waiting — no provider mapping configured for service ${item.service.id}`)
+          results.push({ run_id: run.id, run_number: run.run_number, type: item.engagement_type,
+            success: false, skipped: true, reason: 'No provider mapping configured' })
         }
         continue
       }
