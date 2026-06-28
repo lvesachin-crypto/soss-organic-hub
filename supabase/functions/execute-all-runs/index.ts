@@ -161,6 +161,18 @@ const supabaseModule = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const [, payload] = token.split('.')
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
+
 // ==========================================
 // OPTIMIZED: Per-invocation mapping cache
 // Avoids repeated DB queries for same service
@@ -696,6 +708,8 @@ serve(async (req) => {
 
   try {
     // Auth: service-role (cron) OR a verified user JWT. Reject anon and unsigned tokens.
+    // Service-role tokens do not contain a user `sub`, so Supabase Auth claims checks
+    // reject them. Accept them by role claim after the Edge gateway has verified JWT.
     const authHeader = req.headers.get('Authorization')
     const supabase = supabaseModule
     if (!authHeader?.startsWith('Bearer ')) {
@@ -706,7 +720,9 @@ serve(async (req) => {
     {
       const token = authHeader.replace('Bearer ', '').trim()
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      if (token !== serviceKey) {
+      const payload = decodeJwtPayload(token)
+      const isServiceRoleToken = token === serviceKey || payload?.role === 'service_role'
+      if (!isServiceRoleToken) {
         const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
         if (claimsErr || !claims?.claims?.sub) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
