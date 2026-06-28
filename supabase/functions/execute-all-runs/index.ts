@@ -161,12 +161,25 @@ const supabaseModule = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const [, payload] = token.split('.')
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
+
 // ==========================================
 // OPTIMIZED: Per-invocation mapping cache
 // Avoids repeated DB queries for same service
 // ==========================================
 class MappingCache {
   private cache = new Map<string, ProviderCandidate[]>()
+  private configuredMapping = new Map<string, boolean>()
   
   async getForService(supabase: any, serviceId: string, excludeIds: string[], executionId: string): Promise<ProviderCandidate[]> {
     // Fetch once per service per invocation
@@ -178,6 +191,8 @@ class MappingCache {
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
       
+      this.configuredMapping.set(serviceId, Boolean(!error && mappings && mappings.length > 0))
+
       if (error || !mappings || mappings.length === 0) {
         this.cache.set(serviceId, [])
       } else {
@@ -236,6 +251,10 @@ class MappingCache {
   
   hasAnyForService(serviceId: string): boolean {
     return (this.cache.get(serviceId) || []).length > 0
+  }
+
+  hasConfiguredMappingForService(serviceId: string): boolean {
+    return this.configuredMapping.get(serviceId) === true
   }
 }
 
@@ -689,6 +708,8 @@ serve(async (req) => {
 
   try {
     // Auth: service-role (cron) OR a verified user JWT. Reject anon and unsigned tokens.
+    // Service-role tokens do not contain a user `sub`, so Supabase Auth claims checks
+    // reject them. Accept them by role claim after the Edge gateway has verified JWT.
     const authHeader = req.headers.get('Authorization')
     const supabase = supabaseModule
     if (!authHeader?.startsWith('Bearer ')) {
@@ -699,7 +720,9 @@ serve(async (req) => {
     {
       const token = authHeader.replace('Bearer ', '').trim()
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      if (token !== serviceKey) {
+      const payload = decodeJwtPayload(token)
+      const isServiceRoleToken = token === serviceKey || payload?.role === 'service_role'
+      if (!isServiceRoleToken) {
         const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
         if (claimsErr || !claims?.claims?.sub) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -1287,11 +1310,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       )
       
       // Default provider fallback — ONLY when the admin has NOT configured any
-      // service_provider_mapping for this service. If a mapping exists, we must
-      // strictly respect it (so admins can route a service away from its original
-      // imported provider, e.g. map Instagram Shares [S3] to Indsm only).
+      // service_provider_mapping row for this service. If a mapping exists, we must
+      // strictly respect it even if the mapped account is currently busy/unavailable
+      // (so Instagram Shares mapped to Indsm cannot silently fall back to cheapxbhi).
       let defaultProvider: ProviderAccount | null = null
-      if (item.service.provider_id && !mappingCache.hasAnyForService(item.service.id)) {
+      if (item.service.provider_id && !mappingCache.hasConfiguredMappingForService(item.service.id)) {
         // FIX: provider_account_id column is UUID. Resolve text provider_id → matching
         // provider_accounts row (UUID). If none exists, skip the fallback to avoid
         // "invalid input syntax for type uuid" errors that block all runs.
@@ -1334,7 +1357,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       }
       
       if (accountsToTry.length === 0) {
-        if (mappingCache.hasAnyForService(item.service.id)) {
+        if (mappingCache.hasConfiguredMappingForService(item.service.id)) {
           // POSTPONE: All providers busy — push scheduled_at forward so we don't waste cycles
           const postponeMs = ACTIVE_ORDER_RETRY_MS
           const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()

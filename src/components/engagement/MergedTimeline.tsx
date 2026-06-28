@@ -295,7 +295,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
               <div
                 key={run.id}
                 className={`rounded-xl border transition-all ${isActive
-                  ? 'bg-amber-500/10 border-2 border-amber-500/40 shadow-lg shadow-amber-500/10'
+                  ? 'bg-blue-500/10 border-2 border-blue-500/40 shadow-lg shadow-blue-500/10'
                   : isCompleted
                     ? 'bg-emerald-500/10 border border-emerald-500/30'
                     : isFailed
@@ -308,7 +308,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                 <div className="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   {/* Run Number Circle - Colorful Gradient */}
                   <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full font-bold text-sm sm:text-base shrink-0 ${isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
-                    isActive ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white animate-pulse' :
+                    isActive ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white animate-pulse' :
                         isFailed ? 'bg-gradient-to-br from-green-500 to-red-500 text-white' :
                           'bg-gradient-to-br from-amber-400 to-yellow-500 text-white'
                     }`}>
@@ -320,7 +320,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       {/* Status Badge - Colorful */}
                       <Badge className={`text-sm px-3 py-1 ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
-                        isActive ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' :
+                        isActive ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
                           isFailed ? 'bg-green-500/20 text-green-400 border border-green-500/40' :
                             isUpcoming ? 'bg-amber-400/20 text-amber-500 border border-amber-400/40' :
                               'bg-amber-400/20 text-amber-500 border border-amber-400/40'
@@ -415,7 +415,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                       )}
 
                       {run.started_at && (
-                        <span className="flex items-center gap-1.5 text-blue-400">
+                          <span className="flex items-center gap-1.5 text-blue-400">
                           ▶ Started: {format(new Date(run.started_at), 'hh:mm a')}
                         </span>
                       )}

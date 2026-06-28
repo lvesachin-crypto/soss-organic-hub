@@ -11,6 +11,18 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const [, payload] = token.split('.')
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    return JSON.parse(atob(padded))
+  } catch {
+    return null
+  }
+}
+
 // Stop future runs when public delivery already reached the target, even if a provider over-delivers.
 function calculateObservedRunDelivery(run: any): number {
   const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
@@ -103,8 +115,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check - this is a cron/internal function
-    // Allow: anon/service key (cron), or a verified user JWT. Reject everything else.
+    // Auth check - this is a cron/internal function.
+    // Service-role tokens have no user `sub`, so accept them by verified role claim.
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -112,9 +124,9 @@ Deno.serve(async (req) => {
       })
     }
     const token = authHeader.replace('Bearer ', '').trim()
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const isSystemCall = !!token && (token === anonKey || token === serviceKey)
+    const payload = decodeJwtPayload(token)
+    const isSystemCall = !!token && (token === serviceKey || payload?.role === 'service_role')
     if (!isSystemCall) {
       const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
       if (claimsError || !claimsData?.claims?.sub) {
