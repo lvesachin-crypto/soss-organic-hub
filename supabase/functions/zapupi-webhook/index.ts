@@ -30,6 +30,19 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
 
+    // 🛡️ REPLAY PROTECTION: reject duplicate webhook callbacks at the DB level.
+    // The event_key fingerprints this specific callback (order + txn/utr + status + payload hash).
+    const wTxn = payload?.txn_id || payload?.data?.txn_id || ''
+    const wUtr = payload?.utr || payload?.data?.utr || ''
+    const wStatus = String(payload?.status || payload?.data?.status || '').toLowerCase()
+    const payloadHash = await sha256Hex(JSON.stringify(payload || {}))
+    const eventKey = `webhook:${orderId}:${wTxn}:${wUtr}:${wStatus}:${payloadHash}`
+    const claimed = await claimEvent(admin, {
+      event_key: eventKey, order_id: orderId, txn_id: wTxn || null, utr: wUtr || null,
+      status: wStatus || null, source: 'webhook', payload,
+    })
+    if (!claimed) return json({ ok: true, replay: true })
+
     // Load the expected deposit (server-side amount of record)
     const { data: dep } = await admin
       .from('zapupi_deposits')
@@ -107,6 +120,25 @@ function json(b: unknown, status = 200) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status,
   })
+}
+
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Insert a webhook-event row keyed by `event_key`. Returns false if it was
+// already processed (unique violation = replay).
+export async function claimEvent(admin: any, row: {
+  event_key: string; order_id: string; txn_id: string | null; utr: string | null;
+  status: string | null; source: 'webhook' | 'sync'; payload: unknown;
+}): Promise<boolean> {
+  const { error } = await admin.from('zapupi_webhook_events').insert(row)
+  if (!error) return true
+  // 23505 = unique_violation → genuine replay; treat any insert failure as "not claimed".
+  if ((error as any)?.code === '23505') return false
+  console.error('claimEvent insert error', error)
+  return false
 }
 
 // 🚨 Auto-ban + audit-log helper. Counts recent fraud strikes for the user across
