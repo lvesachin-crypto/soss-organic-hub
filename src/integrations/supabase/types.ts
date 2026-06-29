@@ -1306,6 +1306,42 @@ export type Database = {
         }
         Relationships: []
       }
+      zapupi_webhook_events: {
+        Row: {
+          event_key: string
+          id: string
+          order_id: string
+          payload: Json | null
+          received_at: string
+          source: string
+          status: string | null
+          txn_id: string | null
+          utr: string | null
+        }
+        Insert: {
+          event_key: string
+          id?: string
+          order_id: string
+          payload?: Json | null
+          received_at?: string
+          source?: string
+          status?: string | null
+          txn_id?: string | null
+          utr?: string | null
+        }
+        Update: {
+          event_key?: string
+          id?: string
+          order_id?: string
+          payload?: Json | null
+          received_at?: string
+          source?: string
+          status?: string | null
+          txn_id?: string | null
+          utr?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       providers_public: {
