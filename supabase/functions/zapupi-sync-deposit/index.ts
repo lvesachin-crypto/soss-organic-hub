@@ -42,6 +42,21 @@ Deno.serve(async (req) => {
       return json({ credited: false, status: verify.statusStr || 'pending' })
     }
 
+    // 🛡️ REPLAY PROTECTION: fingerprint this confirmed gateway response so the
+    // same payment can never be processed twice across webhook + sync paths.
+    const eventKey = `sync:${orderId}:${verify.txn_id ?? ''}:${verify.utr ?? ''}:${verify.statusStr}`
+    const claimed = await claimEvent(admin, {
+      event_key: eventKey, order_id: orderId,
+      txn_id: verify.txn_id ?? null, utr: verify.utr ?? null,
+      status: verify.statusStr ?? null, source: 'sync', payload: verify.raw,
+    })
+    if (!claimed) {
+      // Already processed by webhook or an earlier sync call.
+      const { data: depNow } = await admin
+        .from('zapupi_deposits').select('credited').eq('order_id', orderId).maybeSingle()
+      return json({ credited: !!depNow?.credited, replay: true })
+    }
+
     // 🔒 Amount-match guard
     const expected = Number(dep.amount_inr)
     const paid = Number((verify as any).paid_amount)
@@ -101,6 +116,17 @@ function json(b: unknown, status = 200) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status,
   })
+}
+
+async function claimEvent(admin: any, row: {
+  event_key: string; order_id: string; txn_id: string | null; utr: string | null;
+  status: string | null; source: 'webhook' | 'sync'; payload: unknown;
+}): Promise<boolean> {
+  const { error } = await admin.from('zapupi_webhook_events').insert(row)
+  if (!error) return true
+  if ((error as any)?.code === '23505') return false
+  console.error('claimEvent insert error', error)
+  return false
 }
 
 async function recordFraudAndMaybeBan(
