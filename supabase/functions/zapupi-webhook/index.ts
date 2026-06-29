@@ -122,6 +122,25 @@ function json(b: unknown, status = 200) {
   })
 }
 
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Insert a webhook-event row keyed by `event_key`. Returns false if it was
+// already processed (unique violation = replay).
+export async function claimEvent(admin: any, row: {
+  event_key: string; order_id: string; txn_id: string | null; utr: string | null;
+  status: string | null; source: 'webhook' | 'sync'; payload: unknown;
+}): Promise<boolean> {
+  const { error } = await admin.from('zapupi_webhook_events').insert(row)
+  if (!error) return true
+  // 23505 = unique_violation → genuine replay; treat any insert failure as "not claimed".
+  if ((error as any)?.code === '23505') return false
+  console.error('claimEvent insert error', error)
+  return false
+}
+
 // 🚨 Auto-ban + audit-log helper. Counts recent fraud strikes for the user across
 // zapupi_deposits (mismatch or failed) and bans on the 2nd strike within 24h.
 export async function recordFraudAndMaybeBan(
