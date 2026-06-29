@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     // Load the expected deposit (server-side amount of record)
     const { data: dep } = await admin
       .from('zapupi_deposits')
-      .select('amount_inr, credited, status')
+      .select('user_id, amount_inr, credited, status')
       .eq('order_id', orderId)
       .maybeSingle()
     if (!dep) return json({ ok: true, note: 'unknown order' })
@@ -56,14 +56,9 @@ Deno.serve(async (req) => {
         status: 'mismatch',
         gateway_response: { webhook: payload, verify: verify.raw, expected_inr: expected, paid_inr: paid },
       }).eq('order_id', orderId)
-      await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-notification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
-        body: JSON.stringify({
-          message: `🚨 <b>ZapUPI AMOUNT MISMATCH (blocked)</b>\nOrder: <code>${orderId}</code>\nExpected: ₹${expected}\nPaid: ₹${Number.isFinite(paid) ? paid : 'unknown'}`,
-          parse_mode: 'HTML',
-        }),
-      }).catch(() => {})
+      await recordFraudAndMaybeBan(admin, dep.user_id, 'amount_mismatch', {
+        order_id: orderId, expected_inr: expected, paid_inr: paid, source: 'webhook',
+      })
       return json({ ok: true, mismatch: true })
     }
 
@@ -112,6 +107,113 @@ function json(b: unknown, status = 200) {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     status,
   })
+}
+
+// 🚨 Auto-ban + audit-log helper. Counts recent fraud strikes for the user across
+// zapupi_deposits (mismatch or failed) and bans on the 2nd strike within 24h.
+export async function recordFraudAndMaybeBan(
+  admin: any,
+  userId: string | null,
+  reasonCode: 'amount_mismatch' | 'repeated_failures',
+  meta: Record<string, unknown>,
+) {
+  if (!userId) return
+  try {
+    // Audit log every strike
+    await admin.from('admin_audit_log').insert({
+      actor_id: null,
+      actor_email: 'system:zapupi-guard',
+      target_user_id: userId,
+      action: `fraud_strike:${reasonCode}`,
+      notes: JSON.stringify(meta),
+      metadata: meta,
+    })
+
+    // Count fraud signals in last 24h: mismatches + failed attempts on this user
+    const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { count: mismatchCount } = await admin
+      .from('zapupi_deposits')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'mismatch')
+      .gte('created_at', sinceIso)
+    const { count: failedCount } = await admin
+      .from('zapupi_deposits')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'failed')
+      .gte('created_at', sinceIso)
+    const mm = mismatchCount ?? 0
+    const ff = failedCount ?? 0
+
+    // Ban rule:
+    //  - ANY mismatch in last 24h AND total strikes >= 2  → ban
+    //  - OR 5+ failed deposits in 24h with zero successes → ban
+    let shouldBan = false
+    let banReason = ''
+    if (reasonCode === 'amount_mismatch' && mm >= 1) {
+      shouldBan = true
+      banReason = `Auto-ban: ZapUPI amount-mismatch detected (${mm} in 24h). Latest: expected ₹${meta.expected_inr}, paid ₹${meta.paid_inr}, order ${meta.order_id}.`
+    } else if (ff >= 5) {
+      const { count: succCount } = await admin
+        .from('zapupi_deposits')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('credited', true)
+        .gte('created_at', sinceIso)
+      if ((succCount ?? 0) === 0) {
+        shouldBan = true
+        banReason = `Auto-ban: ${ff} failed ZapUPI deposits in 24h with zero successes (likely fraud probe).`
+      }
+    }
+
+    // Check current profile state
+    const { data: prof } = await admin
+      .from('profiles')
+      .select('email, is_banned')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (shouldBan && prof && !prof.is_banned) {
+      await admin.from('profiles').update({
+        is_banned: true,
+        banned_reason: banReason,
+        banned_at: new Date().toISOString(),
+      }).eq('user_id', userId)
+
+      await admin.from('admin_audit_log').insert({
+        actor_id: null,
+        actor_email: 'system:zapupi-guard',
+        target_user_id: userId,
+        target_email: prof.email ?? null,
+        action: 'auto_ban',
+        notes: banReason,
+        metadata: { reasonCode, mismatch_24h: mm, failed_24h: ff, ...meta },
+      })
+    }
+
+    // Telegram alert (always, with ban status)
+    const tag = shouldBan ? '⛔ AUTO-BANNED' : '🚨 FRAUD STRIKE'
+    const msg = [
+      `${tag} <b>(ZapUPI)</b>`,
+      ``,
+      `👤 <b>User:</b> ${prof?.email ?? userId}`,
+      `📛 <b>Reason:</b> ${reasonCode}`,
+      `📊 <b>24h:</b> ${mm} mismatch / ${ff} failed`,
+      meta.order_id ? `🆔 <b>Order:</b> <code>${meta.order_id}</code>` : '',
+      meta.expected_inr != null ? `💵 <b>Expected:</b> ₹${meta.expected_inr}` : '',
+      meta.paid_inr != null ? `💸 <b>Paid:</b> ₹${meta.paid_inr}` : '',
+      shouldBan ? `\n🔒 Wallet frozen. Manual unban required.` : '',
+    ].filter(Boolean).join('\n')
+
+    await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-notification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+      body: JSON.stringify({ message: msg, parse_mode: 'HTML' }),
+    }).catch(() => {})
+  } catch (e) {
+    console.error('recordFraudAndMaybeBan error', e)
+  }
 }
 
 async function notifyTelegram(admin: any, orderId: string, creditResult: any, source: 'webhook' | 'sync') {

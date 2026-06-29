@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import { recordFraudAndMaybeBan } from '../zapupi-webhook/index.ts'
 
 const ZAPUPI_KEY = Deno.env.get('ZAPUPI_ZAP_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -50,14 +51,9 @@ Deno.serve(async (req) => {
         status: 'mismatch',
         gateway_response: { sync_verify: verify.raw, expected_inr: expected, paid_inr: paid },
       }).eq('order_id', orderId)
-      await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-notification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
-        body: JSON.stringify({
-          message: `🚨 <b>ZapUPI AMOUNT MISMATCH (sync, blocked)</b>\nOrder: <code>${orderId}</code>\nExpected: ₹${expected}\nPaid: ₹${Number.isFinite(paid) ? paid : 'unknown'}\nUser: <code>${userId}</code>`,
-          parse_mode: 'HTML',
-        }),
-      }).catch(() => {})
+      await recordFraudAndMaybeBan(admin, userId, 'amount_mismatch', {
+        order_id: orderId, expected_inr: expected, paid_inr: paid, source: 'sync',
+      })
       return json({ credited: false, mismatch: true }, 400)
     }
 
