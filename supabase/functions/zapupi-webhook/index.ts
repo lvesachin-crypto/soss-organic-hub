@@ -74,7 +74,9 @@ export async function verifyOrder(orderId: string): Promise<{ success: boolean; 
   const txn_id = d?.txn_id || data?.txn_id
   const utr = d?.utr || data?.utr
   const environment = d?.environment || data?.environment
-  return { success, txn_id, utr, environment, raw: data }
+  const paidRaw = d?.paid_amount ?? d?.amount ?? d?.amount_paid ?? data?.paid_amount ?? data?.amount
+  const paid_amount = paidRaw != null ? Number(String(paidRaw).replace(/[^0-9.]/g, '')) : NaN
+  return { success, txn_id, utr, environment, paid_amount, raw: data } as any
 }
 
 function json(b: unknown, status = 200) {
