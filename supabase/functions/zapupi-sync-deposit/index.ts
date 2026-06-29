@@ -42,11 +42,30 @@ Deno.serve(async (req) => {
       return json({ credited: false, status: verify.statusStr || 'pending' })
     }
 
+    // 🔒 Amount-match guard
+    const expected = Number(dep.amount_inr)
+    const paid = Number((verify as any).paid_amount)
+    if (!Number.isFinite(paid) || Math.abs(paid - expected) > 0.01) {
+      await admin.from('zapupi_deposits').update({
+        status: 'mismatch',
+        gateway_response: { sync_verify: verify.raw, expected_inr: expected, paid_inr: paid },
+      }).eq('order_id', orderId)
+      await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+        body: JSON.stringify({
+          message: `🚨 <b>ZapUPI AMOUNT MISMATCH (sync, blocked)</b>\nOrder: <code>${orderId}</code>\nExpected: ₹${expected}\nPaid: ₹${Number.isFinite(paid) ? paid : 'unknown'}\nUser: <code>${userId}</code>`,
+          parse_mode: 'HTML',
+        }),
+      }).catch(() => {})
+      return json({ credited: false, mismatch: true }, 400)
+    }
+
     const { data, error } = await admin.rpc('credit_wallet_zapupi', {
       p_order_id: orderId,
       p_txn_id: verify.txn_id ?? null,
       p_utr: verify.utr ?? null,
-      p_gateway_response: { sync_verify: verify.raw },
+      p_gateway_response: { sync_verify: verify.raw, paid_inr: paid },
     })
     if (error) return json({ error: error.message }, 500)
     if ((data as any)?.credited && !(data as any)?.duplicate) {
@@ -70,11 +89,14 @@ async function verifyOrder(orderId: string) {
   const d = data?.data ?? data
   const statusStr = String(d?.status ?? data?.status ?? '').toLowerCase()
   const success = statusStr === 'success' || statusStr === 'completed' || statusStr === 'paid'
+  const paidRaw = d?.paid_amount ?? d?.amount ?? d?.amount_paid ?? data?.paid_amount ?? data?.amount
+  const paid_amount = paidRaw != null ? Number(String(paidRaw).replace(/[^0-9.]/g, '')) : NaN
   return {
     success,
     statusStr,
     txn_id: d?.txn_id || data?.txn_id,
     utr: d?.utr || data?.utr,
+    paid_amount,
     raw: data,
   }
 }

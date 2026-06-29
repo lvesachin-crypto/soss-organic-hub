@@ -28,22 +28,50 @@ Deno.serve(async (req) => {
       return json({ ok: true, note: 'no order_id' })
     }
 
-    // Double-confirm via order-status (NEVER trust webhook payload status)
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
+
+    // Load the expected deposit (server-side amount of record)
+    const { data: dep } = await admin
+      .from('zapupi_deposits')
+      .select('amount_inr, credited, status')
+      .eq('order_id', orderId)
+      .maybeSingle()
+    if (!dep) return json({ ok: true, note: 'unknown order' })
+    if (dep.credited) return json({ ok: true, duplicate: true })
+
+    // Double-confirm via order-status (NEVER trust webhook payload)
     const verify = await verifyOrder(orderId)
     if (!verify.success) {
-      const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
       await admin.from('zapupi_deposits').update({
         gateway_response: { webhook: payload, verify: verify.raw },
       }).eq('order_id', orderId)
       return json({ ok: true, verified: false })
     }
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
+    // 🔒 Amount-match guard: gateway-reported paid_amount MUST equal stored amount_inr
+    const expected = Number(dep.amount_inr)
+    const paid = Number((verify as any).paid_amount)
+    if (!Number.isFinite(paid) || Math.abs(paid - expected) > 0.01) {
+      await admin.from('zapupi_deposits').update({
+        status: 'mismatch',
+        gateway_response: { webhook: payload, verify: verify.raw, expected_inr: expected, paid_inr: paid },
+      }).eq('order_id', orderId)
+      await fetch(`${SUPABASE_URL}/functions/v1/send-telegram-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+        body: JSON.stringify({
+          message: `🚨 <b>ZapUPI AMOUNT MISMATCH (blocked)</b>\nOrder: <code>${orderId}</code>\nExpected: ₹${expected}\nPaid: ₹${Number.isFinite(paid) ? paid : 'unknown'}`,
+          parse_mode: 'HTML',
+        }),
+      }).catch(() => {})
+      return json({ ok: true, mismatch: true })
+    }
+
     const { data, error } = await admin.rpc('credit_wallet_zapupi', {
       p_order_id: orderId,
       p_txn_id: verify.txn_id ?? null,
       p_utr: verify.utr ?? null,
-      p_gateway_response: { webhook: payload, verify: verify.raw },
+      p_gateway_response: { webhook: payload, verify: verify.raw, paid_inr: paid },
     })
     if (error) {
       console.error('credit_wallet_zapupi error', error)
@@ -74,7 +102,9 @@ export async function verifyOrder(orderId: string): Promise<{ success: boolean; 
   const txn_id = d?.txn_id || data?.txn_id
   const utr = d?.utr || data?.utr
   const environment = d?.environment || data?.environment
-  return { success, txn_id, utr, environment, raw: data }
+  const paidRaw = d?.paid_amount ?? d?.amount ?? d?.amount_paid ?? data?.paid_amount ?? data?.amount
+  const paid_amount = paidRaw != null ? Number(String(paidRaw).replace(/[^0-9.]/g, '')) : NaN
+  return { success, txn_id, utr, environment, paid_amount, raw: data } as any
 }
 
 function json(b: unknown, status = 200) {
