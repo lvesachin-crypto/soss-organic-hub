@@ -1,6 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
-import { recordFraudAndMaybeBan } from '../zapupi-webhook/index.ts'
 
 const ZAPUPI_KEY = Deno.env.get('ZAPUPI_ZAP_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
