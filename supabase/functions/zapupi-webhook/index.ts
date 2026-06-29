@@ -30,6 +30,19 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
 
+    // 🛡️ REPLAY PROTECTION: reject duplicate webhook callbacks at the DB level.
+    // The event_key fingerprints this specific callback (order + txn/utr + status + payload hash).
+    const wTxn = payload?.txn_id || payload?.data?.txn_id || ''
+    const wUtr = payload?.utr || payload?.data?.utr || ''
+    const wStatus = String(payload?.status || payload?.data?.status || '').toLowerCase()
+    const payloadHash = await sha256Hex(JSON.stringify(payload || {}))
+    const eventKey = `webhook:${orderId}:${wTxn}:${wUtr}:${wStatus}:${payloadHash}`
+    const claimed = await claimEvent(admin, {
+      event_key: eventKey, order_id: orderId, txn_id: wTxn || null, utr: wUtr || null,
+      status: wStatus || null, source: 'webhook', payload,
+    })
+    if (!claimed) return json({ ok: true, replay: true })
+
     // Load the expected deposit (server-side amount of record)
     const { data: dep } = await admin
       .from('zapupi_deposits')
