@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 
 // Direct WhatsApp support — replaces the previous live chat widget.
-const WHATSAPP_NUMBER = '255637520201'; // +255 637 520 201
+const WHATSAPP_NUMBER = '6282381307423'; // +62 823-8130-7423
 
 function buildMessage(email?: string, name?: string | null) {
   return (
