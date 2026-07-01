@@ -44,9 +44,15 @@ export default function PlisioAddFunds() {
       const { data, error } = await supabase.functions.invoke('plisio-create-invoice', {
         body: { amount_inr: amountInr, currency, origin: window.location.origin },
       });
-      if (error) throw new Error(error.message);
       const res = data as any;
-      if (res?.error) throw new Error(res.error);
+      if (res?.error) {
+        const detailMsg =
+          res?.detail?.data?.message ||
+          res?.detail?.message ||
+          (typeof res?.detail === 'string' ? res.detail : '');
+        throw new Error(detailMsg ? `${res.error}: ${detailMsg}` : res.error);
+      }
+      if (error) throw new Error(error.message);
       setInvoice(res as Invoice);
       if (res?.invoice_url) window.open(res.invoice_url, '_blank', 'noopener');
     } catch (e: any) {
