@@ -5,17 +5,6 @@ import { Loader2, Bitcoin, Copy, ExternalLink, CheckCircle2, ShieldCheck } from 
 
 const USD_TO_INR = 90;
 const QUICK_USD = [5, 10, 25, 50, 100, 250];
-// Preferred coins (lowest gateway min first). Plisio invoice page will still
-// show all supported networks, so user can change on their side.
-const CURRENCIES = [
-  { code: 'TRX',      label: 'TRON (TRX) — recommended' },
-  { code: 'BTC',      label: 'Bitcoin (BTC)' },
-  { code: 'LTC',      label: 'Litecoin (LTC)' },
-  { code: 'DOGE',     label: 'Dogecoin (DOGE)' },
-  { code: 'USDT_TRX', label: 'USDT (TRC-20)' },
-  { code: 'ETH',      label: 'Ethereum (ETH)' },
-  { code: 'USDT',     label: 'USDT (ERC-20)' },
-];
 
 type Invoice = {
   order_id: string;
@@ -29,7 +18,6 @@ type Invoice = {
 
 export default function PlisioAddFunds() {
   const [usd, setUsd] = useState<string>('1');
-  const [currency, setCurrency] = useState('TRX');
   const [loading, setLoading] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [checking, setChecking] = useState(false);
@@ -45,7 +33,7 @@ export default function PlisioAddFunds() {
     setInvoice(null); setCredited(false);
     try {
       const { data, error } = await supabase.functions.invoke('plisio-create-invoice', {
-        body: { amount_inr: amountInr, currency, origin: window.location.origin },
+        body: { amount_inr: amountInr, currency: 'TRX', origin: window.location.origin },
       });
       const res = data as any;
       if (res?.error) {
@@ -200,23 +188,6 @@ export default function PlisioAddFunds() {
             })}
           </div>
 
-          <label className="block text-[11px] font-semibold uppercase tracking-wider mt-4" style={{ color: '#64748b' }}>
-            Pay with
-          </label>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="w-full mt-2 h-12 px-4 rounded-xl border-2 outline-none font-semibold text-[13px] bg-white"
-            style={{ borderColor: '#e2e8f0', color: '#0f172a' }}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.label}</option>
-            ))}
-          </select>
-          <p className="text-[10.5px] mt-1.5" style={{ color: '#94a3b8' }}>
-            You can also change the network on the Plisio invoice page after continuing.
-          </p>
-
           <button
             onClick={createInvoice}
             disabled={loading || !usd}
@@ -228,8 +199,8 @@ export default function PlisioAddFunds() {
               fontFamily: 'Sora, system-ui, sans-serif',
             }}
           >
-            {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Creating invoice…</>
-              : <><Bitcoin className="h-5 w-5" /> Create Crypto Invoice</>}
+            {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Opening payment…</>
+              : <><Bitcoin className="h-5 w-5" /> Pay Now</>}
           </button>
         </>
       ) : (
