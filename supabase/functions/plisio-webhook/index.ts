@@ -10,13 +10,21 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
+  const reqForForm = req.clone()
   const rawBody = await req.text()
   const eventHash = createHash('sha256').update(rawBody).digest('hex')
   const sourceIp = req.headers.get('x-forwarded-for') || ''
+  const contentType = req.headers.get('content-type') || ''
 
   let payload: any = {}
   try {
-    if (req.headers.get('content-type')?.includes('application/json')) {
+    if (contentType.includes('multipart/form-data')) {
+      const form = await reqForForm.formData()
+      payload = {}
+      for (const [key, value] of form.entries()) {
+        payload[key] = typeof value === 'string' ? value : value.name
+      }
+    } else if (contentType.includes('application/json')) {
       payload = JSON.parse(rawBody)
     } else {
       const params = new URLSearchParams(rawBody)
