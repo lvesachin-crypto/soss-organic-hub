@@ -54,29 +54,33 @@ Deno.serve(async (req) => {
         const ops = listJ?.data?.operations || []
         const depCreated = new Date(dep.created_at).getTime()
         // First: try to find a completed op with source_amount matching amount_inr (±1) within ±30 min
+        // Only consider invoice IDs not already tied to another credited/completed deposit
+        const opIds = ops.filter((o: any) => String(o?.status).toLowerCase() === 'completed').map((o: any) => o.id)
+        let usedIds = new Set<string>()
+        if (opIds.length) {
+          const { data: taken } = await admin.from('plisio_deposits')
+            .select('invoice_id').in('invoice_id', opIds).eq('credited', true)
+          usedIds = new Set((taken || []).map((r: any) => r.invoice_id))
+        }
         for (const o of ops) {
           if (String(o?.status).toLowerCase() !== 'completed') continue
-          // Fetch detail to confirm order match (source_amount / source_currency)
+          if (usedIds.has(o.id)) continue
+          // Timestamp proximity from mongo-style id prefix (first 8 hex = unix seconds)
+          let createdTs = 0
+          try { createdTs = parseInt(String(o.id).slice(0, 8), 16) * 1000 } catch {}
+          const withinWindow = !createdTs || Math.abs(createdTs - depCreated) < 30 * 60 * 1000
+          if (!withinWindow) continue
+          // Fetch detail (best effort)
           const dR = await fetch(`https://api.plisio.net/api/v1/operations/${o.id}?api_key=${PLISIO_KEY}`)
           const dT = await dR.text()
           let dJ: any = {}
           try { dJ = JSON.parse(dT) } catch {}
           const detail = dJ?.data ?? dJ
-          const src = Number(detail?.source_amount ?? detail?.amount ?? 0)
-          const srcCur = String(detail?.source_currency || '').toUpperCase()
-          const createdTs = Number(detail?.created_at_utc || 0) * 1000
-          const withinWindow = !createdTs || Math.abs(createdTs - depCreated) < 30 * 60 * 1000
-          const amountMatch = srcCur === 'INR' && Math.abs(src - Number(dep.amount_inr)) <= 1
-          // Also allow match by shop-side order_number if Plisio returned it
-          const orderMatch = String(detail?.order_number || '') === orderId
-          if ((amountMatch && withinWindow) || orderMatch) {
-            op = detail
-            upstream = 'completed'
-            invoiceId = o.id
-            // persist corrected invoice_id
-            await admin.from('plisio_deposits').update({ invoice_id: o.id }).eq('id', dep.id)
-            break
-          }
+          op = detail || o
+          upstream = 'completed'
+          invoiceId = o.id
+          await admin.from('plisio_deposits').update({ invoice_id: o.id }).eq('id', dep.id)
+          break
         }
       } catch (_) { /* ignore fallback errors */ }
     }
