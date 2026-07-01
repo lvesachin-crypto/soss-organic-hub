@@ -621,6 +621,99 @@ export type Database = {
           },
         ]
       }
+      oxapay_deposits: {
+        Row: {
+          amount_inr: number
+          amount_usd: number
+          created_at: string
+          credited: boolean
+          id: string
+          order_id: string
+          pay_currency: string | null
+          payment_url: string | null
+          raw_payload: Json | null
+          status: string
+          track_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_inr: number
+          amount_usd: number
+          created_at?: string
+          credited?: boolean
+          id?: string
+          order_id: string
+          pay_currency?: string | null
+          payment_url?: string | null
+          raw_payload?: Json | null
+          status?: string
+          track_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_inr?: number
+          amount_usd?: number
+          created_at?: string
+          credited?: boolean
+          id?: string
+          order_id?: string
+          pay_currency?: string | null
+          payment_url?: string | null
+          raw_payload?: Json | null
+          status?: string
+          track_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oxapay_webhook_events: {
+        Row: {
+          credit_result: Json | null
+          event_hash: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          payload: Json | null
+          processed: boolean
+          received_at: string
+          signature_valid: boolean
+          source_ip: string | null
+          status: string | null
+          track_id: string | null
+        }
+        Insert: {
+          credit_result?: Json | null
+          event_hash: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          received_at?: string
+          signature_valid?: boolean
+          source_ip?: string | null
+          status?: string | null
+          track_id?: string | null
+        }
+        Update: {
+          credit_result?: Json | null
+          event_hash?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          received_at?: string
+          signature_valid?: boolean
+          source_ip?: string | null
+          status?: string | null
+          track_id?: string | null
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           created_at: string | null
@@ -644,125 +737,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      plisio_deposits: {
-        Row: {
-          amount_inr: number
-          created_at: string
-          credited: boolean
-          id: string
-          invoice_id: string | null
-          invoice_url: string | null
-          order_id: string
-          pay_amount: number | null
-          pay_currency: string | null
-          qr_code: string | null
-          raw_payload: Json | null
-          source_currency: string
-          status: string
-          updated_at: string
-          user_id: string
-          wallet_hash: string | null
-        }
-        Insert: {
-          amount_inr: number
-          created_at?: string
-          credited?: boolean
-          id?: string
-          invoice_id?: string | null
-          invoice_url?: string | null
-          order_id: string
-          pay_amount?: number | null
-          pay_currency?: string | null
-          qr_code?: string | null
-          raw_payload?: Json | null
-          source_currency?: string
-          status?: string
-          updated_at?: string
-          user_id: string
-          wallet_hash?: string | null
-        }
-        Update: {
-          amount_inr?: number
-          created_at?: string
-          credited?: boolean
-          id?: string
-          invoice_id?: string | null
-          invoice_url?: string | null
-          order_id?: string
-          pay_amount?: number | null
-          pay_currency?: string | null
-          qr_code?: string | null
-          raw_payload?: Json | null
-          source_currency?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-          wallet_hash?: string | null
-        }
-        Relationships: []
-      }
-      plisio_webhook_events: {
-        Row: {
-          amount_inr: number | null
-          credit_result: Json | null
-          event_hash: string
-          id: string
-          invoice_id: string | null
-          notes: string | null
-          order_id: string | null
-          payload: Json | null
-          processed: boolean
-          received_at: string
-          replay_of: string | null
-          signature_valid: boolean
-          source_amount: number | null
-          source_ip: string | null
-          status: string | null
-        }
-        Insert: {
-          amount_inr?: number | null
-          credit_result?: Json | null
-          event_hash: string
-          id?: string
-          invoice_id?: string | null
-          notes?: string | null
-          order_id?: string | null
-          payload?: Json | null
-          processed?: boolean
-          received_at?: string
-          replay_of?: string | null
-          signature_valid?: boolean
-          source_amount?: number | null
-          source_ip?: string | null
-          status?: string | null
-        }
-        Update: {
-          amount_inr?: number | null
-          credit_result?: Json | null
-          event_hash?: string
-          id?: string
-          invoice_id?: string | null
-          notes?: string | null
-          order_id?: string | null
-          payload?: Json | null
-          processed?: boolean
-          received_at?: string
-          replay_of?: string | null
-          signature_valid?: boolean
-          source_amount?: number | null
-          source_ip?: string | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "plisio_webhook_events_replay_of_fkey"
-            columns: ["replay_of"]
-            isOneToOne: false
-            referencedRelation: "plisio_webhook_events"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       popup_ads: {
         Row: {
@@ -1508,7 +1482,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
-      credit_wallet_plisio: { Args: { p_order_id: string }; Returns: Json }
+      credit_wallet_oxapay: { Args: { p_order_id: string }; Returns: Json }
       credit_wallet_zapupi: {
         Args: {
           p_gateway_response?: Json
