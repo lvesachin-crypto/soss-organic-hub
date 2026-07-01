@@ -31,7 +31,9 @@ export default function Wallet() {
   // Handle ZapUPI return — poll server-verify until the order is credited (or give up after ~3 min).
   useEffect(() => {
     const url = new URL(window.location.href);
-    const orderId = url.searchParams.get('zapupi_order_id') || url.searchParams.get('deposit_order_id') || url.searchParams.get('order_id');
+    const rawOrderId = url.searchParams.get('zapupi_order_id') || url.searchParams.get('deposit_order_id') || url.searchParams.get('order_id');
+    // Skip Plisio-prefixed orders (handled by the separate Plisio effect below)
+    const orderId = rawOrderId && !rawOrderId.startsWith('PL_') ? rawOrderId : null;
     const status = (url.searchParams.get('status') || '').toLowerCase();
     if (!orderId) return;
 
@@ -118,6 +120,89 @@ export default function Wallet() {
       setTimeout(poll, 3000);
     };
 
+    poll();
+    return () => {
+      cancelled = true;
+      sessionStorage.removeItem(inflightKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle Plisio return — poll plisio-sync-deposit until credited (or ~3 min).
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const orderId = url.searchParams.get('plisio_order_id');
+    const status = (url.searchParams.get('status') || url.searchParams.get('plisio') || '').toLowerCase();
+    if (!orderId || !orderId.startsWith('PL_')) return;
+
+    const cleanUrl = () => {
+      url.searchParams.delete('plisio_order_id');
+      url.searchParams.delete('plisio');
+      url.searchParams.delete('status');
+      window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
+    };
+
+    const claimedKey = `plisio_claimed_${orderId}`;
+    const inflightKey = `plisio_inflight_${orderId}`;
+    if (sessionStorage.getItem(claimedKey) === 'done' || localStorage.getItem(claimedKey) === 'done') {
+      toast.success('This crypto payment is already credited.');
+      cleanUrl();
+      return;
+    }
+    const inflightAt = Number(sessionStorage.getItem(inflightKey) || '0');
+    if (inflightAt && Date.now() - inflightAt < 60_000) return;
+    sessionStorage.setItem(inflightKey, String(Date.now()));
+
+    if (status === 'failed' || status === 'cancelled' || status === 'cancel') {
+      toast.error('Crypto payment cancelled or failed');
+      sessionStorage.removeItem(inflightKey);
+      cleanUrl();
+      return;
+    }
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 36; // ~3 min at 5s
+    const pendingToast = toast.loading('Verifying crypto payment…');
+
+    const poll = async () => {
+      if (cancelled) return;
+      attempts++;
+      try {
+        const { data, error } = await supabase.functions.invoke('plisio-sync-deposit', {
+          body: { order_id: orderId },
+        });
+        if (error) throw new Error(error.message);
+        const res = data as any;
+        if (res?.credited || res?.already) {
+          localStorage.setItem(claimedKey, 'done');
+          sessionStorage.setItem(claimedKey, 'done');
+          sessionStorage.removeItem(inflightKey);
+          toast.success(res?.already ? 'Already credited.' : 'Crypto payment credited to wallet', { id: pendingToast });
+          qc.invalidateQueries({ queryKey: ['wallet'] });
+          qc.invalidateQueries({ queryKey: ['transactions'] });
+          cleanUrl();
+          return;
+        }
+        if (res?.mismatch) {
+          toast.error('Amount mismatch — contact support', { id: pendingToast });
+          sessionStorage.removeItem(inflightKey);
+          cleanUrl();
+          return;
+        }
+      } catch {
+        // ignore
+      }
+      if (attempts >= maxAttempts) {
+        toast.info('Payment not confirmed yet. Wallet will update once network confirms.', { id: pendingToast });
+        sessionStorage.removeItem(inflightKey);
+        qc.invalidateQueries({ queryKey: ['wallet'] });
+        qc.invalidateQueries({ queryKey: ['transactions'] });
+        cleanUrl();
+        return;
+      }
+      setTimeout(poll, 5000);
+    };
     poll();
     return () => {
       cancelled = true;

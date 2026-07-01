@@ -136,14 +136,25 @@ function verifyPlisioSignature(payload: any, apiKey: string): boolean {
     if (!verifyHash || typeof payload !== 'object') return false
     const copy: any = { ...payload }
     delete copy.verify_hash
-    // Sort keys and stringify (Plisio's PHP serialize equivalent isn't easy in JS;
-    // they document that JSON callbacks use HMAC of ksort'd array JSON-encoded)
     const sortedKeys = Object.keys(copy).sort()
     const sorted: any = {}
     for (const k of sortedKeys) sorted[k] = copy[k]
-    const serialized = JSON.stringify(sorted)
-    const hmac = createHmac('sha1', apiKey).update(serialized).digest('hex')
-    return hmac === verifyHash
+    const jsonSerialized = JSON.stringify(sorted)
+    // Plisio docs vary between PHP-style and JSON-style serialization,
+    // and between HMAC-SHA1 / HMAC-MD5 / plain MD5. Accept any match.
+    const candidates = [
+      createHmac('sha1', apiKey).update(jsonSerialized).digest('hex'),
+      createHmac('md5',  apiKey).update(jsonSerialized).digest('hex'),
+      createHash('md5').update(jsonSerialized + apiKey).digest('hex'),
+      createHash('md5').update(apiKey + jsonSerialized).digest('hex'),
+    ]
+    // PHP-serialize-ish flat concat: key=value pairs joined
+    const flat = sortedKeys.map((k) => `${k}=${typeof sorted[k] === 'object' ? JSON.stringify(sorted[k]) : String(sorted[k])}`).join('&')
+    candidates.push(
+      createHmac('sha1', apiKey).update(flat).digest('hex'),
+      createHmac('md5',  apiKey).update(flat).digest('hex'),
+    )
+    return candidates.includes(String(verifyHash).toLowerCase())
   } catch {
     return false
   }
