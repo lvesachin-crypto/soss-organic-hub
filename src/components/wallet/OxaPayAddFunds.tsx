@@ -6,13 +6,7 @@ import { Loader2, Bitcoin, ShieldCheck } from 'lucide-react';
 const USD_TO_INR = 90;
 const QUICK_USD = [5, 10, 25, 50, 100, 250];
 
-type Invoice = {
-  order_id: string;
-  invoice_url: string;
-  amount_inr: number;
-};
-
-export default function PlisioAddFunds() {
+export default function OxaPayAddFunds() {
   const [usd, setUsd] = useState<string>('1');
   const [loading, setLoading] = useState(false);
 
@@ -21,28 +15,20 @@ export default function PlisioAddFunds() {
   const createInvoice = async () => {
     const usdNum = Number(usd);
     if (!Number.isFinite(usdNum) || usdNum < 1) return toast.error('Minimum $1');
-    if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
+    if (usdNum > 6000) return toast.error('Maximum $6000 per transaction');
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('plisio-create-invoice', {
-        body: { amount_inr: amountInr, origin: window.location.origin },
+      const { data, error } = await supabase.functions.invoke('oxapay-create-invoice', {
+        body: { amount_usd: usdNum, return_origin: window.location.origin },
       });
       const res = data as any;
-      if (res?.error) {
-        const detailMsg =
-          res?.detail?.data?.message ||
-          res?.detail?.message ||
-          (typeof res?.detail === 'string' ? res.detail : '');
-        throw new Error(detailMsg ? `${res.error}: ${detailMsg}` : res.error);
-      }
+      if (res?.error) throw new Error(res.error + (res?.detail ? `: ${JSON.stringify(res.detail)}` : ''));
       if (error) throw new Error(error.message);
-      if (!res?.invoice_url) throw new Error('Payment page not found');
-      window.location.href = (res as Invoice).invoice_url;
+      if (!res?.payment_url) throw new Error('Payment page not found');
+      window.location.href = res.payment_url;
     } catch (e: any) {
       toast.error(e?.message || 'Could not create invoice');
       setLoading(false);
-    } finally {
-      // keep the button in loading state when redirecting to Plisio
     }
   };
 
@@ -74,7 +60,7 @@ export default function PlisioAddFunds() {
               Crypto Add Funds
             </h2>
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] mt-0.5" style={{ color: '#d97706' }}>
-              Plisio · USDT · BTC · TRX · LTC
+              OxaPay · USDT · BTC · TRX · LTC · ETH
             </p>
           </div>
         </div>
@@ -100,7 +86,7 @@ export default function PlisioAddFunds() {
         </div>
         <input
           type="number"
-          min={1} max={2000}
+          min={1} max={6000}
           value={usd}
           onChange={(e) => setUsd(e.target.value)}
           placeholder="10"

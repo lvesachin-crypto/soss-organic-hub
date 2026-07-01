@@ -6,5 +6,5 @@ verify_jwt = false
 [functions.zapupi-webhook]
 verify_jwt = false
 
-[functions.plisio-webhook]
+[functions.oxapay-webhook]
 verify_jwt = false

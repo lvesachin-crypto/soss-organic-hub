@@ -38,7 +38,7 @@ import AdminDeposits from "./pages/admin/AdminDeposits";
 import AdminProviderAccounts from "./pages/admin/AdminProviderAccounts";
 import AdminServiceProviderMapping from "./pages/admin/AdminServiceProviderMapping";
 import AdminAuditLog from "./pages/admin/AdminAuditLog";
-import AdminPlisioEvents from "./pages/admin/AdminPlisioEvents";
+import AdminOxaPayEvents from "./pages/admin/AdminOxaPayEvents";
 import AdminPopupAd from "./pages/admin/AdminPopupAd";
 import AdminTopupPlan from "./pages/admin/AdminTopupPlan";
 
@@ -126,7 +126,7 @@ const App = () => {
                     <Route path="/admin/provider-accounts" element={<AdminGuard><AdminProviderAccounts /></AdminGuard>} />
                     <Route path="/admin/service-provider-mapping" element={<AdminGuard><AdminServiceProviderMapping /></AdminGuard>} />
                     <Route path="/admin/audit-log" element={<AdminGuard><AdminAuditLog /></AdminGuard>} />
-                    <Route path="/admin/plisio-events" element={<AdminGuard><AdminPlisioEvents /></AdminGuard>} />
+                    <Route path="/admin/oxapay-events" element={<AdminGuard><AdminOxaPayEvents /></AdminGuard>} />
                     <Route path="/admin/popup-ad" element={<AdminGuard><AdminPopupAd /></AdminGuard>} />
                     <Route path="/admin/topup-plan" element={<AdminGuard><AdminTopupPlan /></AdminGuard>} />
 
