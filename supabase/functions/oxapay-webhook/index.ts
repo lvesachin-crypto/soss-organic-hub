@@ -77,6 +77,31 @@ Deno.serve(async (req) => {
     credit_result: creditResult,
   }).eq('event_hash', eventHash)
 
+  // ── Notify user + admin on Telegram (fire-and-forget) ──
+  try {
+    const { data: dep } = await admin
+      .from('oxapay_deposits')
+      .select('user_id, amount_inr, amount_usd')
+      .eq('order_id', orderId)
+      .maybeSingle()
+    const isFailed = !isPaid && status && ['failed','expired','cancelled','canceled','underpaid'].includes(status)
+    if (dep?.user_id && (creditResult?.credited || isFailed)) {
+      await fetch(`${SUPABASE_URL}/functions/v1/notify-deposit-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+        body: JSON.stringify({
+          user_id: dep.user_id,
+          order_id: orderId,
+          method: 'OxaPay',
+          status: creditResult?.credited ? 'success' : 'failed',
+          amount_inr: dep.amount_inr,
+          amount_usd: dep.amount_usd,
+          reason: isFailed ? status : undefined,
+        }),
+      }).catch(() => {})
+    }
+  } catch (_) { /* ignore notify errors */ }
+
   return new Response('ok', { status: 200 })
 })
 
