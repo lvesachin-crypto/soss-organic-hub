@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Users,
   Search,
@@ -66,6 +67,9 @@ interface UserProfile {
   full_name: string | null;
   currency: string;
   created_at: string;
+  is_banned?: boolean;
+  banned_at?: string | null;
+  banned_reason?: string | null;
   wallet?: {
     balance: number;
     total_deposited: number;
@@ -93,6 +97,8 @@ export default function AdminUsers() {
   const [pauseUser, setPauseUser] = useState<UserProfile | null>(null);
   const [cancelUser, setCancelUser] = useState<UserProfile | null>(null);
   const [refundOnCancel, setRefundOnCancel] = useState(false);
+  const [banUser, setBanUser] = useState<UserProfile | null>(null);
+  const [banReason, setBanReason] = useState('');
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-all-users-with-subs'],
@@ -120,6 +126,27 @@ export default function AdminUsers() {
         }
       })) as UserProfile[];
     },
+  });
+
+  const banUserMutation = useMutation({
+    mutationFn: async ({ targetUser, reason }: { targetUser: UserProfile; reason: string }) => {
+      const { data, error } = await supabase.rpc('admin_ban_user_and_cancel' as any, {
+        p_target_user_id: targetUser.user_id,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      const s = data?.single_orders_cancelled ?? 0;
+      const e = data?.engagement_orders_cancelled ?? 0;
+      const r = data?.pending_runs_cancelled ?? 0;
+      toast.success(`User banned. Cancelled ${s} single, ${e} engagement, ${r} runs.`);
+      setBanUser(null);
+      setBanReason('');
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-with-subs'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const updateBalanceMutation = useMutation({
@@ -671,6 +698,12 @@ export default function AdminUsers() {
                             Admin
                           </Badge>
                         )}
+                        {u.is_banned && (
+                          <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px] h-5">
+                            <Ban className="h-3 w-3 mr-1" />
+                            Banned
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
                         <Mail className="h-3 w-3" />
@@ -806,6 +839,17 @@ export default function AdminUsers() {
                           title="Remove Subscription"
                         >
                           <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {!u.is_banned && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setBanUser(u)}
+                          className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                          title="Ban User (irreversible)"
+                        >
+                          <UserX className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -1048,6 +1092,68 @@ export default function AdminUsers() {
               >
                 {cancelAllOrdersMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Cancel All Orders
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ban User Dialog */}
+        <Dialog
+          open={!!banUser}
+          onOpenChange={(open) => {
+            if (!open) {
+              setBanUser(null);
+              setBanReason('');
+            }
+          }}
+        >
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <Ban className="h-5 w-5" />
+                Ban User
+              </DialogTitle>
+            </DialogHeader>
+            {banUser && (
+              <div className="space-y-4 py-4">
+                <div className="p-4 rounded-xl bg-muted/50 text-center">
+                  <p className="font-medium">{banUser.full_name || banUser.email}</p>
+                  <p className="text-xs text-muted-foreground">{banUser.email}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">This is one-way and immediate.</p>
+                    <p className="text-destructive/80">
+                      User will be marked banned, blocked from placing new orders / deposits, and every one of their pending &amp; processing orders will be auto-cancelled. Un-ban is not available from this panel.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Reason (optional)</Label>
+                  <Textarea
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    placeholder="e.g. suspicious deposit activity"
+                    className="rounded-xl"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setBanUser(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  banUser && banUserMutation.mutate({ targetUser: banUser, reason: banReason })
+                }
+                disabled={banUserMutation.isPending}
+              >
+                {banUserMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Ban &amp; Cancel All Orders
               </Button>
             </div>
           </DialogContent>
