@@ -17,7 +17,6 @@ export default function OxaPayAddFunds() {
   const [loading, setLoading] = useState(false);
 
   const amountInr = Number(inr || 0);
-  const amountUsd = amountInr / USD_TO_INR;
 
   const createInvoice = async () => {
     const inrNum = Math.round(Number(inr) * 100) / 100;
@@ -80,7 +79,7 @@ export default function OxaPayAddFunds() {
       </div>
 
       <p className="text-[13px] leading-relaxed mb-6" style={{ color: '#64748b' }}>
-        Enter INR amount. The payment page will show the matching crypto/USD amount automatically.
+        Enter INR amount. The payment page will open with the matching crypto amount automatically.
       </p>
 
       <label className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#64748b' }}>
@@ -102,7 +101,7 @@ export default function OxaPayAddFunds() {
         />
       </div>
       <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-        ≈ ${Number.isFinite(amountUsd) ? amountUsd.toFixed(2) : '0.00'} payable · ₹{Number.isFinite(amountInr) ? amountInr.toLocaleString('en-IN') : '0'} will be credited · Rate $1 ≈ ₹{USD_TO_INR}
+        ₹{Number.isFinite(amountInr) ? amountInr.toLocaleString('en-IN') : '0'} will be credited after confirmation · Min ₹90
       </p>
 
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
