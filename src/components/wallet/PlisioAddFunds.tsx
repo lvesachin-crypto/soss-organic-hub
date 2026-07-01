@@ -4,14 +4,15 @@ import { toast } from 'sonner';
 import { Loader2, Bitcoin, Copy, ExternalLink, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 const USD_TO_INR = 90;
-const QUICK_USD = [5, 10, 25, 50, 100];
+const QUICK_USD = [1, 5, 10, 25, 100];
+// Plisio gateway ke per-coin minimums (approx, USD)
 const CURRENCIES = [
-  { code: 'USDT_TRX', label: 'USDT (TRC-20)' },
-  { code: 'TRX', label: 'Tron' },
-  { code: 'LTC', label: 'Litecoin' },
-  { code: 'BTC', label: 'Bitcoin' },
-  { code: 'USDT', label: 'USDT (ERC-20)' },
-  { code: 'ETH', label: 'Ethereum' },
+  { code: 'USDT_TRX', label: 'USDT (TRC-20)', min: 5 },
+  { code: 'TRX', label: 'Tron', min: 1 },
+  { code: 'LTC', label: 'Litecoin', min: 1 },
+  { code: 'BTC', label: 'Bitcoin', min: 1 },
+  { code: 'USDT', label: 'USDT (ERC-20)', min: 15 },
+  { code: 'ETH', label: 'Ethereum', min: 5 },
 ];
 
 type Invoice = {
@@ -33,10 +34,13 @@ export default function PlisioAddFunds() {
   const [credited, setCredited] = useState(false);
 
   const amountInr = Math.round(Number(usd || 0) * USD_TO_INR);
+  const selectedMin = CURRENCIES.find((c) => c.code === currency)?.min ?? 1;
 
   const createInvoice = async () => {
     const usdNum = Number(usd);
-    if (!Number.isFinite(usdNum) || usdNum < 5) return toast.error('Minimum $5 (Plisio gateway limit)');
+    if (!Number.isFinite(usdNum) || usdNum < selectedMin) {
+      return toast.error(`Minimum $${selectedMin} for ${currency}`);
+    }
     if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
     setLoading(true);
     setInvoice(null); setCredited(false);
@@ -167,7 +171,7 @@ export default function PlisioAddFunds() {
             </div>
             <input
               type="number"
-              min={5} max={2000}
+              min={1} max={2000}
               value={usd}
               onChange={(e) => setUsd(e.target.value)}
               placeholder="10"
@@ -176,7 +180,7 @@ export default function PlisioAddFunds() {
             />
           </div>
           <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum $5
+            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum ${selectedMin} for {currency}
           </p>
 
           <div className="grid grid-cols-5 gap-2 mt-3">
@@ -205,13 +209,14 @@ export default function PlisioAddFunds() {
               const active = currency === c.code;
               return (
                 <button key={c.code} type="button" onClick={() => setCurrency(c.code)}
-                  className="py-2.5 px-2 rounded-xl text-[11px] font-semibold transition-all active:scale-95"
+                  className="py-2 px-2 rounded-xl text-[11px] font-semibold transition-all active:scale-95 flex flex-col items-center gap-0.5"
                   style={{
                     background: active ? '#0f172a' : 'white',
                     color: active ? 'white' : '#475569',
                     border: active ? '1px solid transparent' : '1.5px solid #e2e8f0',
                   }}>
-                  {c.label}
+                  <span>{c.label}</span>
+                  <span className="text-[9px] font-bold opacity-70">min ${c.min}</span>
                 </button>
               );
             })}
