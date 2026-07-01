@@ -4,15 +4,17 @@ import { toast } from 'sonner';
 import { Loader2, Bitcoin, Copy, ExternalLink, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 const USD_TO_INR = 90;
-const QUICK_USD = [1, 5, 10, 25, 100];
-// Plisio gateway ke per-coin minimums (approx, USD)
+const QUICK_USD = [5, 10, 25, 50, 100, 250];
+// Preferred coins (lowest gateway min first). Plisio invoice page will still
+// show all supported networks, so user can change on their side.
 const CURRENCIES = [
-  { code: 'USDT_TRX', label: 'USDT (TRC-20)', min: 5 },
-  { code: 'TRX', label: 'Tron', min: 1 },
-  { code: 'LTC', label: 'Litecoin', min: 1 },
-  { code: 'BTC', label: 'Bitcoin', min: 1 },
-  { code: 'USDT', label: 'USDT (ERC-20)', min: 15 },
-  { code: 'ETH', label: 'Ethereum', min: 5 },
+  { code: 'TRX',      label: 'TRON (TRX) — recommended' },
+  { code: 'BTC',      label: 'Bitcoin (BTC)' },
+  { code: 'LTC',      label: 'Litecoin (LTC)' },
+  { code: 'DOGE',     label: 'Dogecoin (DOGE)' },
+  { code: 'USDT_TRX', label: 'USDT (TRC-20)' },
+  { code: 'ETH',      label: 'Ethereum (ETH)' },
+  { code: 'USDT',     label: 'USDT (ERC-20)' },
 ];
 
 type Invoice = {
@@ -26,21 +28,18 @@ type Invoice = {
 };
 
 export default function PlisioAddFunds() {
-  const [usd, setUsd] = useState<string>('10');
-  const [currency, setCurrency] = useState('USDT_TRX');
+  const [usd, setUsd] = useState<string>('1');
+  const [currency, setCurrency] = useState('TRX');
   const [loading, setLoading] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [checking, setChecking] = useState(false);
   const [credited, setCredited] = useState(false);
 
   const amountInr = Math.round(Number(usd || 0) * USD_TO_INR);
-  const selectedMin = CURRENCIES.find((c) => c.code === currency)?.min ?? 1;
 
   const createInvoice = async () => {
     const usdNum = Number(usd);
-    if (!Number.isFinite(usdNum) || usdNum < selectedMin) {
-      return toast.error(`Minimum $${selectedMin} for ${currency}`);
-    }
+    if (!Number.isFinite(usdNum) || usdNum < 1) return toast.error('Minimum $1');
     if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
     setLoading(true);
     setInvoice(null); setCredited(false);
