@@ -54,6 +54,22 @@ Deno.serve(async (req) => {
     return new Response('ok', { status: 200 })
   }
 
+  // ── Ownership check: order_id MUST exist in THIS project's oxapay_deposits ──
+  // Prevents cross-project webhook confusion: even if another site's OxaPay merchant
+  // (same API key) somehow POSTs here, we only credit orders we ourselves created.
+  const { data: ownDep, error: ownErr } = await admin
+    .from('oxapay_deposits')
+    .select('id, user_id, amount_inr, amount_usd')
+    .eq('order_id', orderId)
+    .maybeSingle()
+  if (ownErr || !ownDep) {
+    await admin.from('oxapay_webhook_events').update({
+      processed: true,
+      notes: 'foreign_order_id_rejected',
+    }).eq('event_hash', eventHash)
+    return new Response('ok', { status: 200 })
+  }
+
   // Mirror status onto deposit (via service_role — trigger allows it)
   const isPaid = status && ['paid', 'confirmed', 'completed', 'success'].includes(status)
   const updatePatch: Record<string, unknown> = {
