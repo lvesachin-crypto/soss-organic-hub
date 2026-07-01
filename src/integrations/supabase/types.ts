@@ -704,6 +704,7 @@ export type Database = {
       }
       plisio_webhook_events: {
         Row: {
+          amount_inr: number | null
           credit_result: Json | null
           event_hash: string
           id: string
@@ -713,11 +714,14 @@ export type Database = {
           payload: Json | null
           processed: boolean
           received_at: string
+          replay_of: string | null
           signature_valid: boolean
+          source_amount: number | null
           source_ip: string | null
           status: string | null
         }
         Insert: {
+          amount_inr?: number | null
           credit_result?: Json | null
           event_hash: string
           id?: string
@@ -727,11 +731,14 @@ export type Database = {
           payload?: Json | null
           processed?: boolean
           received_at?: string
+          replay_of?: string | null
           signature_valid?: boolean
+          source_amount?: number | null
           source_ip?: string | null
           status?: string | null
         }
         Update: {
+          amount_inr?: number | null
           credit_result?: Json | null
           event_hash?: string
           id?: string
@@ -741,11 +748,21 @@ export type Database = {
           payload?: Json | null
           processed?: boolean
           received_at?: string
+          replay_of?: string | null
           signature_valid?: boolean
+          source_amount?: number | null
           source_ip?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plisio_webhook_events_replay_of_fkey"
+            columns: ["replay_of"]
+            isOneToOne: false
+            referencedRelation: "plisio_webhook_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       popup_ads: {
         Row: {

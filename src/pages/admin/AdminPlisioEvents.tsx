@@ -21,6 +21,9 @@ type PlisioEvent = {
   credit_result: any;
   notes: string | null;
   received_at: string;
+  amount_inr: number | null;
+  source_amount: number | null;
+  replay_of: string | null;
 };
 
 type FilterKey = 'all' | 'invalid_sig' | 'replays' | 'credited' | 'failed';
@@ -57,14 +60,14 @@ export default function AdminPlisioEvents() {
   const counters = {
     total: withReplay.length,
     invalid_sig: withReplay.filter((r) => !r.signature_valid).length,
-    replays: withReplay.filter((r) => r.notes?.toLowerCase().includes('replay') || r.notes?.toLowerCase().includes('duplicate')).length,
+    replays: withReplay.filter((r) => !!r.replay_of || r.notes?.toLowerCase().includes('replay') || r.notes?.toLowerCase().includes('duplicate')).length,
     credited: withReplay.filter((r) => r.credit_result?.credited === true).length,
     failed: withReplay.filter((r) => r.processed && r.credit_result && r.credit_result?.credited === false).length,
   };
 
   const filtered = withReplay.filter((r) => {
     if (filter === 'invalid_sig' && r.signature_valid) return false;
-    if (filter === 'replays' && !(r.notes?.toLowerCase().includes('replay') || r.notes?.toLowerCase().includes('duplicate'))) return false;
+    if (filter === 'replays' && !(r.replay_of || r.notes?.toLowerCase().includes('replay') || r.notes?.toLowerCase().includes('duplicate'))) return false;
     if (filter === 'credited' && r.credit_result?.credited !== true) return false;
     if (filter === 'failed' && !(r.processed && r.credit_result && r.credit_result?.credited === false)) return false;
     if (search.trim()) {
@@ -211,6 +214,23 @@ export default function AdminPlisioEvents() {
                     <p><b className="text-foreground">Invoice:</b> <span className="break-all">{row.invoice_id ?? '—'}</span></p>
                     <p><b className="text-foreground">IP:</b> {row.source_ip ?? '—'}</p>
                     <p className="truncate" title={row.event_hash}><b className="text-foreground">Hash:</b> {row.event_hash.slice(0, 24)}…</p>
+                    <p>
+                      <b className="text-foreground">Expected:</b>{' '}
+                      {row.amount_inr != null ? `₹${Number(row.amount_inr).toFixed(2)}` : '—'}
+                    </p>
+                    <p>
+                      <b className="text-foreground">Paid (source):</b>{' '}
+                      {row.source_amount != null ? `₹${Number(row.source_amount).toFixed(2)}` : '—'}
+                      {row.amount_inr != null && row.source_amount != null &&
+                        Math.abs(Number(row.source_amount) - Number(row.amount_inr)) > 0.5 && (
+                          <span className="ml-1 text-red-500 font-semibold">mismatch</span>
+                        )}
+                    </p>
+                    {row.replay_of && (
+                      <p className="md:col-span-2 break-all">
+                        <b className="text-foreground">Replay of:</b> {row.replay_of}
+                      </p>
+                    )}
                   </div>
 
                   {row.notes && (

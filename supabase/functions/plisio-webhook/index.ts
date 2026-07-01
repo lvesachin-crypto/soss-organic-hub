@@ -40,6 +40,19 @@ Deno.serve(async (req) => {
   const orderId = String(payload?.order_number || '')
   const invoiceId = String(payload?.txn_id || payload?.id || '')
   const upstreamStatus = String(payload?.status || '').toLowerCase()
+  const sourceAmount = Number(payload?.source_amount)
+  const sourceAmountVal = Number.isFinite(sourceAmount) ? sourceAmount : null
+
+  // Look up expected INR up-front so audit row has amount even for replays/bad-sig
+  let expectedInrForAudit: number | null = null
+  if (orderId) {
+    const { data: depForAudit } = await admin
+      .from('plisio_deposits')
+      .select('amount_inr')
+      .eq('order_id', orderId)
+      .maybeSingle()
+    if (depForAudit?.amount_inr != null) expectedInrForAudit = Number(depForAudit.amount_inr)
+  }
 
   // Replay guard: unique event_hash
   const { data: claim, error: claimErr } = await admin.from('plisio_webhook_events').insert({
@@ -50,9 +63,31 @@ Deno.serve(async (req) => {
     signature_valid: signatureValid,
     source_ip: sourceIp,
     payload,
+    amount_inr: expectedInrForAudit,
+    source_amount: sourceAmountVal,
   }).select('id').maybeSingle()
 
   if (claimErr && (claimErr as any).code === '23505') {
+    // Log the replay attempt as its own audit row (distinct hash) so admins can see it
+    const { data: original } = await admin
+      .from('plisio_webhook_events')
+      .select('id')
+      .eq('event_hash', eventHash)
+      .maybeSingle()
+    await admin.from('plisio_webhook_events').insert({
+      event_hash: `${eventHash}:replay:${Date.now()}:${crypto.randomUUID().slice(0, 8)}`,
+      order_id: orderId || null,
+      invoice_id: invoiceId || null,
+      status: upstreamStatus || null,
+      signature_valid: signatureValid,
+      processed: true,
+      source_ip: sourceIp,
+      payload,
+      amount_inr: expectedInrForAudit,
+      source_amount: sourceAmountVal,
+      notes: 'replay',
+      replay_of: original?.id ?? null,
+    })
     return ok({ replay: true })
   }
   if (claimErr) {
