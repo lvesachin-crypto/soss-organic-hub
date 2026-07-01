@@ -150,6 +150,21 @@ export default function AdminUsers() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const unbanUserMutation = useMutation({
+    mutationFn: async (targetUser: UserProfile) => {
+      const { data, error } = await supabase.rpc('admin_unban_user' as any, {
+        p_target_user_id: targetUser.user_id,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      toast.success('User unbanned ✅');
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-with-subs'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const updateBalanceMutation = useMutation({
     mutationFn: async () => {
       if (!selectedUser || !balanceAmount) return;
