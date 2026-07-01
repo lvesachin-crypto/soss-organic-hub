@@ -135,6 +135,19 @@ export default function Wallet() {
     const status = (url.searchParams.get('status') || url.searchParams.get('plisio') || '').toLowerCase();
     if (!orderId || !orderId.startsWith('PL_')) return;
 
+    // Plisio's "Back to store" button opens success_url in a NEW tab.
+    // If this page was opened by another tab (window.opener exists), redirect the
+    // original tab to this same URL and close the new tab — so the user stays in
+    // the tab where they started the payment.
+    try {
+      if (window.opener && !window.opener.closed && window.opener !== window) {
+        try { window.opener.location.href = window.location.href; } catch { /* cross-origin: ignore */ }
+        try { window.opener.focus(); } catch {}
+        window.close();
+        return;
+      }
+    } catch { /* no-op */ }
+
     const cleanUrl = () => {
       url.searchParams.delete('plisio_order_id');
       url.searchParams.delete('plisio');
