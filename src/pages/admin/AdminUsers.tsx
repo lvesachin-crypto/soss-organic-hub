@@ -33,6 +33,7 @@ import {
   Zap,
   XCircle,
   UserX,
+  UserCheck,
   Clock,
   Pause,
   Play,
