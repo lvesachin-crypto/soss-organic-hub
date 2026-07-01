@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}))
     const amountInr = Number(body?.amount_inr)
-    const requested = String(body?.currency || 'USDT_TRX').toUpperCase()
+    const requested = body?.currency ? String(body.currency).toUpperCase() : ''
 
     if (!Number.isFinite(amountInr) || amountInr < 50) return json({ error: 'Minimum ₹50' }, 400)
     if (amountInr > 200000) return json({ error: 'Maximum ₹2,00,000' }, 400)
@@ -45,48 +45,42 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    // Auto-fallback chain: TRX/LTC/BTC first (lowest min ~$1), USDT variants last
-    const chain = Array.from(new Set([requested, 'TRX', 'LTC', 'BTC', 'DOGE', 'USDT_TRX', 'ETH', 'USDT']))
     let invoice: any = null
     let lastErr: any = null
-    let usedCurrency: string = requested
+    let usedCurrency: string | null = requested || null
 
-    for (const cur of chain) {
-      const params = new URLSearchParams({
-        api_key: PLISIO_KEY,
-        source_currency: 'INR',
-        source_amount: String(amountInr),
-        order_number: orderId,
-        order_name: 'Wallet Top-up',
-        currency: cur,
-        callback_url: `${SUPABASE_URL}/functions/v1/plisio-webhook?json=1`,
-        success_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
-        fail_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
-        success_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
-        fail_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
-        redirect_to_invoice: 'true',
-        email,
-      })
-      const r = await fetch(`https://api.plisio.net/api/v1/invoices/new?${params.toString()}`)
+    const params = new URLSearchParams({
+      api_key: PLISIO_KEY,
+      source_currency: 'INR',
+      source_amount: String(amountInr),
+      order_number: orderId,
+      order_name: 'Wallet Top-up',
+      callback_url: `${SUPABASE_URL}/functions/v1/plisio-webhook?json=1`,
+      success_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
+      fail_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
+      success_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
+      fail_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
+      email,
+    })
+    if (requested) params.set('currency', requested)
+
+    const r = await fetch(`https://api.plisio.net/api/v1/invoices/new?${params.toString()}`, {
+      redirect: 'manual',
+    })
+
+    const location = r.headers.get('location')
+    if (location && r.status >= 300 && r.status < 400) {
+      invoice = { invoice_url: new URL(location, 'https://plisio.net').toString() }
+    } else {
       const txt = await r.text()
       let data: any = {}
       try { data = JSON.parse(txt) } catch { data = { raw: txt } }
       if (data?.status === 'success' && data?.data) {
         invoice = data.data
-        usedCurrency = cur
-        break
+        usedCurrency = requested || data.data.currency || data.data.pay_currency || null
+      } else {
+        lastErr = data
       }
-      lastErr = data
-      const msg = String(data?.data?.message || data?.message || '').toLowerCase()
-      // Continue to next coin if: unsupported currency OR amount too small for this coin
-      const retryable =
-        msg.includes('currency') ||
-        msg.includes('disabled') ||
-        msg.includes('unsupported') ||
-        msg.includes('minimal') ||
-        msg.includes('minimum') ||
-        msg.includes('amount')
-      if (!retryable) break
     }
 
     if (!invoice) {
