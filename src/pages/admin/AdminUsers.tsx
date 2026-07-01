@@ -698,6 +698,12 @@ export default function AdminUsers() {
                             Admin
                           </Badge>
                         )}
+                        {u.is_banned && (
+                          <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px] h-5">
+                            <Ban className="h-3 w-3 mr-1" />
+                            Banned
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
                         <Mail className="h-3 w-3" />
@@ -833,6 +839,17 @@ export default function AdminUsers() {
                           title="Remove Subscription"
                         >
                           <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {!u.is_banned && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setBanUser(u)}
+                          className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                          title="Ban User (irreversible)"
+                        >
+                          <UserX className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
