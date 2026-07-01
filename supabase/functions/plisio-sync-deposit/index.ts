@@ -90,7 +90,8 @@ Deno.serve(async (req) => {
     const paidInr = Number(op?.source_amount ?? op?.amount)
     const expectedInr = Number(dep.amount_inr)
 
-    if (local === 'completed' && Number.isFinite(paidInr) && Math.abs(paidInr - expectedInr) > 0.01) {
+    const upstreamSrcCur = String(op?.source_currency || '').toUpperCase()
+    if (local === 'completed' && upstreamSrcCur === 'INR' && Number.isFinite(paidInr) && Math.abs(paidInr - expectedInr) > 0.5) {
       await admin.from('plisio_deposits').update({
         status: 'mismatch', raw_payload: op,
       }).eq('id', dep.id)
