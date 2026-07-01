@@ -1547,6 +1547,7 @@ export type Database = {
         Args: { p_reason?: string; p_target_user_id: string }
         Returns: Json
       }
+      admin_unban_user: { Args: { p_target_user_id: string }; Returns: Json }
       cancel_order_with_refund: {
         Args: { p_actor: string; p_is_admin: boolean; p_order_id: string }
         Returns: Json
