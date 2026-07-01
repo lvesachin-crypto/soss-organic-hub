@@ -30,15 +30,58 @@ Deno.serve(async (req) => {
     if (dep.user_id !== userId) return json({ error: 'Forbidden' }, 403)
     if (dep.credited) return json({ credited: true, already: true })
 
-    const invoiceId = dep.invoice_id
-    if (!invoiceId) return json({ credited: false, status: dep.status })
+    let invoiceId = dep.invoice_id
+    let op: any = null
+    let upstream = ''
+    if (invoiceId) {
+      const r = await fetch(`https://api.plisio.net/api/v1/operations/${invoiceId}?api_key=${PLISIO_KEY}`)
+      const txt = await r.text()
+      let data: any = {}
+      try { data = JSON.parse(txt) } catch { data = { raw: txt } }
+      op = data?.data ?? data
+      upstream = String(op?.status || '').toLowerCase()
+    }
 
-    const r = await fetch(`https://api.plisio.net/api/v1/operations/${invoiceId}?api_key=${PLISIO_KEY}`)
-    const txt = await r.text()
-    let data: any = {}
-    try { data = JSON.parse(txt) } catch { data = { raw: txt } }
-    const op = data?.data ?? data
-    const upstream = String(op?.status || '').toLowerCase()
+    // Fallback: Plisio marks duplicate/rapid re-submissions as "cancelled duplicate" and creates
+    // a NEW invoice with a different txn_id for the real payment. Search the merchant's operations
+    // for a completed invoice with the same amount_inr around this deposit's creation time.
+    const needsFallback = !invoiceId || !upstream || upstream.includes('cancel') || upstream === 'new' || upstream === 'expired' || upstream === 'error'
+    if (needsFallback) {
+      try {
+        const listR = await fetch(`https://api.plisio.net/api/v1/operations?api_key=${PLISIO_KEY}&limit=50&type=invoice`)
+        const listT = await listR.text()
+        const listJ = JSON.parse(listT)
+        const ops = listJ?.data?.operations || []
+        const depCreated = new Date(dep.created_at).getTime()
+        // First: try to find a completed op with source_amount matching amount_inr (±1) within ±30 min
+        for (const o of ops) {
+          if (String(o?.status).toLowerCase() !== 'completed') continue
+          // Fetch detail to confirm order match (source_amount / source_currency)
+          const dR = await fetch(`https://api.plisio.net/api/v1/operations/${o.id}?api_key=${PLISIO_KEY}`)
+          const dT = await dR.text()
+          let dJ: any = {}
+          try { dJ = JSON.parse(dT) } catch {}
+          const detail = dJ?.data ?? dJ
+          const src = Number(detail?.source_amount ?? detail?.amount ?? 0)
+          const srcCur = String(detail?.source_currency || '').toUpperCase()
+          const createdTs = Number(detail?.created_at_utc || 0) * 1000
+          const withinWindow = !createdTs || Math.abs(createdTs - depCreated) < 30 * 60 * 1000
+          const amountMatch = srcCur === 'INR' && Math.abs(src - Number(dep.amount_inr)) <= 1
+          // Also allow match by shop-side order_number if Plisio returned it
+          const orderMatch = String(detail?.order_number || '') === orderId
+          if ((amountMatch && withinWindow) || orderMatch) {
+            op = detail
+            upstream = 'completed'
+            invoiceId = o.id
+            // persist corrected invoice_id
+            await admin.from('plisio_deposits').update({ invoice_id: o.id }).eq('id', dep.id)
+            break
+          }
+        }
+      } catch (_) { /* ignore fallback errors */ }
+    }
+
+    if (!op) return json({ credited: false, status: dep.status })
     const local = mapStatus(upstream)
     const paidInr = Number(op?.source_amount ?? op?.amount)
     const expectedInr = Number(dep.amount_inr)
