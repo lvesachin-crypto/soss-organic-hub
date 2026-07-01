@@ -11,6 +11,15 @@ Deno.serve(async (req) => {
   // Always respond 200 to gateway to prevent retries storm; log errors internally.
   try {
     let payload: any = {}
+    const rawBodyText = await req.clone().text().catch(() => '')
+    const sourceIp = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null
+    const userAgent = req.headers.get('user-agent') || null
+    const httpMethod = req.method
+    const headersObj: Record<string, string> = {}
+    for (const [k, v] of req.headers.entries()) {
+      if (/authorization|cookie|api-key|secret/i.test(k)) continue
+      headersObj[k] = v
+    }
     const ct = req.headers.get('content-type') || ''
     if (ct.includes('application/json')) {
       payload = await req.json().catch(() => ({}))
@@ -40,6 +49,9 @@ Deno.serve(async (req) => {
     const claimed = await claimEvent(admin, {
       event_key: eventKey, order_id: orderId, txn_id: wTxn || null, utr: wUtr || null,
       status: wStatus || null, source: 'webhook', payload,
+      http_method: httpMethod, headers: headersObj, source_ip: sourceIp,
+      user_agent: userAgent,
+      raw_body: rawBodyText.length > 20000 ? rawBodyText.slice(0, 20000) + '…[truncated]' : rawBodyText,
     })
     if (!claimed) return json({ ok: true, replay: true })
 
@@ -64,6 +76,18 @@ Deno.serve(async (req) => {
     // 🔒 Amount-match guard: gateway-reported paid_amount MUST equal stored amount_inr
     const expected = Number(dep.amount_inr)
     const paid = Number((verify as any).paid_amount)
+    const matchOk = Number.isFinite(paid) && Math.abs(paid - expected) <= 0.01
+    await admin.from('zapupi_webhook_events').update({
+      expected_amount: expected,
+      received_amount: Number.isFinite(paid) ? paid : null,
+      amount_match: matchOk,
+      verification_notes: JSON.stringify({
+        verify_success: (verify as any).success,
+        environment: (verify as any).environment,
+        txn_id: (verify as any).txn_id,
+        utr: (verify as any).utr,
+      }),
+    }).eq('event_key', eventKey)
     if (!Number.isFinite(paid) || Math.abs(paid - expected) > 0.01) {
       await admin.from('zapupi_deposits').update({
         status: 'mismatch',
@@ -84,8 +108,14 @@ Deno.serve(async (req) => {
     })
     if (error) {
       console.error('credit_wallet_zapupi error', error)
+      await admin.from('zapupi_webhook_events').update({
+        processed: true, credit_result: { error: error.message },
+      }).eq('event_key', eventKey)
       return json({ ok: true, credit_error: error.message })
     }
+    await admin.from('zapupi_webhook_events').update({
+      processed: true, credit_result: data as any,
+    }).eq('event_key', eventKey)
     await notifyTelegram(admin, orderId, data, 'webhook').catch((e) => console.error('tg notify', e))
     if ((data as any)?.credited && !(data as any)?.duplicate) {
       await notifyUserAdmin(dep.user_id, orderId, 'success', dep.amount_inr).catch(() => {})
@@ -136,6 +166,8 @@ async function sha256Hex(s: string): Promise<string> {
 export async function claimEvent(admin: any, row: {
   event_key: string; order_id: string; txn_id: string | null; utr: string | null;
   status: string | null; source: 'webhook' | 'sync'; payload: unknown;
+  http_method?: string; headers?: Record<string, string>; source_ip?: string | null;
+  user_agent?: string | null; raw_body?: string;
 }): Promise<boolean> {
   const { error } = await admin.from('zapupi_webhook_events').insert(row)
   if (!error) return true
