@@ -36,7 +36,7 @@ export default function PlisioAddFunds() {
 
   const createInvoice = async () => {
     const usdNum = Number(usd);
-    if (!Number.isFinite(usdNum) || usdNum < 1) return toast.error('Minimum $1');
+    if (!Number.isFinite(usdNum) || usdNum < 5) return toast.error('Minimum $5 (Plisio gateway limit)');
     if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
     setLoading(true);
     setInvoice(null); setCredited(false);
