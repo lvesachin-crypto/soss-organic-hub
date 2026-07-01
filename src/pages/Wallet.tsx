@@ -4,7 +4,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useTransactions, type TransactionFilter } from '@/hooks/useTransactions';
 import { useCurrency } from '@/hooks/useCurrency';
 import ZapUpiDepositCard from '@/components/wallet/ZapUpiDepositCard';
-import PlisioAddFunds from '@/components/wallet/PlisioAddFunds';
+import OxaPayAddFunds from '@/components/wallet/OxaPayAddFunds';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -32,8 +32,8 @@ export default function Wallet() {
   useEffect(() => {
     const url = new URL(window.location.href);
     const rawOrderId = url.searchParams.get('zapupi_order_id') || url.searchParams.get('deposit_order_id') || url.searchParams.get('order_id');
-    // Skip Plisio-prefixed orders (handled by the separate Plisio effect below)
-    const orderId = rawOrderId && !rawOrderId.startsWith('PL_') ? rawOrderId : null;
+    // Skip OxaPay-prefixed orders (handled by the separate OxaPay effect below)
+    const orderId = rawOrderId && !rawOrderId.startsWith('OXP_') ? rawOrderId : null;
     const status = (url.searchParams.get('status') || '').toLowerCase();
     if (!orderId) return;
 
