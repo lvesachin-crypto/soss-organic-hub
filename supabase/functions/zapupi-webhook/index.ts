@@ -292,3 +292,14 @@ async function notifyTelegram(admin: any, orderId: string, creditResult: any, so
     body: JSON.stringify({ message: msg, parse_mode: 'HTML' }),
   })
 }
+async function notifyUserAdmin(userId: string | null, orderId: string, status: 'success'|'failed', amountInr: number | null, reason?: string) {
+  if (!userId) return
+  await fetch(`${SUPABASE_URL}/functions/v1/notify-deposit-status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE_ROLE}` },
+    body: JSON.stringify({
+      user_id: userId, order_id: orderId, method: 'ZapUPI',
+      status, amount_inr: amountInr, reason,
+    }),
+  }).catch(() => {})
+}
