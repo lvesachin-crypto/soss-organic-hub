@@ -645,6 +645,108 @@ export type Database = {
         }
         Relationships: []
       }
+      plisio_deposits: {
+        Row: {
+          amount_inr: number
+          created_at: string
+          credited: boolean
+          id: string
+          invoice_id: string | null
+          invoice_url: string | null
+          order_id: string
+          pay_amount: number | null
+          pay_currency: string | null
+          qr_code: string | null
+          raw_payload: Json | null
+          source_currency: string
+          status: string
+          updated_at: string
+          user_id: string
+          wallet_hash: string | null
+        }
+        Insert: {
+          amount_inr: number
+          created_at?: string
+          credited?: boolean
+          id?: string
+          invoice_id?: string | null
+          invoice_url?: string | null
+          order_id: string
+          pay_amount?: number | null
+          pay_currency?: string | null
+          qr_code?: string | null
+          raw_payload?: Json | null
+          source_currency?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          wallet_hash?: string | null
+        }
+        Update: {
+          amount_inr?: number
+          created_at?: string
+          credited?: boolean
+          id?: string
+          invoice_id?: string | null
+          invoice_url?: string | null
+          order_id?: string
+          pay_amount?: number | null
+          pay_currency?: string | null
+          qr_code?: string | null
+          raw_payload?: Json | null
+          source_currency?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          wallet_hash?: string | null
+        }
+        Relationships: []
+      }
+      plisio_webhook_events: {
+        Row: {
+          credit_result: Json | null
+          event_hash: string
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          order_id: string | null
+          payload: Json | null
+          processed: boolean
+          received_at: string
+          signature_valid: boolean
+          source_ip: string | null
+          status: string | null
+        }
+        Insert: {
+          credit_result?: Json | null
+          event_hash: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          received_at?: string
+          signature_valid?: boolean
+          source_ip?: string | null
+          status?: string | null
+        }
+        Update: {
+          credit_result?: Json | null
+          event_hash?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          received_at?: string
+          signature_valid?: boolean
+          source_ip?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       popup_ads: {
         Row: {
           created_at: string
@@ -1389,6 +1491,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
+      credit_wallet_plisio: { Args: { p_order_id: string }; Returns: Json }
       credit_wallet_zapupi: {
         Args: {
           p_gateway_response?: Json
