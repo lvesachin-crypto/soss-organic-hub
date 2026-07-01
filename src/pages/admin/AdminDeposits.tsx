@@ -249,7 +249,7 @@ export default function AdminDeposits() {
                                         <TableCell>
                                             <div className="flex flex-col gap-1">
                                                 <Badge variant="outline" className="w-fit font-black text-primary border-primary/20 bg-primary/5">
-                                                    ₹{(tx.amount * 83.5).toFixed(2)}
+                                                    ₹{(tx.amount * 90).toFixed(2)}
                                                 </Badge>
                                                 {(() => {
                                                     try {

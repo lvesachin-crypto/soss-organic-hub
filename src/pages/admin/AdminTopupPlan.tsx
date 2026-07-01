@@ -54,7 +54,7 @@ interface TopUserRow {
 export default function AdminTopupPlan() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const usdToInr = 83.5; // fixed
+  const usdToInr = 90; // fixed
   const safetyPct = 0; // no buffer
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
