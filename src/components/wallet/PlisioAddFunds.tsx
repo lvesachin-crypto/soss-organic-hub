@@ -4,15 +4,17 @@ import { toast } from 'sonner';
 import { Loader2, Bitcoin, Copy, ExternalLink, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 const USD_TO_INR = 90;
-const QUICK_USD = [1, 5, 10, 25, 100];
-// Plisio gateway ke per-coin minimums (approx, USD)
+const QUICK_USD = [5, 10, 25, 50, 100, 250];
+// Preferred coins (lowest gateway min first). Plisio invoice page will still
+// show all supported networks, so user can change on their side.
 const CURRENCIES = [
-  { code: 'USDT_TRX', label: 'USDT (TRC-20)', min: 5 },
-  { code: 'TRX', label: 'Tron', min: 1 },
-  { code: 'LTC', label: 'Litecoin', min: 1 },
-  { code: 'BTC', label: 'Bitcoin', min: 1 },
-  { code: 'USDT', label: 'USDT (ERC-20)', min: 15 },
-  { code: 'ETH', label: 'Ethereum', min: 5 },
+  { code: 'TRX',      label: 'TRON (TRX) — recommended' },
+  { code: 'BTC',      label: 'Bitcoin (BTC)' },
+  { code: 'LTC',      label: 'Litecoin (LTC)' },
+  { code: 'DOGE',     label: 'Dogecoin (DOGE)' },
+  { code: 'USDT_TRX', label: 'USDT (TRC-20)' },
+  { code: 'ETH',      label: 'Ethereum (ETH)' },
+  { code: 'USDT',     label: 'USDT (ERC-20)' },
 ];
 
 type Invoice = {
@@ -26,21 +28,18 @@ type Invoice = {
 };
 
 export default function PlisioAddFunds() {
-  const [usd, setUsd] = useState<string>('10');
-  const [currency, setCurrency] = useState('USDT_TRX');
+  const [usd, setUsd] = useState<string>('1');
+  const [currency, setCurrency] = useState('TRX');
   const [loading, setLoading] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [checking, setChecking] = useState(false);
   const [credited, setCredited] = useState(false);
 
   const amountInr = Math.round(Number(usd || 0) * USD_TO_INR);
-  const selectedMin = CURRENCIES.find((c) => c.code === currency)?.min ?? 1;
 
   const createInvoice = async () => {
     const usdNum = Number(usd);
-    if (!Number.isFinite(usdNum) || usdNum < selectedMin) {
-      return toast.error(`Minimum $${selectedMin} for ${currency}`);
-    }
+    if (!Number.isFinite(usdNum) || usdNum < 1) return toast.error('Minimum $1');
     if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
     setLoading(true);
     setInvoice(null); setCredited(false);
@@ -180,7 +179,7 @@ export default function PlisioAddFunds() {
             />
           </div>
           <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum ${selectedMin} for {currency}
+            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Min $1 · Rate $1 ≈ ₹{USD_TO_INR}
           </p>
 
           <div className="grid grid-cols-5 gap-2 mt-3">
@@ -204,23 +203,19 @@ export default function PlisioAddFunds() {
           <label className="block text-[11px] font-semibold uppercase tracking-wider mt-4" style={{ color: '#64748b' }}>
             Pay with
           </label>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {CURRENCIES.map((c) => {
-              const active = currency === c.code;
-              return (
-                <button key={c.code} type="button" onClick={() => setCurrency(c.code)}
-                  className="py-2 px-2 rounded-xl text-[11px] font-semibold transition-all active:scale-95 flex flex-col items-center gap-0.5"
-                  style={{
-                    background: active ? '#0f172a' : 'white',
-                    color: active ? 'white' : '#475569',
-                    border: active ? '1px solid transparent' : '1.5px solid #e2e8f0',
-                  }}>
-                  <span>{c.label}</span>
-                  <span className="text-[9px] font-bold opacity-70">min ${c.min}</span>
-                </button>
-              );
-            })}
-          </div>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="w-full mt-2 h-12 px-4 rounded-xl border-2 outline-none font-semibold text-[13px] bg-white"
+            style={{ borderColor: '#e2e8f0', color: '#0f172a' }}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+          <p className="text-[10.5px] mt-1.5" style={{ color: '#94a3b8' }}>
+            You can also change the network on the Plisio invoice page after continuing.
+          </p>
 
           <button
             onClick={createInvoice}

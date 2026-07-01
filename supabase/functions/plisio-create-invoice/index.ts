@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
       status: 'pending',
     })
 
-    // Auto-fallback chain
-    const chain = Array.from(new Set([requested, 'USDT_TRX', 'TRX', 'LTC', 'BTC', 'USDT', 'ETH']))
+    // Auto-fallback chain: TRX/LTC/BTC first (lowest min ~$1), USDT variants last
+    const chain = Array.from(new Set([requested, 'TRX', 'LTC', 'BTC', 'DOGE', 'USDT_TRX', 'ETH', 'USDT']))
     let invoice: any = null
     let lastErr: any = null
     let usedCurrency: string = requested
@@ -75,7 +75,15 @@ Deno.serve(async (req) => {
       }
       lastErr = data
       const msg = String(data?.data?.message || data?.message || '').toLowerCase()
-      if (!msg.includes('currency') && !msg.includes('disabled') && !msg.includes('unsupported')) break
+      // Continue to next coin if: unsupported currency OR amount too small for this coin
+      const retryable =
+        msg.includes('currency') ||
+        msg.includes('disabled') ||
+        msg.includes('unsupported') ||
+        msg.includes('minimal') ||
+        msg.includes('minimum') ||
+        msg.includes('amount')
+      if (!retryable) break
     }
 
     if (!invoice) {
