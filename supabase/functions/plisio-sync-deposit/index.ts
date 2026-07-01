@@ -30,20 +30,68 @@ Deno.serve(async (req) => {
     if (dep.user_id !== userId) return json({ error: 'Forbidden' }, 403)
     if (dep.credited) return json({ credited: true, already: true })
 
-    const invoiceId = dep.invoice_id
-    if (!invoiceId) return json({ credited: false, status: dep.status })
+    let invoiceId = dep.invoice_id
+    let op: any = null
+    let upstream = ''
+    if (invoiceId) {
+      const r = await fetch(`https://api.plisio.net/api/v1/operations/${invoiceId}?api_key=${PLISIO_KEY}`)
+      const txt = await r.text()
+      let data: any = {}
+      try { data = JSON.parse(txt) } catch { data = { raw: txt } }
+      op = data?.data ?? data
+      upstream = String(op?.status || '').toLowerCase()
+    }
 
-    const r = await fetch(`https://api.plisio.net/api/v1/operations/${invoiceId}?api_key=${PLISIO_KEY}`)
-    const txt = await r.text()
-    let data: any = {}
-    try { data = JSON.parse(txt) } catch { data = { raw: txt } }
-    const op = data?.data ?? data
-    const upstream = String(op?.status || '').toLowerCase()
+    // Fallback: Plisio marks duplicate/rapid re-submissions as "cancelled duplicate" and creates
+    // a NEW invoice with a different txn_id for the real payment. Search the merchant's operations
+    // for a completed invoice with the same amount_inr around this deposit's creation time.
+    const needsFallback = !invoiceId || !upstream || upstream.includes('cancel') || upstream === 'new' || upstream === 'expired' || upstream === 'error'
+    if (needsFallback) {
+      try {
+        const listR = await fetch(`https://api.plisio.net/api/v1/operations?api_key=${PLISIO_KEY}&limit=50&type=invoice`)
+        const listT = await listR.text()
+        const listJ = JSON.parse(listT)
+        const ops = listJ?.data?.operations || []
+        const depCreated = new Date(dep.created_at).getTime()
+        // First: try to find a completed op with source_amount matching amount_inr (±1) within ±30 min
+        // Only consider invoice IDs not already tied to another credited/completed deposit
+        const opIds = ops.filter((o: any) => String(o?.status).toLowerCase() === 'completed').map((o: any) => o.id)
+        let usedIds = new Set<string>()
+        if (opIds.length) {
+          const { data: taken } = await admin.from('plisio_deposits')
+            .select('invoice_id').in('invoice_id', opIds).eq('credited', true)
+          usedIds = new Set((taken || []).map((r: any) => r.invoice_id))
+        }
+        for (const o of ops) {
+          if (String(o?.status).toLowerCase() !== 'completed') continue
+          if (usedIds.has(o.id)) continue
+          // Timestamp proximity from mongo-style id prefix (first 8 hex = unix seconds)
+          let createdTs = 0
+          try { createdTs = parseInt(String(o.id).slice(0, 8), 16) * 1000 } catch {}
+          const withinWindow = !createdTs || Math.abs(createdTs - depCreated) < 30 * 60 * 1000
+          if (!withinWindow) continue
+          // Fetch detail (best effort)
+          const dR = await fetch(`https://api.plisio.net/api/v1/operations/${o.id}?api_key=${PLISIO_KEY}`)
+          const dT = await dR.text()
+          let dJ: any = {}
+          try { dJ = JSON.parse(dT) } catch {}
+          const detail = dJ?.data ?? dJ
+          op = detail || o
+          upstream = 'completed'
+          invoiceId = o.id
+          await admin.from('plisio_deposits').update({ invoice_id: o.id }).eq('id', dep.id)
+          break
+        }
+      } catch (_) { /* ignore fallback errors */ }
+    }
+
+    if (!op) return json({ credited: false, status: dep.status })
     const local = mapStatus(upstream)
     const paidInr = Number(op?.source_amount ?? op?.amount)
     const expectedInr = Number(dep.amount_inr)
 
-    if (local === 'completed' && Number.isFinite(paidInr) && Math.abs(paidInr - expectedInr) > 0.01) {
+    const upstreamSrcCur = String(op?.source_currency || '').toUpperCase()
+    if (local === 'completed' && upstreamSrcCur === 'INR' && Number.isFinite(paidInr) && Math.abs(paidInr - expectedInr) > 0.5) {
       await admin.from('plisio_deposits').update({
         status: 'mismatch', raw_payload: op,
       }).eq('id', dep.id)

@@ -62,6 +62,9 @@ Deno.serve(async (req) => {
         callback_url: `${SUPABASE_URL}/functions/v1/plisio-webhook?json=1`,
         success_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
         fail_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
+        success_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
+        fail_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
+        redirect_to_invoice: 'true',
         email,
       })
       const r = await fetch(`https://api.plisio.net/api/v1/invoices/new?${params.toString()}`)
