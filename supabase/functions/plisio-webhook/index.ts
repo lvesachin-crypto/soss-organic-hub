@@ -166,7 +166,7 @@ async function notifyDeposit(admin: any, orderId: string, source: string) {
     .select('email').eq('user_id', dep.user_id).maybeSingle()
   const { data: wal } = await admin.from('wallets')
     .select('balance').eq('user_id', dep.user_id).maybeSingle()
-  const balInr = wal?.balance ? (Number(wal.balance) * 83.5).toFixed(2) : '?'
+  const balInr = wal?.balance ? (Number(wal.balance) * 90).toFixed(2) : '?'
   const msg = [
     `🪙 <b>Crypto Fund Added (Plisio)</b>`, ``,
     `👤 <b>User:</b> ${prof?.email ?? dep.user_id}`,

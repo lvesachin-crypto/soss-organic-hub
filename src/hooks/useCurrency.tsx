@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
 
 const DEFAULT_RATES: Record<CurrencyCode, number> = {
   USD: 1,
-  INR: 83.5,
+  INR: 90,
   EUR: 0.92,
   GBP: 0.79,
   AED: 3.67,
@@ -50,7 +50,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const convertFromUSD = useCallback((usdAmount: number): number => {
     // INR-only mode: always convert USD wallet/price values into INR
-    return usdAmount * (rates.INR || 83.5);
+    return usdAmount * (rates.INR || 90);
   }, [currency, rates]);
 
   const currencyInfo = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];

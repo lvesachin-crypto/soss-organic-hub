@@ -163,7 +163,7 @@ export default function Wallet() {
     if (!transactions?.length) return [];
 
     const adjustments = new Map<string, number>();
-    const inrRate = rates.INR || 83.5;
+    const inrRate = rates.INR || 90;
 
     for (const tx of transactions) {
       if (tx.payment_method !== 'razorpay_auto' || !tx.payment_reference) continue;

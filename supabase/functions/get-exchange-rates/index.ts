@@ -67,7 +67,7 @@ serve(async (req) => {
     // Fallback rates if API fails
     const fallbackRates: Record<string, number> = {
       USD: 1,
-      INR: 83.5,
+      INR: 90,
       EUR: 0.92,
       GBP: 0.79,
       AED: 3.67,

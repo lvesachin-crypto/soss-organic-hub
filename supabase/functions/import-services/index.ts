@@ -94,7 +94,7 @@ function convertRateToUSD(rate: string, providerCurrency: string, exchangeRates:
   const fromUpper = providerCurrency.toUpperCase();
   if (fromUpper === 'USD') return baseRate;
 
-  const fromRate = exchangeRates[fromUpper] || (fromUpper === 'INR' ? 83.5 : 1);
+  const fromRate = exchangeRates[fromUpper] || (fromUpper === 'INR' ? 90 : 1);
   return baseRate / fromRate;
 }
 
@@ -267,7 +267,7 @@ serve(async (req) => {
     console.log(`Received ${servicesData.length} services from API`)
 
     // 1. Fetch exchange rates
-    let exchangeRates: Record<string, number> = { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.79, AED: 3.67 };
+    let exchangeRates: Record<string, number> = { USD: 1, INR: 90, EUR: 0.92, GBP: 0.79, AED: 3.67 };
     try {
       const extReq = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/get-exchange-rates`);
       if (extReq.ok) {

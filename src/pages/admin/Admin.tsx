@@ -133,7 +133,7 @@ export default function Admin() {
                 <div>
                   <p className="text-sm text-muted-foreground">Total User Deposits (All Time)</p>
                   <p className="text-3xl sm:text-4xl font-extrabold text-success">
-                    ₹{(totalDepositsUsd * 83.5).toFixed(2)}
+                    ₹{(totalDepositsUsd * 90).toFixed(2)}
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {depositsCount} successful deposits · auto-refresh every 15s
@@ -143,11 +143,11 @@ export default function Admin() {
               <div className="grid grid-cols-2 gap-3 min-w-[220px]">
                 <div className="p-3 rounded-xl bg-success/5 border border-success/20">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Today</p>
-                  <p className="text-lg font-bold text-success">₹{(depositsTodayUsd * 83.5).toFixed(2)}</p>
+                  <p className="text-lg font-bold text-success">₹{(depositsTodayUsd * 90).toFixed(2)}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Balance</p>
-                  <p className="text-lg font-bold text-primary">₹{(totalWalletUsd * 83.5).toFixed(2)}</p>
+                  <p className="text-lg font-bold text-primary">₹{(totalWalletUsd * 90).toFixed(2)}</p>
                 </div>
               </div>
             </div>

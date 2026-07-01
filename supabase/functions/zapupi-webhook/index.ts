@@ -266,7 +266,7 @@ async function notifyTelegram(admin: any, orderId: string, creditResult: any, so
     .select('balance')
     .eq('user_id', dep.user_id)
     .maybeSingle()
-  const rate = 83.5
+  const rate = 90
   const balInr = wal?.balance ? (Number(wal.balance) * rate).toFixed(2) : '?'
   const msg = [
     `💰 <b>Auto Fund Added (ZapUPI)</b>`,

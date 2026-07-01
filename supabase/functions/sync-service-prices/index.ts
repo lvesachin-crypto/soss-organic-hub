@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     (currentServices || []).forEach(s => { currentPriceMap[s.id] = { price: s.price, name: s.name }; });
 
     // 1. Fetch exchange rates
-    let exchangeRates: Record<string, number> = { USD: 1, INR: 83.5, EUR: 0.92, GBP: 0.79, AED: 3.67 };
+    let exchangeRates: Record<string, number> = { USD: 1, INR: 90, EUR: 0.92, GBP: 0.79, AED: 3.67 };
     try {
       const extReq = await fetch(`${supabaseUrl}/functions/v1/get-exchange-rates`);
       if (extReq.ok) {
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
       const targetUpper = TARGET_CURRENCY.toUpperCase();
       if (fromUpper === targetUpper) return amount;
 
-      const fromRate = exchangeRates[fromUpper] || (fromUpper === 'INR' ? 83.5 : 1);
+      const fromRate = exchangeRates[fromUpper] || (fromUpper === 'INR' ? 90 : 1);
       const targetRate = exchangeRates[targetUpper] || 1;
 
       const amountUsd = amount / fromRate;

@@ -735,7 +735,7 @@ function BundleCard({
 }) {
   const [editingRatios, setEditingRatios] = useState<Record<string, string>>({});
   const [editingPrices, setEditingPrices] = useState<Record<string, string>>({});
-  const INR_RATE = 83.5;
+  const INR_RATE = 90;
   const existingTypes = new Set(
     bundle.items?.map((i: any) => i.engagement_type) || []
   );
