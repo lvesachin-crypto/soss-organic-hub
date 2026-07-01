@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
       await recordFraudAndMaybeBan(admin, dep.user_id, 'amount_mismatch', {
         order_id: orderId, expected_inr: expected, paid_inr: paid, source: 'webhook',
       })
+      await notifyUserAdmin(dep.user_id, orderId, 'failed', dep.amount_inr, `amount_mismatch (expected ₹${expected}, paid ₹${paid})`).catch(() => {})
       return json({ ok: true, mismatch: true })
     }
 
@@ -86,6 +87,9 @@ Deno.serve(async (req) => {
       return json({ ok: true, credit_error: error.message })
     }
     await notifyTelegram(admin, orderId, data, 'webhook').catch((e) => console.error('tg notify', e))
+    if ((data as any)?.credited && !(data as any)?.duplicate) {
+      await notifyUserAdmin(dep.user_id, orderId, 'success', dep.amount_inr).catch(() => {})
+    }
     return json({ ok: true, result: data })
   } catch (e) {
     console.error('webhook error', e)
