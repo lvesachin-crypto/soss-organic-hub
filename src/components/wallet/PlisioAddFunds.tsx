@@ -179,7 +179,7 @@ export default function PlisioAddFunds() {
             />
           </div>
           <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum ${selectedMin} for {currency}
+            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Min $1 · Rate $1 ≈ ₹{USD_TO_INR}
           </p>
 
           <div className="grid grid-cols-5 gap-2 mt-3">
@@ -203,23 +203,19 @@ export default function PlisioAddFunds() {
           <label className="block text-[11px] font-semibold uppercase tracking-wider mt-4" style={{ color: '#64748b' }}>
             Pay with
           </label>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {CURRENCIES.map((c) => {
-              const active = currency === c.code;
-              return (
-                <button key={c.code} type="button" onClick={() => setCurrency(c.code)}
-                  className="py-2 px-2 rounded-xl text-[11px] font-semibold transition-all active:scale-95 flex flex-col items-center gap-0.5"
-                  style={{
-                    background: active ? '#0f172a' : 'white',
-                    color: active ? 'white' : '#475569',
-                    border: active ? '1px solid transparent' : '1.5px solid #e2e8f0',
-                  }}>
-                  <span>{c.label}</span>
-                  <span className="text-[9px] font-bold opacity-70">min ${c.min}</span>
-                </button>
-              );
-            })}
-          </div>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="w-full mt-2 h-12 px-4 rounded-xl border-2 outline-none font-semibold text-[13px] bg-white"
+            style={{ borderColor: '#e2e8f0', color: '#0f172a' }}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.label}</option>
+            ))}
+          </select>
+          <p className="text-[10.5px] mt-1.5" style={{ color: '#94a3b8' }}>
+            You can also change the network on the Plisio invoice page after continuing.
+          </p>
 
           <button
             onClick={createInvoice}
