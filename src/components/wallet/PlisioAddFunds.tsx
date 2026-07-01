@@ -161,7 +161,7 @@ export default function PlisioAddFunds() {
             </div>
             <input
               type="number"
-              min={1} max={2000}
+              min={5} max={2000}
               value={usd}
               onChange={(e) => setUsd(e.target.value)}
               placeholder="10"
@@ -170,7 +170,7 @@ export default function PlisioAddFunds() {
             />
           </div>
           <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited
+            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum $5
           </p>
 
           <div className="grid grid-cols-5 gap-2 mt-3">
