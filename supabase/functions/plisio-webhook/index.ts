@@ -195,9 +195,16 @@ function htmlEntityDecode(value: string): string {
 }
 
 function safeHexEqual(a: string, b: string): boolean {
-  const left = Buffer.from(a.toLowerCase(), 'hex')
-  const right = Buffer.from(b.toLowerCase(), 'hex')
+  const left = hexToBytes(a.toLowerCase())
+  const right = hexToBytes(b.toLowerCase())
   return left.length === right.length && timingSafeEqual(left, right)
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  if (!/^[a-f0-9]+$/i.test(hex) || hex.length % 2 !== 0) return new Uint8Array()
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  return bytes
 }
 
 function escapeHtml(value: string): string {
