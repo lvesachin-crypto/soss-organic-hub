@@ -4,6 +4,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useTransactions, type TransactionFilter } from '@/hooks/useTransactions';
 import { useCurrency } from '@/hooks/useCurrency';
 import ZapUpiDepositCard from '@/components/wallet/ZapUpiDepositCard';
+import PlisioAddFunds from '@/components/wallet/PlisioAddFunds';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -25,6 +26,7 @@ export default function Wallet() {
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const { data: transactions } = useTransactions(filter);
   const qc = useQueryClient();
+  const [depositMethod, setDepositMethod] = useState<'upi' | 'crypto'>('upi');
 
   // Handle ZapUPI return — poll server-verify until the order is credited (or give up after ~3 min).
   useEffect(() => {
@@ -311,8 +313,36 @@ export default function Wallet() {
           </div>
         </div>
 
-        {/* Deposit Section — ZapUPI auto-credit (manual & screenshot flow removed) */}
-        <ZapUpiDepositCard />
+        {/* Deposit Section — UPI + Crypto tabs */}
+        <div>
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setDepositMethod('upi')}
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
+              style={{
+                background: depositMethod === 'upi' ? 'linear-gradient(135deg, #ff8a3d, #ea580c)' : 'white',
+                color: depositMethod === 'upi' ? 'white' : '#475569',
+                border: depositMethod === 'upi' ? '1px solid transparent' : '1.5px solid #e2e8f0',
+                boxShadow: depositMethod === 'upi' ? '0 4px 12px -4px rgba(234,88,12,.4)' : 'none',
+              }}
+            >
+              💳 UPI (INR)
+            </button>
+            <button
+              onClick={() => setDepositMethod('crypto')}
+              className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all"
+              style={{
+                background: depositMethod === 'crypto' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'white',
+                color: depositMethod === 'crypto' ? 'white' : '#475569',
+                border: depositMethod === 'crypto' ? '1px solid transparent' : '1.5px solid #e2e8f0',
+                boxShadow: depositMethod === 'crypto' ? '0 4px 12px -4px rgba(217,119,6,.4)' : 'none',
+              }}
+            >
+              🪙 Crypto
+            </button>
+          </div>
+          {depositMethod === 'upi' ? <ZapUpiDepositCard /> : <PlisioAddFunds />}
+        </div>
 
         {/* Transaction History */}
         <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid rgba(0,0,0,.06)', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}>
