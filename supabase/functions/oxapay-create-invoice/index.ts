@@ -22,9 +22,13 @@ Deno.serve(async (req) => {
     const email = (claims.claims.email as string) || ''
 
     const body = await req.json().catch(() => ({}))
-    const amountUsd = Number(body?.amount_usd)
-    if (!Number.isFinite(amountUsd) || amountUsd < 1) return json({ error: 'Minimum $1' }, 400)
-    if (amountUsd > 6000) return json({ error: 'Maximum $6000 per transaction' }, 400)
+    const rawInr = body?.amount_inr
+    const amountInr = Math.round(Number(rawInr) * 100) / 100
+    if (!Number.isFinite(amountInr) || amountInr < 90) return json({ error: 'Minimum ₹90' }, 400)
+    if (amountInr > 540000) return json({ error: 'Maximum ₹5,40,000 per transaction' }, 400)
+    const amountUsd = Math.round((amountInr / USD_TO_INR) * 10000) / 10000
+    if (!Number.isFinite(amountUsd) || amountUsd < 1) return json({ error: 'Minimum ₹90' }, 400)
+    if (amountUsd > 6000) return json({ error: 'Maximum ₹5,40,000 per transaction' }, 400)
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
 
@@ -33,7 +37,6 @@ Deno.serve(async (req) => {
     if (prof?.is_banned) return json({ error: 'Account suspended' }, 403)
 
     const orderId = 'OXP_' + crypto.randomUUID()
-    const amountInr = Math.round(amountUsd * USD_TO_INR * 100) / 100
     const returnBase = getSafeReturnBase(body?.return_origin)
 
     await admin.from('oxapay_deposits').insert({
@@ -52,7 +55,7 @@ Deno.serve(async (req) => {
       under_paid_coverage: 0,
       order_id: orderId,
       email,
-      description: 'Wallet top-up',
+      description: `Wallet top-up ₹${amountInr} ($${amountUsd})`,
       return_url: `${returnBase}/wallet?oxapay=success&oxapay_order_id=${orderId}`,
       callback_url: `${SUPABASE_URL}/functions/v1/oxapay-webhook`,
     }
