@@ -868,6 +868,20 @@ export default function AdminUsers() {
                           <UserX className="h-4 w-4" />
                         </Button>
                       )}
+                      {u.is_banned && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm(`Unban ${u.email}?`)) unbanUserMutation.mutate(u);
+                          }}
+                          disabled={unbanUserMutation.isPending}
+                          className="h-8 w-8 rounded-lg text-emerald-600 hover:text-emerald-700"
+                          title="Unban User"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
