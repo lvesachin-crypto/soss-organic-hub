@@ -36,7 +36,7 @@ export default function PlisioAddFunds() {
 
   const createInvoice = async () => {
     const usdNum = Number(usd);
-    if (!Number.isFinite(usdNum) || usdNum < 1) return toast.error('Minimum $1');
+    if (!Number.isFinite(usdNum) || usdNum < 5) return toast.error('Minimum $5 (Plisio gateway limit)');
     if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
     setLoading(true);
     setInvoice(null); setCredited(false);
@@ -44,9 +44,15 @@ export default function PlisioAddFunds() {
       const { data, error } = await supabase.functions.invoke('plisio-create-invoice', {
         body: { amount_inr: amountInr, currency, origin: window.location.origin },
       });
-      if (error) throw new Error(error.message);
       const res = data as any;
-      if (res?.error) throw new Error(res.error);
+      if (res?.error) {
+        const detailMsg =
+          res?.detail?.data?.message ||
+          res?.detail?.message ||
+          (typeof res?.detail === 'string' ? res.detail : '');
+        throw new Error(detailMsg ? `${res.error}: ${detailMsg}` : res.error);
+      }
+      if (error) throw new Error(error.message);
       setInvoice(res as Invoice);
       if (res?.invoice_url) window.open(res.invoice_url, '_blank', 'noopener');
     } catch (e: any) {
@@ -161,7 +167,7 @@ export default function PlisioAddFunds() {
             </div>
             <input
               type="number"
-              min={1} max={2000}
+              min={5} max={2000}
               value={usd}
               onChange={(e) => setUsd(e.target.value)}
               placeholder="10"
@@ -170,7 +176,7 @@ export default function PlisioAddFunds() {
             />
           </div>
           <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited
+            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum $5
           </p>
 
           <div className="grid grid-cols-5 gap-2 mt-3">
