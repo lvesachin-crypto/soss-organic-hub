@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     if (prof?.is_banned) return json({ error: 'Account suspended' }, 403)
 
     const orderId = 'PL_' + crypto.randomUUID()
-    const returnBase = String(body?.origin || 'https://organicsmm.online').replace(/\/+$/, '')
+    const returnBase = getSafeReturnBase(body?.origin)
 
     await admin.from('plisio_deposits').insert({
       user_id: userId,
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       source_amount: String(amountInr),
       order_number: orderId,
       order_name: 'Wallet Top-up',
-      callback_url: `${SUPABASE_URL}/functions/v1/plisio-webhook?json=1`,
+      callback_url: `${SUPABASE_URL}/functions/v1/plisio-webhook?json=true`,
       success_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
       fail_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=failed`,
       success_callback_url: `${returnBase}/wallet?plisio_order_id=${orderId}&status=success`,
@@ -118,4 +118,19 @@ function json(b: unknown, status = 200) {
   return new Response(JSON.stringify(b), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status,
   })
+}
+
+function getSafeReturnBase(input: unknown): string {
+  const fallback = 'https://organicsmm.online'
+  try {
+    const url = new URL(String(input || fallback))
+    const host = url.hostname.toLowerCase()
+    const allowed = host === 'organicsmm.online'
+      || host === 'sologrow-pro.lovable.app'
+      || host.endsWith('.lovable.app')
+      || host === 'localhost'
+    return allowed ? `${url.protocol}//${url.host}`.replace(/\/+$/, '') : fallback
+  } catch {
+    return fallback
+  }
 }

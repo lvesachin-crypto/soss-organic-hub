@@ -106,9 +106,9 @@ Deno.serve(async (req) => {
     }).eq('id', dep.id)
 
     if (local === 'completed') {
-      const { data: cr, error: crErr } = await admin.rpc('credit_wallet_plisio', { p_order_id: orderId })
-      if (crErr) return json({ error: crErr.message }, 500)
-      return json({ credited: true, result: cr })
+      // Security: browser redirect/polling never credits funds. Wallet credit happens
+      // only from plisio-webhook after Plisio's signed callback verifies successfully.
+      return json({ credited: false, status: 'awaiting_signed_webhook' })
     }
     return json({ credited: false, status: local })
   } catch (e) {
@@ -117,7 +117,8 @@ Deno.serve(async (req) => {
 })
 
 function mapStatus(s: string): string {
-  if (s === 'completed' || s === 'success' || s === 'mismatch') return 'completed'
+  if (s === 'completed' || s === 'success') return 'completed'
+  if (s === 'mismatch') return 'mismatch'
   if (s === 'expired') return 'expired'
   if (s === 'error' || s === 'cancelled' || s === 'canceled') return 'failed'
   return 'pending'
