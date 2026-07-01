@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Loader2, Bitcoin, Copy, ExternalLink, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 const USD_TO_INR = 90;
-const QUICK_USD = [1, 5, 10, 25, 100];
+const QUICK_USD = [5, 10, 25, 50, 100];
 const CURRENCIES = [
   { code: 'USDT_TRX', label: 'USDT (TRC-20)' },
   { code: 'TRX', label: 'Tron' },
@@ -36,7 +36,7 @@ export default function PlisioAddFunds() {
 
   const createInvoice = async () => {
     const usdNum = Number(usd);
-    if (!Number.isFinite(usdNum) || usdNum < 1) return toast.error('Minimum $1');
+    if (!Number.isFinite(usdNum) || usdNum < 5) return toast.error('Minimum $5 (Plisio gateway limit)');
     if (usdNum > 2000) return toast.error('Maximum $2000 per transaction');
     setLoading(true);
     setInvoice(null); setCredited(false);
@@ -167,7 +167,7 @@ export default function PlisioAddFunds() {
             </div>
             <input
               type="number"
-              min={1} max={2000}
+              min={5} max={2000}
               value={usd}
               onChange={(e) => setUsd(e.target.value)}
               placeholder="10"
@@ -176,7 +176,7 @@ export default function PlisioAddFunds() {
             />
           </div>
           <p className="text-[11px] mt-1.5" style={{ color: '#94a3b8' }}>
-            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum $1
+            ≈ ₹{amountInr.toLocaleString('en-IN')} will be credited · Minimum $5
           </p>
 
           <div className="grid grid-cols-5 gap-2 mt-3">
