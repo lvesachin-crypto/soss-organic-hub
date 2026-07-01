@@ -8,6 +8,14 @@ Deno.serve(async (req) => {
   // Always respond 200 to prevent OxaPay from retrying storms; log everything.
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
   const sourceIp = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null
+  const userAgent = req.headers.get('user-agent') || null
+  const httpMethod = req.method
+  const headersObj: Record<string, string> = {}
+  for (const [k, v] of req.headers.entries()) {
+    // Redact anything token-ish in logs
+    if (/authorization|cookie|api-key|secret/i.test(k)) continue
+    headersObj[k] = v
+  }
   let rawBody = ''
   try {
     rawBody = await req.text()
@@ -26,6 +34,14 @@ Deno.serve(async (req) => {
   const orderId: string | null = payload?.order_id || payload?.orderId || null
   const trackId: string | null = payload?.track_id ? String(payload.track_id) : (payload?.trackId ? String(payload.trackId) : null)
   const status: string | null = String(payload?.status || payload?.type || '').toLowerCase() || null
+  const txHash: string | null =
+    payload?.tx_hash || payload?.txHash || payload?.txid ||
+    (Array.isArray(payload?.txids) ? payload.txids[0] : null) ||
+    payload?.transaction_id || null
+  const payCurrency: string | null = payload?.pay_currency || payload?.currency || null
+  const receivedAmountRaw = payload?.pay_amount ?? payload?.received_amount ?? payload?.amount
+  const receivedAmount = receivedAmountRaw != null && !Number.isNaN(Number(receivedAmountRaw))
+    ? Number(receivedAmountRaw) : null
 
   // Idempotency insert (unique event_hash)
   const { error: insertErr } = await admin.from('oxapay_webhook_events').insert({
@@ -37,6 +53,15 @@ Deno.serve(async (req) => {
     source_ip: sourceIp,
     payload,
     notes: signatureValid ? null : 'signature_invalid',
+    tx_hash: txHash,
+    pay_currency: payCurrency,
+    received_amount: receivedAmount,
+    http_method: httpMethod,
+    headers: headersObj,
+    user_agent: userAgent,
+    signature_expected: expectedSig,
+    signature_received: receivedSig || null,
+    raw_body: rawBody.length > 20000 ? rawBody.slice(0, 20000) + '…[truncated]' : rawBody,
   })
 
   // Duplicate event → return early
@@ -69,6 +94,16 @@ Deno.serve(async (req) => {
     }).eq('event_hash', eventHash)
     return new Response('ok', { status: 200 })
   }
+
+  // Amount-match log (informational; USD-side compare with 1% tolerance)
+  const expectedUsd = Number(ownDep.amount_usd) || null
+  const amountMatch = expectedUsd != null && receivedAmount != null
+    ? Math.abs(receivedAmount - expectedUsd) <= Math.max(0.01, expectedUsd * 0.01)
+    : null
+  await admin.from('oxapay_webhook_events').update({
+    expected_amount: expectedUsd,
+    amount_match: amountMatch,
+  }).eq('event_hash', eventHash)
 
   // Mirror status onto deposit (via service_role — trigger allows it)
   const isPaid = status && ['paid', 'confirmed', 'completed', 'success'].includes(status)
