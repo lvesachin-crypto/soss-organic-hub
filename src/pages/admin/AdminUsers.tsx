@@ -66,6 +66,9 @@ interface UserProfile {
   full_name: string | null;
   currency: string;
   created_at: string;
+  is_banned?: boolean;
+  banned_at?: string | null;
+  banned_reason?: string | null;
   wallet?: {
     balance: number;
     total_deposited: number;
@@ -93,6 +96,8 @@ export default function AdminUsers() {
   const [pauseUser, setPauseUser] = useState<UserProfile | null>(null);
   const [cancelUser, setCancelUser] = useState<UserProfile | null>(null);
   const [refundOnCancel, setRefundOnCancel] = useState(false);
+  const [banUser, setBanUser] = useState<UserProfile | null>(null);
+  const [banReason, setBanReason] = useState('');
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-all-users-with-subs'],
@@ -120,6 +125,27 @@ export default function AdminUsers() {
         }
       })) as UserProfile[];
     },
+  });
+
+  const banUserMutation = useMutation({
+    mutationFn: async ({ targetUser, reason }: { targetUser: UserProfile; reason: string }) => {
+      const { data, error } = await supabase.rpc('admin_ban_user_and_cancel' as any, {
+        p_target_user_id: targetUser.user_id,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      const s = data?.single_orders_cancelled ?? 0;
+      const e = data?.engagement_orders_cancelled ?? 0;
+      const r = data?.pending_runs_cancelled ?? 0;
+      toast.success(`User banned. Cancelled ${s} single, ${e} engagement, ${r} runs.`);
+      setBanUser(null);
+      setBanReason('');
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-with-subs'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const updateBalanceMutation = useMutation({
