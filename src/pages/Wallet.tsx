@@ -128,35 +128,22 @@ export default function Wallet() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle Plisio return — poll plisio-sync-deposit until credited (or ~3 min).
+  // Handle OxaPay return — poll oxapay-sync-deposit; webhook does the actual crediting.
   useEffect(() => {
     const url = new URL(window.location.href);
-    const orderId = url.searchParams.get('plisio_order_id');
-    const status = (url.searchParams.get('status') || url.searchParams.get('plisio') || '').toLowerCase();
-    if (!orderId || !orderId.startsWith('PL_')) return;
-
-    // Plisio's "Back to store" button opens success_url in a NEW tab.
-    // If this page was opened by another tab (window.opener exists), redirect the
-    // original tab to this same URL and close the new tab — so the user stays in
-    // the tab where they started the payment.
-    try {
-      if (window.opener && !window.opener.closed && window.opener !== window) {
-        try { window.opener.location.href = window.location.href; } catch { /* cross-origin: ignore */ }
-        try { window.opener.focus(); } catch {}
-        window.close();
-        return;
-      }
-    } catch { /* no-op */ }
+    const orderId = url.searchParams.get('oxapay_order_id');
+    const status = (url.searchParams.get('status') || url.searchParams.get('oxapay') || '').toLowerCase();
+    if (!orderId || !orderId.startsWith('OXP_')) return;
 
     const cleanUrl = () => {
-      url.searchParams.delete('plisio_order_id');
-      url.searchParams.delete('plisio');
+      url.searchParams.delete('oxapay_order_id');
+      url.searchParams.delete('oxapay');
       url.searchParams.delete('status');
       window.history.replaceState({}, '', url.pathname + (url.search ? `?${url.searchParams}` : ''));
     };
 
-    const claimedKey = `plisio_claimed_${orderId}`;
-    const inflightKey = `plisio_inflight_${orderId}`;
+    const claimedKey = `oxapay_claimed_${orderId}`;
+    const inflightKey = `oxapay_inflight_${orderId}`;
     if (sessionStorage.getItem(claimedKey) === 'done' || localStorage.getItem(claimedKey) === 'done') {
       toast.success('This crypto payment is already credited.');
       cleanUrl();
@@ -166,7 +153,7 @@ export default function Wallet() {
     if (inflightAt && Date.now() - inflightAt < 60_000) return;
     sessionStorage.setItem(inflightKey, String(Date.now()));
 
-    if (status === 'failed' || status === 'cancelled' || status === 'cancel') {
+    if (status === 'failed' || status === 'cancelled' || status === 'cancel' || status === 'expired') {
       toast.error('Crypto payment cancelled or failed');
       sessionStorage.removeItem(inflightKey);
       cleanUrl();
@@ -175,14 +162,14 @@ export default function Wallet() {
 
     let cancelled = false;
     let attempts = 0;
-    const maxAttempts = 36; // ~3 min at 5s
+    const maxAttempts = 20; // ~2 min at 6s
     const pendingToast = toast.loading('Verifying crypto payment…');
 
     const poll = async () => {
       if (cancelled) return;
       attempts++;
       try {
-        const { data, error } = await supabase.functions.invoke('plisio-sync-deposit', {
+        const { data, error } = await supabase.functions.invoke('oxapay-sync-deposit', {
           body: { order_id: orderId },
         });
         if (error) throw new Error(error.message);
@@ -197,14 +184,8 @@ export default function Wallet() {
           cleanUrl();
           return;
         }
-        if (res?.mismatch) {
-          toast.error('Amount mismatch — contact support', { id: pendingToast });
-          sessionStorage.removeItem(inflightKey);
-          cleanUrl();
-          return;
-        }
       } catch {
-        // ignore
+        // ignore and retry
       }
       if (attempts >= maxAttempts) {
         toast.info('Payment not confirmed yet. Wallet will update once network confirms.', { id: pendingToast });
@@ -214,7 +195,7 @@ export default function Wallet() {
         cleanUrl();
         return;
       }
-      setTimeout(poll, 5000);
+      setTimeout(poll, 6000);
     };
     poll();
     return () => {
@@ -439,7 +420,7 @@ export default function Wallet() {
               🪙 Crypto
             </button>
           </div>
-          {depositMethod === 'upi' ? <ZapUpiDepositCard /> : <PlisioAddFunds />}
+          {depositMethod === 'upi' ? <ZapUpiDepositCard /> : <OxaPayAddFunds />}
         </div>
 
         {/* Transaction History */}
