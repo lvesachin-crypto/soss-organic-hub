@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
-import { createHash, createHmac } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 
 const PLISIO_KEY = Deno.env.get('PLISIO_SECRET_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
   }
 
   if (!signatureValid) {
-    await notifyTelegram(`❌ <b>Plisio bad signature</b>\nOrder: <code>${orderId || 'unknown'}</code>`)
+    // Keep noisy bot/probe callbacks out of Telegram. Real Plisio orders still get logged in DB.
+    if (orderId.startsWith('PL_')) {
+      await notifyTelegram(`❌ <b>Plisio bad signature</b>\nOrder: <code>${escapeHtml(orderId)}</code>`)
+    }
     await admin.from('plisio_webhook_events').update({
       processed: true, notes: 'bad_signature',
     }).eq('id', claim!.id)
@@ -72,18 +75,19 @@ Deno.serve(async (req) => {
     return ok({ ok: true })
   }
 
-  // Amount match (INR)
-  const paidInr = Number(payload?.source_amount ?? payload?.amount)
+  // Strict INR amount match: source_amount is the merchant-side INR amount from Plisio.
+  // Never trust redirect URL or a crypto amount field for wallet crediting.
+  const paidInr = Number(payload?.source_amount)
   const expectedInr = Number(dep.amount_inr)
   const localStatus = mapStatus(upstreamStatus)
 
-  if (Number.isFinite(paidInr) && (localStatus === 'completed') && Math.abs(paidInr - expectedInr) > 0.01) {
+  if (localStatus === 'completed' && (!Number.isFinite(paidInr) || Math.abs(paidInr - expectedInr) > 0.5)) {
     await admin.from('plisio_deposits').update({
       status: 'mismatch',
       raw_payload: payload,
     }).eq('id', dep.id)
     await notifyTelegram(
-      `🚨 <b>Plisio amount mismatch</b>\nOrder: <code>${orderId}</code>\nExpected: ₹${expectedInr}\nPaid: ₹${paidInr}`
+      `🚨 <b>Plisio amount mismatch</b>\nOrder: <code>${escapeHtml(orderId)}</code>\nExpected: ₹${expectedInr}\nPaid: ₹${Number.isFinite(paidInr) ? paidInr : 'missing'}`
     )
     await admin.from('plisio_webhook_events').update({ processed: true, notes: 'amount_mismatch' }).eq('id', claim!.id)
     return ok({ ok: true, mismatch: true })
@@ -124,7 +128,8 @@ function ok(b: unknown) {
 }
 
 function mapStatus(s: string): string {
-  if (s === 'completed' || s === 'success' || s === 'mismatch') return 'completed'
+  if (s === 'completed' || s === 'success') return 'completed'
+  if (s === 'mismatch') return 'mismatch'
   if (s === 'expired') return 'expired'
   if (s === 'error' || s === 'cancelled' || s === 'canceled') return 'failed'
   return 'pending'
@@ -139,10 +144,18 @@ function verifyPlisioSignature(payload: any, apiKey: string): boolean {
     const sortedKeys = Object.keys(copy).sort()
     const sorted: any = {}
     for (const k of sortedKeys) sorted[k] = copy[k]
+    if (typeof sorted.expire_utc !== 'undefined') sorted.expire_utc = String(sorted.expire_utc)
+    if (typeof sorted.tx_urls === 'string') sorted.tx_urls = htmlEntityDecode(sorted.tx_urls)
+
+    const jsonUnsorted = JSON.stringify(copy)
     const jsonSerialized = JSON.stringify(sorted)
-    // Plisio docs vary between PHP-style and JSON-style serialization,
-    // and between HMAC-SHA1 / HMAC-MD5 / plain MD5. Accept any match.
+    const phpSerialized = phpSerialize(sorted)
+
+    // Plisio signs callbacks with SECRET_KEY. Docs/SDKs vary between PHP serialize
+    // form callbacks and JSON callbacks, so accept the documented variants only.
     const candidates = [
+      createHmac('sha1', apiKey).update(phpSerialized).digest('hex'),
+      createHmac('sha1', apiKey).update(jsonUnsorted).digest('hex'),
       createHmac('sha1', apiKey).update(jsonSerialized).digest('hex'),
       createHmac('md5',  apiKey).update(jsonSerialized).digest('hex'),
       createHash('md5').update(jsonSerialized + apiKey).digest('hex'),
@@ -154,10 +167,41 @@ function verifyPlisioSignature(payload: any, apiKey: string): boolean {
       createHmac('sha1', apiKey).update(flat).digest('hex'),
       createHmac('md5',  apiKey).update(flat).digest('hex'),
     )
-    return candidates.includes(String(verifyHash).toLowerCase())
+    return candidates.some((candidate) => safeHexEqual(candidate, String(verifyHash)))
   } catch {
     return false
   }
+}
+
+function phpSerialize(value: any): string {
+  if (value === null || typeof value === 'undefined') return 'N;'
+  if (typeof value === 'boolean') return `b:${value ? 1 : 0};`
+  if (typeof value === 'number') return Number.isInteger(value) ? `i:${value};` : `d:${value};`
+  if (typeof value === 'string') return `s:${new TextEncoder().encode(value).length}:"${value}";`
+  if (Array.isArray(value)) {
+    return `a:${value.length}:{${value.map((v, i) => `i:${i};${phpSerialize(v)}`).join('')}}`
+  }
+  const keys = Object.keys(value).sort()
+  return `a:${keys.length}:{${keys.map((k) => `${phpSerialize(k)}${phpSerialize(value[k])}`).join('')}}`
+}
+
+function htmlEntityDecode(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+}
+
+function safeHexEqual(a: string, b: string): boolean {
+  const left = Buffer.from(a.toLowerCase(), 'hex')
+  const right = Buffer.from(b.toLowerCase(), 'hex')
+  return left.length === right.length && timingSafeEqual(left, right)
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]!))
 }
 
 async function notifyTelegram(message: string) {
