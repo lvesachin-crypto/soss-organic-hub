@@ -671,46 +671,79 @@ export type Database = {
       }
       oxapay_webhook_events: {
         Row: {
+          amount_match: boolean | null
           credit_result: Json | null
           event_hash: string
+          expected_amount: number | null
+          headers: Json | null
+          http_method: string | null
           id: string
           notes: string | null
           order_id: string | null
+          pay_currency: string | null
           payload: Json | null
           processed: boolean
+          raw_body: string | null
+          received_amount: number | null
           received_at: string
+          signature_expected: string | null
+          signature_received: string | null
           signature_valid: boolean
           source_ip: string | null
           status: string | null
           track_id: string | null
+          tx_hash: string | null
+          user_agent: string | null
         }
         Insert: {
+          amount_match?: boolean | null
           credit_result?: Json | null
           event_hash: string
+          expected_amount?: number | null
+          headers?: Json | null
+          http_method?: string | null
           id?: string
           notes?: string | null
           order_id?: string | null
+          pay_currency?: string | null
           payload?: Json | null
           processed?: boolean
+          raw_body?: string | null
+          received_amount?: number | null
           received_at?: string
+          signature_expected?: string | null
+          signature_received?: string | null
           signature_valid?: boolean
           source_ip?: string | null
           status?: string | null
           track_id?: string | null
+          tx_hash?: string | null
+          user_agent?: string | null
         }
         Update: {
+          amount_match?: boolean | null
           credit_result?: Json | null
           event_hash?: string
+          expected_amount?: number | null
+          headers?: Json | null
+          http_method?: string | null
           id?: string
           notes?: string | null
           order_id?: string | null
+          pay_currency?: string | null
           payload?: Json | null
           processed?: boolean
+          raw_body?: string | null
+          received_amount?: number | null
           received_at?: string
+          signature_expected?: string | null
+          signature_received?: string | null
           signature_valid?: boolean
           source_ip?: string | null
           status?: string | null
           track_id?: string | null
+          tx_hash?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -1401,37 +1434,70 @@ export type Database = {
       }
       zapupi_webhook_events: {
         Row: {
+          amount_match: boolean | null
+          credit_result: Json | null
           event_key: string
+          expected_amount: number | null
+          headers: Json | null
+          http_method: string | null
           id: string
           order_id: string
           payload: Json | null
+          processed: boolean | null
+          raw_body: string | null
+          received_amount: number | null
           received_at: string
           source: string
+          source_ip: string | null
           status: string | null
           txn_id: string | null
+          user_agent: string | null
           utr: string | null
+          verification_notes: string | null
         }
         Insert: {
+          amount_match?: boolean | null
+          credit_result?: Json | null
           event_key: string
+          expected_amount?: number | null
+          headers?: Json | null
+          http_method?: string | null
           id?: string
           order_id: string
           payload?: Json | null
+          processed?: boolean | null
+          raw_body?: string | null
+          received_amount?: number | null
           received_at?: string
           source?: string
+          source_ip?: string | null
           status?: string | null
           txn_id?: string | null
+          user_agent?: string | null
           utr?: string | null
+          verification_notes?: string | null
         }
         Update: {
+          amount_match?: boolean | null
+          credit_result?: Json | null
           event_key?: string
+          expected_amount?: number | null
+          headers?: Json | null
+          http_method?: string | null
           id?: string
           order_id?: string
           payload?: Json | null
+          processed?: boolean | null
+          raw_body?: string | null
+          received_amount?: number | null
           received_at?: string
           source?: string
+          source_ip?: string | null
           status?: string | null
           txn_id?: string | null
+          user_agent?: string | null
           utr?: string | null
+          verification_notes?: string | null
         }
         Relationships: []
       }
