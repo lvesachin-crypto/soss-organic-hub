@@ -33,6 +33,7 @@ import {
   Zap,
   XCircle,
   UserX,
+  UserCheck,
   Clock,
   Pause,
   Play,
@@ -144,6 +145,21 @@ export default function AdminUsers() {
       toast.success(`User banned. Cancelled ${s} single, ${e} engagement, ${r} runs.`);
       setBanUser(null);
       setBanReason('');
+      queryClient.invalidateQueries({ queryKey: ['admin-all-users-with-subs'] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const unbanUserMutation = useMutation({
+    mutationFn: async (targetUser: UserProfile) => {
+      const { data, error } = await supabase.rpc('admin_unban_user' as any, {
+        p_target_user_id: targetUser.user_id,
+      });
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: () => {
+      toast.success('User unbanned ✅');
       queryClient.invalidateQueries({ queryKey: ['admin-all-users-with-subs'] });
     },
     onError: (err: Error) => toast.error(err.message),
@@ -850,6 +866,20 @@ export default function AdminUsers() {
                           title="Ban User (irreversible)"
                         >
                           <UserX className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {u.is_banned && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm(`Unban ${u.email}?`)) unbanUserMutation.mutate(u);
+                          }}
+                          disabled={unbanUserMutation.isPending}
+                          className="h-8 w-8 rounded-lg text-emerald-600 hover:text-emerald-700"
+                          title="Unban User"
+                        >
+                          <UserCheck className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
