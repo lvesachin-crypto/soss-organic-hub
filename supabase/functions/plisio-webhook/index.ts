@@ -52,9 +52,12 @@ Deno.serve(async (req) => {
   }
 
   if (!signatureValid) {
-    // Keep noisy bot/probe callbacks out of Telegram. Real Plisio orders still get logged in DB.
+    // Keep noisy bot/probe callbacks out of Telegram. Alert only for known real orders.
     if (orderId.startsWith('PL_')) {
-      await notifyTelegram(`❌ <b>Plisio bad signature</b>\nOrder: <code>${escapeHtml(orderId)}</code>`)
+      const { data: knownDep } = await admin.from('plisio_deposits').select('id').eq('order_id', orderId).maybeSingle()
+      if (knownDep) {
+        await notifyTelegram(`❌ <b>Plisio bad signature</b>\nOrder: <code>${escapeHtml(orderId)}</code>`)
+      }
     }
     await admin.from('plisio_webhook_events').update({
       processed: true, notes: 'bad_signature',
