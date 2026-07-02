@@ -368,7 +368,7 @@ export default function Admin() {
             </Card>
           </Link>
 
-          <Link to="/admin/plisio-events">
+          <Link to="/admin/oxapay-events">
             <Card className="glass-card h-full hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all cursor-pointer group border-2 border-orange-500/30">
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
@@ -378,7 +378,7 @@ export default function Admin() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold group-hover:text-orange-500 transition-colors">
-                        Plisio Webhook Events
+                        OxaPay Webhook Events
                       </h3>
                       <Badge className="text-[10px] h-4 px-1.5 bg-orange-500 text-white">NEW</Badge>
                     </div>
