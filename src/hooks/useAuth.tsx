@@ -166,36 +166,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    console.log('--- useAuth: signUp started (direct bypass) ---');
+    console.log('--- useAuth: signUp started ---');
     try {
-      const { data, error } = await supabase.functions.invoke('auto-verify-signup', {
-        body: { 
-          email: email.trim().toLowerCase(), 
-          password, 
-          fullName: fullName || '' 
-        }
+      const normalizedEmail = email.trim().toLowerCase();
+      const { error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: { full_name: fullName || '' },
+        },
       });
 
-      if (error || (data && data.error)) {
-        const errorMsg = error?.message || data?.error || 'Signup failed';
-        console.error('--- useAuth: signUp error ---', errorMsg);
-        return { error: new Error(errorMsg) };
+      if (error) {
+        console.error('--- useAuth: signUp error ---', error.message);
+        return { error: error as Error };
       }
 
-      console.log('--- useAuth: signUp api success, now logging in ---');
-      
-      // Auto-verify created user, now simply log them in
+      // If email confirmation is off, sign the user in immediately.
       const signInRes = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       });
-      
+
       if (signInRes.error) {
-        console.error('--- useAuth: signIn after custom signup error ---', signInRes.error);
-        return { error: signInRes.error };
+        // Not fatal — account exists but requires email confirmation.
+        console.warn('--- useAuth: post-signup signIn ---', signInRes.error.message);
       }
 
-      console.log('--- useAuth: signUp & login success ---');
       return { error: null };
     } catch (error) {
       console.error('--- useAuth: signUp catch ---', error);
