@@ -30,6 +30,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
+import { ZapUpiWebhookHealthCard } from '@/components/admin/ZapUpiWebhookHealthCard';
 
 export default function AdminDeposits() {
     const { session, isAdmin, isLoading: authLoading } = useAuth();
@@ -197,6 +198,9 @@ export default function AdminDeposits() {
                         />
                     </div>
                 </div>
+
+                {/* Webhook Health Check */}
+                <ZapUpiWebhookHealthCard />
 
                 {/* Table Card */}
                 <Card className="glass-card overflow-hidden">
