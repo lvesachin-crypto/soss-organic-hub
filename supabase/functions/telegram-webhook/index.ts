@@ -110,10 +110,7 @@ async function fetchLiveBalances(chatId: number) {
     if (r.error) return `❌ <b>${r.name}</b>\n   <i>${r.error}</i>`;
     totalInr += r.inr;
     const emoji = r.inr < 50 ? "🔴" : r.inr < 200 ? "🟡" : "🟢";
-    const native = r.currency === "USD"
-      ? `$${r.balance.toFixed(4)} (₹${r.inr.toFixed(2)})`
-      : `₹${r.balance.toFixed(2)}`;
-    return `${emoji} <b>${r.name}</b>\n   ${native}`;
+    return `${emoji} <b>${r.name}</b>\n   ₹${r.inr.toFixed(2)}`;
   });
 
   const msg = `💰 <b>Provider Balances</b>\n\n${lines.join("\n\n")}\n\n━━━━━━━━━━━━━━\n<b>Total: ₹${totalInr.toFixed(2)}</b>\n<i>Updated: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</i>`;
