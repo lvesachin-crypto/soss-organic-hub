@@ -8,6 +8,43 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // 🩺 HEALTH CHECK — GET /zapupi-webhook?health=1
+  // Returns the canonical URL that ZapUPI dashboard must be configured with,
+  // plus recent webhook receipt stats so admin can confirm inbound traffic.
+  const url = new URL(req.url)
+  if (req.method === 'GET' && (url.searchParams.get('health') === '1' || url.pathname.endsWith('/health'))) {
+    const canonicalUrl = `${SUPABASE_URL}/functions/v1/zapupi-webhook`
+    try {
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE)
+      const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const since1h = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      const [{ count: total24h }, { count: total1h }, { data: latest }] = await Promise.all([
+        admin.from('zapupi_webhook_events').select('id', { count: 'exact', head: true }).eq('source', 'webhook').gte('created_at', since24h),
+        admin.from('zapupi_webhook_events').select('id', { count: 'exact', head: true }).eq('source', 'webhook').gte('created_at', since1h),
+        admin.from('zapupi_webhook_events').select('created_at, order_id, status, source_ip, user_agent, processed, amount_match').eq('source', 'webhook').order('created_at', { ascending: false }).limit(5),
+      ])
+      const lastAt = latest?.[0]?.created_at ?? null
+      const lastAgeMinutes = lastAt ? Math.round((Date.now() - new Date(lastAt).getTime()) / 60000) : null
+      const healthy = (total24h ?? 0) > 0
+      return json({
+        ok: true,
+        healthy,
+        canonical_webhook_url: canonicalUrl,
+        instructions: `Set this exact URL in ZapUPI dashboard → Webhook. Method: POST. No auth headers required.`,
+        stats: {
+          webhooks_last_1h: total1h ?? 0,
+          webhooks_last_24h: total24h ?? 0,
+          last_received_at: lastAt,
+          last_received_minutes_ago: lastAgeMinutes,
+        },
+        recent: latest ?? [],
+        server_time: new Date().toISOString(),
+      })
+    } catch (e) {
+      return json({ ok: false, canonical_webhook_url: canonicalUrl, error: String((e as Error).message || e) })
+    }
+  }
+
   // Always respond 200 to gateway to prevent retries storm; log errors internally.
   try {
     let payload: any = {}
