@@ -100,6 +100,22 @@ function isProviderStatusLookupMiss(errorMsg: string): boolean {
   return lower.includes('incorrect order') || lower.includes('wrong order') || lower.includes('order not found') || lower.includes('not found')
 }
 
+function isProviderCredentialError(errorMsg: string): boolean {
+  const lower = errorMsg.toLowerCase()
+  return (
+    lower.includes('invalid api key') ||
+    lower.includes('incorrect api key') ||
+    lower.includes('wrong api key') ||
+    lower.includes('api key invalid') ||
+    lower.includes('bad api key') ||
+    lower.includes('invalid key') ||
+    lower.includes('incorrect key') ||
+    lower.includes('unauthorized') ||
+    lower.includes('authentication failed') ||
+    lower.includes('auth failed')
+  )
+}
+
 function getRunAgeMinutes(run: any): number {
   const startedAt = new Date(run?.started_at || run?.scheduled_at || Date.now()).getTime()
   return Math.max(0, Math.round((Date.now() - startedAt) / 60000))
@@ -330,6 +346,24 @@ Deno.serve(async (req) => {
               await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
               await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
             }
+          } else if (isProviderCredentialError(providerError)) {
+            await supabase.from('organic_run_schedule').update({
+              status: 'failed',
+              error_message: `Provider credential error on ${providerName}: ${providerError}`,
+              completed_at: new Date().toISOString(),
+              provider_status: 'error',
+              last_status_check: new Date().toISOString(),
+              retry_count: 99,
+              provider_response: {
+                ...(run.provider_response || {}),
+                last_status_error: providerError,
+                provider_credential_error: true,
+                provider_name: providerName,
+              },
+            }).eq('id', run.id)
+            failed++
+            await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
+            await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
           } else if (providerErrorLower.includes('cancelled')) {
             const orderStatus = run.engagement_order_item?.engagement_order?.status
             const itemStatus = run.engagement_order_item?.status
@@ -659,10 +693,28 @@ Deno.serve(async (req) => {
           }
 
           if (result.error) {
-            if (result.error.includes('not found') || result.error.includes('cancelled')) {
+            const providerError = String(result.error || '')
+            if (isProviderCredentialError(providerError)) {
               await supabase.from('organic_run_schedule').update({
                 status: 'failed',
-                error_message: result.error,
+                error_message: `Provider credential error on ${provider.name}: ${providerError}`,
+                completed_at: new Date().toISOString(),
+                provider_status: 'error',
+                last_status_check: new Date().toISOString(),
+                retry_count: 99,
+                provider_response: {
+                  ...(run.provider_response || {}),
+                  last_status_error: providerError,
+                  provider_credential_error: true,
+                  provider_name: provider.name,
+                },
+              }).eq('id', run.id)
+              failed++
+              await updateLegacyOrderStatus(supabase, run.order_id)
+            } else if (providerError.toLowerCase().includes('not found') || providerError.toLowerCase().includes('cancelled')) {
+              await supabase.from('organic_run_schedule').update({
+                status: 'failed',
+                error_message: providerError,
                 completed_at: new Date().toISOString(),
                 provider_status: 'error',
                 last_status_check: new Date().toISOString()
