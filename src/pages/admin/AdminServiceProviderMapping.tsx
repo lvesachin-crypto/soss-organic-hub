@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,30 +113,27 @@ export default function AdminServiceProviderMapping() {
     setMappings(newMappings);
   };
 
-  // Update local state when existingMappings loads
-  const updateMappingsFromExisting = () => {
+  // Sync local state whenever server data (existingMappings / accounts) changes
+  // for the selected service. Without this, saved values like sort_order reset
+  // in the UI because the initial state was built before the query resolved.
+  useEffect(() => {
     if (!accounts || !selectedServiceId) return;
-    
+    if (hasChanges) return; // don't stomp unsaved edits
+
     const selectedService = services?.find(s => s.id === selectedServiceId);
     const newMappings: Record<string, { checked: boolean; serviceId: string; sortOrder: number }> = {};
-    
+
     accounts.forEach(account => {
       const existing = existingMappings?.find(m => m.provider_account_id === account.id);
       newMappings[account.id] = {
         checked: !!existing,
         serviceId: existing?.provider_service_id || selectedService?.provider_service_id || "",
-        sortOrder: existing?.sort_order || account.priority,
+        sortOrder: existing?.sort_order ?? account.priority,
       };
     });
     setMappings(newMappings);
-  };
-
-  // Sync when existingMappings changes
-  useState(() => {
-    if (existingMappings && accounts) {
-      updateMappingsFromExisting();
-    }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingMappings, accounts, selectedServiceId]);
 
   // Save mutation
   const saveMutation = useMutation({
