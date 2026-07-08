@@ -52,7 +52,7 @@ const Index = () => {
             <div className="relative">
               <div className="absolute -inset-1 rounded-2xl opacity-60 blur-md transition-opacity group-hover:opacity-90"
                 style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)` }} />
-              <img src={logo} alt="OrganicSMM" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
+              <img src={logo} alt="OrganicSMM platform logo" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
             <div className="flex items-center gap-2 leading-none">
@@ -394,7 +394,7 @@ const Index = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 sm:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <img src={logo} alt="" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
+                <img src={logo} alt="OrganicSMM platform logo" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
                 <span className="text-[15px] font-bold" style={{ color: C.ink }}>OrganicSMM</span>
               </div>
               <p className="text-[13px] leading-relaxed" style={{ color: C.muted }}>

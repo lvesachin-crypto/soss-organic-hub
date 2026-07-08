@@ -103,7 +103,7 @@ export default function Auth() {
       <div className="w-full max-w-[400px]">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2.5 mb-10">
-            <img src={logo} alt="OrganicSMM" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
+            <img src={logo} alt="OrganicSMM platform logo" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <div className="flex flex-col">
               <span className="text-[16px] font-bold tracking-tight" style={{ color: '#1a1a2e' }}>OrganicSMM</span>
               <span className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ background: 'linear-gradient(90deg, #16a34a, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>✦ Updated Version</span>
