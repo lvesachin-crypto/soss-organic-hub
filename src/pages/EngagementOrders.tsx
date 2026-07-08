@@ -31,6 +31,7 @@ import {
   X,
   BarChart3
 } from "lucide-react";
+import { PageMeta } from "@/components/seo/PageMeta";
 
 const ENGAGEMENT_ICONS = {
   views: Eye,
@@ -105,6 +106,7 @@ export default function EngagementOrders() {
 
   return (
     <DashboardLayout>
+      <PageMeta title="Engagement Orders" description="Track your OrganicSMM engagement deliveries — live progress, per-type breakdown, and organic growth stats." canonicalPath="/engagement-orders" noIndex />
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
