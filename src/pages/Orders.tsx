@@ -28,6 +28,7 @@ import {
   Pencil
 } from 'lucide-react';
 import type { Order, OrganicRun } from '@/lib/supabase';
+import { PageMeta } from '@/components/seo/PageMeta';
 import { EditRunDialog } from '@/components/engagement/EditRunDialog';
 import { SingleOrderProgressChart } from '@/components/engagement/SingleOrderProgressChart';
 
@@ -288,6 +289,7 @@ export default function Orders() {
 
   return (
     <DashboardLayout>
+      <PageMeta title="Your Orders" description="View and manage your OrganicSMM social media orders — track delivery, refills, and status in real-time." canonicalPath="/orders" noIndex />
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">

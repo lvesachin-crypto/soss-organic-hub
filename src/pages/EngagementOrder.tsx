@@ -18,6 +18,7 @@ import { EngagementTypeCard } from "@/components/engagement/EngagementTypeCard";
 import { DeliveryPreview } from "@/components/engagement/DeliveryPreview";
 import { LiveGrowthChart } from "@/components/engagement/LiveGrowthChart";
 import { DrawableGrowthChart } from "@/components/engagement/DrawableGrowthChart";
+import { PageMeta } from "@/components/seo/PageMeta";
 import {
   EngagementType,
   EngagementConfig,
@@ -750,6 +751,7 @@ export default function EngagementOrder() {
 
   return (
     <DashboardLayout>
+      <PageMeta title="New Engagement Order" description="Place a natural, AI-organic engagement order — Instagram, YouTube, or TikTok views, likes, and comments delivered on a real growth curve." canonicalPath="/engagement-order" noIndex />
       <div className="max-w-5xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3 sm:space-y-6 pb-8">
         {/* Header with gradient - Compact on mobile */}
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-4 lg:p-5" style={{ background: 'linear-gradient(135deg, #831843, #166534, #16a34a)', boxShadow: '0 8px 32px rgba(190,24,93,.25)' }}>

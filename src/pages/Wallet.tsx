@@ -19,6 +19,7 @@ import {
   IndianRupee,
   Zap,
 } from 'lucide-react';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 export default function Wallet() {
   const { wallet } = useWallet();
@@ -284,6 +285,7 @@ export default function Wallet() {
 
   return (
     <DashboardLayout>
+      <PageMeta title="Wallet & Top-up" description="Add funds via UPI or crypto and review your OrganicSMM wallet balance and transaction history." canonicalPath="/wallet" noIndex />
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: '#1a1a2e' }}>Wallet</h1>

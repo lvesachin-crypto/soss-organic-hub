@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { PageMeta } from '@/components/seo/PageMeta';
 import {
   User,
   Mail,
@@ -310,6 +311,7 @@ export default function Settings() {
 
   return (
     <DashboardLayout>
+      <PageMeta title="Account Settings" description="Update your OrganicSMM profile, password, currency, and preferences." canonicalPath="/settings" noIndex />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-8">
         {/* Header */}
         <div className="relative overflow-hidden glass-card p-6 sm:p-8 bg-gradient-to-r from-primary/5 via-transparent to-primary/10">
