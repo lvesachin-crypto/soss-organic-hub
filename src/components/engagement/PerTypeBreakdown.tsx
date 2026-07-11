@@ -162,6 +162,7 @@ export function PerTypeBreakdown({ types, allRuns = [], onTypeClick, itemStatuse
             const itemStatus = itemInfo?.status || 'processing';
             const isPaused = itemStatus === 'paused';
             const isCancelled = itemStatus === 'cancelled';
+            const isCompleted = itemStatus === 'completed';
             const isTerminal = isCancelled || itemStatus === 'completed' || itemStatus === 'failed';
 
             return (
@@ -189,6 +190,9 @@ export function PerTypeBreakdown({ types, allRuns = [], onTypeClick, itemStatuse
                 {isCancelled && (
                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-destructive via-red-400 to-destructive rounded-t-xl" />
                 )}
+                {isCompleted && (
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 rounded-t-xl" />
+                )}
 
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
@@ -203,6 +207,11 @@ export function PerTypeBreakdown({ types, allRuns = [], onTypeClick, itemStatuse
                   {isCancelled && (
                     <span className="flex items-center gap-1 text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-md border border-destructive/20">
                       <X className="h-2.5 w-2.5" /> STOPPED
+                    </span>
+                  )}
+                  {isCompleted && (
+                    <span className="flex items-center gap-1 text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-wider">
+                      ✓ Completed
                     </span>
                   )}
                 </div>
