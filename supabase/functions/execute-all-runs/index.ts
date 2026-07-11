@@ -581,6 +581,107 @@ const calculateObservedItemDelivery = (runs: any[], targetQty: number = 0) => {
   }
 }
 
+const getRunObservedCurrentCount = (run: any): number | null => {
+  const start = Number(run?.provider_start_count)
+  if (!Number.isFinite(start) || start < 0) return null
+
+  const qty = Number(run?.quantity_to_send || 0)
+  const status = (run?.provider_status || run?.status || '').toString().toLowerCase().trim()
+  const remainsKnown = run?.provider_remains !== null && run?.provider_remains !== undefined
+
+  if (remainsKnown) {
+    const remains = Number(run.provider_remains)
+    if (Number.isFinite(remains)) {
+      return start + Math.max(0, qty - Math.max(0, remains))
+    }
+  }
+
+  if (status === 'completed' || status === 'complete' || status === 'success') {
+    return start + qty
+  }
+
+  return start
+}
+
+async function syncEngagementItemTracking(supabase: SupabaseClient, itemId?: string | null) {
+  if (!itemId) return null
+
+  const { data: item } = await supabase
+    .from('engagement_order_items')
+    .select('id, engagement_order_id, quantity, status, start_count, current_count, target_count, completion_locked_at')
+    .eq('id', itemId)
+    .maybeSingle()
+
+  if (!item || item.status === 'cancelled' || item.status === 'paused') return null
+
+  const orderedQty = Number(item.quantity || 0)
+  if (orderedQty <= 0) return null
+
+  const { data: runs } = await supabase
+    .from('organic_run_schedule')
+    .select('id, run_number, quantity_to_send, status, provider_start_count, provider_remains, provider_status, started_at')
+    .eq('engagement_order_item_id', itemId)
+    .order('run_number', { ascending: true })
+
+  const validRuns = (runs || []).filter((run: any) => {
+    const value = Number(run.provider_start_count)
+    return Number.isFinite(value) && value >= 0
+  })
+
+  const existingStart = item.start_count !== null && item.start_count !== undefined
+    ? Number(item.start_count)
+    : null
+  const firstProviderStart = validRuns.length > 0 ? Number(validRuns[0].provider_start_count) : null
+  // If a legacy/backfilled row has start_count=0 but the first provider status
+  // shows the video already had public views, trust the provider baseline.
+  const shouldUseProviderBaseline = firstProviderStart !== null
+    && Number.isFinite(firstProviderStart)
+    && firstProviderStart >= 0
+    && (existingStart === null || existingStart === 0)
+  const baseline = shouldUseProviderBaseline
+    ? firstProviderStart
+    : existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0
+      ? existingStart
+      : firstProviderStart
+
+  if (baseline === null || !Number.isFinite(baseline) || baseline < 0) return null
+
+  const observedCounts = validRuns
+    .map((run: any) => getRunObservedCurrentCount(run))
+    .filter((value: number | null): value is number => value !== null && Number.isFinite(value) && value >= 0)
+
+  const current = Math.max(
+    baseline,
+    Number(item.current_count || baseline),
+    ...(observedCounts.length ? observedCounts : [baseline]),
+  )
+  const target = baseline + orderedQty
+  const remaining = Math.max(0, target - current)
+  const targetReached = current >= target
+
+  const itemUpdate: any = {
+    start_count: baseline,
+    current_count: current,
+    last_synced_at: new Date().toISOString(),
+  }
+
+  if (targetReached) {
+    itemUpdate.status = 'completed'
+    await supabase.from('organic_run_schedule').update({
+      status: 'cancelled',
+      completed_at: new Date().toISOString(),
+      error_message: `Target count reached (${current}/${target}) — cancelling remaining runs`,
+      last_status_check: new Date().toISOString(),
+    }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
+  } else if (item.status === 'completed' || item.status === 'partial') {
+    itemUpdate.status = 'processing'
+  }
+
+  await supabase.from('engagement_order_items').update(itemUpdate).eq('id', itemId)
+
+  return { baseline, current, target, remaining, targetReached, engagementOrderId: item.engagement_order_id }
+}
+
 async function batchPostponeEngagementRunsForLink(
   supabase: SupabaseClient,
   normalizedLink: string,
@@ -635,6 +736,8 @@ async function batchPostponeEngagementRunsForLink(
 async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementOrderId: string, itemId: string) {
   if (!engagementOrderId) return
 
+  const tracking = await syncEngagementItemTracking(supabase, itemId)
+
   const { data: parentOrder } = await supabase
     .from('engagement_orders')
     .select('status')
@@ -651,12 +754,16 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
       .maybeSingle()
 
     if (currentItem?.status !== 'cancelled') {
+      if (tracking && !tracking.targetReached && currentItem?.status !== 'paused') {
+        await supabase.from('engagement_order_items').update({ status: 'processing' }).eq('id', itemId)
+      }
+
       const { data: itemRuns } = await supabase
         .from('organic_run_schedule')
         .select('status')
         .eq('engagement_order_item_id', itemId)
 
-      if (itemRuns && itemRuns.length > 0) {
+      if (itemRuns && itemRuns.length > 0 && (!tracking || tracking.targetReached)) {
         const completedCount = itemRuns.filter((r: any) => r.status === 'completed').length
         const failedCount = itemRuns.filter((r: any) => r.status === 'failed').length
         const cancelledCount = itemRuns.filter((r: any) => r.status === 'cancelled').length
@@ -669,7 +776,9 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
         else if (completedCount > 0 && completedCount + failedCount + cancelledCount === totalRuns) itemStatus = 'partial'
         else if (failedCount + cancelledCount === totalRuns) itemStatus = 'failed'
 
-        await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        if (!tracking || tracking.targetReached || itemStatus !== 'completed') {
+          await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        }
       }
     }
   }
@@ -1081,6 +1190,14 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // Some providers over-deliver on the public post even when our scheduled qty is lower,
       // so we must stop future runs based on observed public delivery too.
       try {
+        const tracking = await syncEngagementItemTracking(supabase, item.id)
+        if (tracking?.targetReached) {
+          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
+          skipped++
+          console.log(`🎯 Item ${item.id} target reached by live count (${tracking.current}/${tracking.target}); pending runs cancelled and item completed.`)
+          continue
+        }
+
         const orderedQty = Number(item.quantity || 0)
         if (orderedQty > 0) {
           const { data: sentRows } = await supabase
@@ -1094,32 +1211,41 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           const reservedOrDelivered = observed.reserved
           const remaining = orderedQty - reservedOrDelivered
           if (remaining <= 0) {
-            // Enough quantity is already sent/reserved or target is actually met — stop pending runs.
-            // Only mark the item completed when actual provider/public delivery reached target.
+            // Enough quantity is already at providers, but live public count has not
+            // reached target yet. Hold future runs instead of completing early.
             await supabase.from('organic_run_schedule').update({
-              status: 'cancelled',
-              error_message: `Delivery reserved (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — cancelling remaining runs`,
-              completed_at: new Date().toISOString(),
+              scheduled_at: new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString(),
+              error_message: `Delivery reserved (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — awaiting live target count`,
+              last_status_check: new Date().toISOString(),
             }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
             if (actualDelivered >= orderedQty) {
-              await supabase.from('engagement_order_items').update({
-                status: 'completed', updated_at: new Date().toISOString(),
-              }).eq('id', item.id).neq('status', 'completed')
+              const finalTracking = await syncEngagementItemTracking(supabase, item.id)
+              if (finalTracking?.targetReached) {
+                await supabase.from('engagement_order_items').update({
+                  status: 'completed', updated_at: new Date().toISOString(),
+                }).eq('id', item.id).neq('status', 'completed')
+              } else {
+                await supabase.from('engagement_order_items').update({
+                  status: 'processing', updated_at: new Date().toISOString(),
+                }).eq('id', item.id).not('status', 'in', '("cancelled","paused","completed")')
+              }
             } else {
               await supabase.from('engagement_order_items').update({
                 status: 'processing', updated_at: new Date().toISOString(),
               }).eq('id', item.id).not('status', 'in', '("cancelled","paused","completed")')
             }
             skipped++
-            console.log(`🛡️ Item ${item.id} delivery reserved — asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}. Cancelling remaining pending runs.`)
+            console.log(`🛡️ Item ${item.id} delivery reserved — asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}. Awaiting live public target.`)
             continue
           }
-          if (run.quantity_to_send > remaining) {
-            console.log(`🛡️ Capping run #${run.run_number} qty ${run.quantity_to_send} → ${remaining} (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty})`)
+          const liveRemaining = tracking ? Math.max(1, tracking.remaining) : remaining
+          const safeRemaining = Math.max(1, Math.min(remaining, liveRemaining))
+          if (run.quantity_to_send > safeRemaining) {
+            console.log(`🛡️ Capping run #${run.run_number} qty ${run.quantity_to_send} → ${safeRemaining} (live_remaining=${tracking?.remaining ?? 'n/a'}, asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty})`)
             await supabase.from('organic_run_schedule').update({
-              quantity_to_send: remaining,
+              quantity_to_send: safeRemaining,
             }).eq('id', run.id)
-            run.quantity_to_send = remaining
+            run.quantity_to_send = safeRemaining
           }
         }
       } catch (capErr) {
@@ -1708,14 +1834,54 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               continue
             }
 
-            // SKIP immediate verification — let check-order-status handle it
-            // This saves 3-5 seconds per run, roughly doubling throughput
+            // Immediate live-count verification: capture provider start/remains as soon
+            // as the run is created so target = first_start_count + ordered_quantity
+            // is enforced before the next scheduled run is allowed through.
             verifiedStatus = 'Pending'
             providerResult = { add: result }
+            try {
+              const statusForm = new URLSearchParams()
+              statusForm.append('key', selectedAccount.api_key)
+              statusForm.append('action', 'status')
+              statusForm.append('order', providerOrderId)
+              const statusCtrl = new AbortController()
+              const statusTimer = setTimeout(() => statusCtrl.abort(), 8000)
+              const statusResponse = await fetch(selectedAccount.api_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: statusForm.toString(),
+                signal: statusCtrl.signal,
+              })
+              clearTimeout(statusTimer)
+              const statusText = await statusResponse.text()
+              let statusResult: any = {}
+              try { statusResult = JSON.parse(statusText) } catch { statusResult = { error: statusText } }
+              if (!statusResult.error) {
+                verifiedStatus = statusResult.status || verifiedStatus
+                const remainsValue = statusResult.remains !== undefined && statusResult.remains !== null
+                  ? Number(statusResult.remains)
+                  : null
+                const startValue = statusResult.start_count !== undefined && statusResult.start_count !== null
+                  ? Number(statusResult.start_count)
+                  : null
+                const chargeValue = statusResult.charge !== undefined && statusResult.charge !== null
+                  ? Number(statusResult.charge)
+                  : null
+                verifiedRemains = Number.isFinite(remainsValue) ? remainsValue : null
+                verifiedStartCount = Number.isFinite(startValue) ? startValue : null
+                verifiedCharge = Number.isFinite(chargeValue) ? chargeValue : null
+                verifiedLastStatusCheck = new Date().toISOString()
+                providerResult = { add: result, initial_status: statusResult }
+              } else {
+                providerResult = { add: result, initial_status_error: statusResult.error }
+              }
+            } catch (statusError) {
+              providerResult = { add: result, initial_status_error: (statusError as Error).message || 'Status check failed' }
+            }
             successAccount = selectedAccount
             success = true
             await updateAccountLastUsed(supabase, selectedAccount.id)
-            console.log(`✅ Run #${run.run_number} placed via ${selectedAccount.name}! Order ID: ${providerOrderId} (status check deferred)`)
+            console.log(`✅ Run #${run.run_number} placed via ${selectedAccount.name}! Order ID: ${providerOrderId} (initial live count checked)`)
             break
           }
         } catch (fetchError: any) {
@@ -1814,9 +1980,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           status: providerIsTerminal ? 'completed' : 'started',
         })
 
-        if (providerIsTerminal) {
-          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
-        }
+        await syncEngagementItemTracking(supabase, item.id)
+        await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
       } else if (lastError !== null) {
         const retryCount = (run.retry_count || 0) + 1
         const lastErr = (lastError || '').toLowerCase()

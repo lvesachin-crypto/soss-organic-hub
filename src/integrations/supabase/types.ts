@@ -300,7 +300,10 @@ export type Database = {
       }
       engagement_order_items: {
         Row: {
+          completion_locked_at: string | null
           created_at: string | null
+          current_count: number | null
+          delivered_count: number
           drip_interval: number | null
           drip_interval_unit: string | null
           drip_qty_per_run: number | null
@@ -309,16 +312,25 @@ export type Database = {
           error_message: string | null
           id: string
           is_enabled: boolean | null
+          last_synced_at: string | null
+          max_observed_count: number | null
           price: number
+          progress_percentage: number
           provider_order_id: string | null
           quantity: number
+          remaining_count: number
           service_id: string | null
           speed_preset: string | null
+          start_count: number | null
           status: string | null
+          target_count: number | null
           updated_at: string | null
         }
         Insert: {
+          completion_locked_at?: string | null
           created_at?: string | null
+          current_count?: number | null
+          delivered_count?: number
           drip_interval?: number | null
           drip_interval_unit?: string | null
           drip_qty_per_run?: number | null
@@ -327,16 +339,25 @@ export type Database = {
           error_message?: string | null
           id?: string
           is_enabled?: boolean | null
+          last_synced_at?: string | null
+          max_observed_count?: number | null
           price: number
+          progress_percentage?: number
           provider_order_id?: string | null
           quantity: number
+          remaining_count?: number
           service_id?: string | null
           speed_preset?: string | null
+          start_count?: number | null
           status?: string | null
+          target_count?: number | null
           updated_at?: string | null
         }
         Update: {
+          completion_locked_at?: string | null
           created_at?: string | null
+          current_count?: number | null
+          delivered_count?: number
           drip_interval?: number | null
           drip_interval_unit?: string | null
           drip_qty_per_run?: number | null
@@ -345,12 +366,18 @@ export type Database = {
           error_message?: string | null
           id?: string
           is_enabled?: boolean | null
+          last_synced_at?: string | null
+          max_observed_count?: number | null
           price?: number
+          progress_percentage?: number
           provider_order_id?: string | null
           quantity?: number
+          remaining_count?: number
           service_id?: string | null
           speed_preset?: string | null
+          start_count?: number | null
           status?: string | null
+          target_count?: number | null
           updated_at?: string | null
         }
         Relationships: [
