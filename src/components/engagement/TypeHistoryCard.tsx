@@ -64,6 +64,7 @@ interface TypeHistoryCardProps {
   onEditRun: (run: Run) => void;
   itemId?: string;
   itemStatus?: string;
+  itemStartCount?: number | null;
   onPause?: (itemId: string) => void;
   onResume?: (itemId: string) => void;
   onCancel?: (itemId: string) => void;
@@ -79,6 +80,7 @@ export function TypeHistoryCard({
   onEditRun,
   itemId,
   itemStatus,
+  itemStartCount,
   onPause,
   onResume,
   onCancel,
@@ -98,7 +100,17 @@ export function TypeHistoryCard({
     const status = (run.status || '').toString().toLowerCase().trim();
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
-    return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+    if (status !== 'cancelled' && status !== 'canceled') return false;
+    // Any auto-cancellation caused by the public target already being reached
+    // should be shown to the user as "Completed" (the delivery counts either
+    // came in organically or were already reserved with the provider).
+    return (
+      message.startsWith('target met') ||
+      message.startsWith('delivery reserved') ||
+      message.includes('target reached') ||
+      message.includes('already delivered') ||
+      message.includes('auto-cancelled (target')
+    );
   };
 
   const getEffectiveStatus = (run: Run): 'pending' | 'started' | 'completed' | 'failed' => {
@@ -154,18 +166,23 @@ export function TypeHistoryCard({
   const runsWithSchedule = (() => {
     let cumulativeScheduled = 0;
     let cumulativeDelivered = 0;
+    const baseStart = typeof itemStartCount === 'number' && itemStartCount > 0 ? itemStartCount : 0;
     return sortedRuns.map((run) => {
       const eff = getEffectiveStatus(run);
       const countsTowardSchedule = eff !== 'failed';
+      const runStartCount = baseStart + cumulativeScheduled;
       if (countsTowardSchedule) cumulativeScheduled += run.quantity_to_send;
       const actualDel = calculateActualDelivered(run);
       cumulativeDelivered += actualDel;
+      const runEndCount = baseStart + cumulativeScheduled;
       return {
         ...run,
         plannedQuantity: run.quantity_to_send,
         cumulativeScheduled,
         cumulativeDelivered,
         actualDeliveredThisRun: actualDel,
+        runStartCount,
+        runEndCount,
         isCapped: false,
         countsTowardSchedule,
       };
@@ -450,6 +467,21 @@ export function TypeHistoryCard({
 
                         {/* Timestamps Row - Colorful */}
                         <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground flex-wrap">
+                          {(itemStartCount ?? 0) > 0 && (
+                            <span className="flex items-center gap-1 text-cyan-400">
+                              📊 Baseline:
+                              <span className="font-bold tabular-nums text-foreground">
+                                {run.runStartCount.toLocaleString()}
+                              </span>
+                              <span className="text-muted-foreground">→</span>
+                              <span className="font-bold tabular-nums text-emerald-400">
+                                {run.runEndCount.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                (+{run.plannedQuantity.toLocaleString()})
+                              </span>
+                            </span>
+                          )}
                           <span className="flex items-center gap-1">
                             📅 Scheduled: {format(scheduledDate, 'MMM d, hh:mm a')}
                             <span className={`ml-1 font-medium ${isActive ? 'text-blue-400' : isPastDue ? 'text-amber-500' : 'text-teal-400'}`}>

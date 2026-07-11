@@ -902,6 +902,7 @@ export default function EngagementOrderDetail() {
                   onEditRun={(run) => handleEditRun({ ...run, engagement_type: item.engagement_type })}
                   itemId={item.id}
                   itemStatus={item.status}
+                  itemStartCount={item.start_count ?? null}
                   onPause={(id) => pauseItemMutation.mutate(id)}
                   onResume={(id) => resumeItemMutation.mutate(id)}
                   onCancel={(id) => cancelItemMutation.mutate(id)}
