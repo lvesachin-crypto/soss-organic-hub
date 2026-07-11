@@ -1826,10 +1826,50 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               continue
             }
 
-            // SKIP immediate verification — let check-order-status handle it
-            // This saves 3-5 seconds per run, roughly doubling throughput
+            // Immediate live-count verification: capture provider start/remains as soon
+            // as the run is created so target = first_start_count + ordered_quantity
+            // is enforced before the next scheduled run is allowed through.
             verifiedStatus = 'Pending'
             providerResult = { add: result }
+            try {
+              const statusForm = new URLSearchParams()
+              statusForm.append('key', selectedAccount.api_key)
+              statusForm.append('action', 'status')
+              statusForm.append('order', providerOrderId)
+              const statusCtrl = new AbortController()
+              const statusTimer = setTimeout(() => statusCtrl.abort(), 8000)
+              const statusResponse = await fetch(selectedAccount.api_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: statusForm.toString(),
+                signal: statusCtrl.signal,
+              })
+              clearTimeout(statusTimer)
+              const statusText = await statusResponse.text()
+              let statusResult: any = {}
+              try { statusResult = JSON.parse(statusText) } catch { statusResult = { error: statusText } }
+              if (!statusResult.error) {
+                verifiedStatus = statusResult.status || verifiedStatus
+                const remainsValue = statusResult.remains !== undefined && statusResult.remains !== null
+                  ? Number(statusResult.remains)
+                  : null
+                const startValue = statusResult.start_count !== undefined && statusResult.start_count !== null
+                  ? Number(statusResult.start_count)
+                  : null
+                const chargeValue = statusResult.charge !== undefined && statusResult.charge !== null
+                  ? Number(statusResult.charge)
+                  : null
+                verifiedRemains = Number.isFinite(remainsValue) ? remainsValue : null
+                verifiedStartCount = Number.isFinite(startValue) ? startValue : null
+                verifiedCharge = Number.isFinite(chargeValue) ? chargeValue : null
+                verifiedLastStatusCheck = new Date().toISOString()
+                providerResult = { add: result, initial_status: statusResult }
+              } else {
+                providerResult = { add: result, initial_status_error: statusResult.error }
+              }
+            } catch (statusError) {
+              providerResult = { add: result, initial_status_error: (statusError as Error).message || 'Status check failed' }
+            }
             successAccount = selectedAccount
             success = true
             await updateAccountLastUsed(supabase, selectedAccount.id)
