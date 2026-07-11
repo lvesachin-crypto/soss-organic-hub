@@ -258,6 +258,40 @@ serve(async (req) => {
           }).eq('id', provider.accountId)
         }
 
+        // Capture STARTING COUNT from provider immediately after dispatch.
+        // This becomes the anchor for target = start + ordered.
+        try {
+          const statusForm = new URLSearchParams()
+          statusForm.append('key', provider.apiKey)
+          statusForm.append('action', 'status')
+          statusForm.append('order', providerOrderId)
+          const statusCtrl = new AbortController()
+          const statusTimer = setTimeout(() => statusCtrl.abort(), 10000)
+          const statusRes = await fetch(provider.apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: statusForm.toString(),
+            signal: statusCtrl.signal,
+          })
+          clearTimeout(statusTimer)
+          const statusText = await statusRes.text()
+          let statusJson: any = {}
+          try { statusJson = JSON.parse(statusText) } catch { statusJson = {} }
+          const startCount = statusJson?.start_count !== undefined && statusJson?.start_count !== null
+            ? (parseInt(String(statusJson.start_count)) || 0)
+            : null
+          if (startCount !== null) {
+            await supabase.from('orders').update({
+              start_count: startCount,
+              current_count: startCount,
+              last_synced_at: new Date().toISOString(),
+            }).eq('id', order_id)
+            console.log(`[process-order] Captured starting count ${startCount} for order ${order_id}`)
+          }
+        } catch (startErr) {
+          console.log(`[process-order] Could not capture starting count: ${(startErr as Error).message}`)
+        }
+
         console.log(`[process-order] ✅ Success via ${provider.name}, provider order: ${providerOrderId}`)
         return new Response(JSON.stringify({ success: true, provider_order_id: providerOrderId }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
         
