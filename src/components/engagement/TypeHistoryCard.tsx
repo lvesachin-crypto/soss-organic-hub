@@ -64,6 +64,7 @@ interface TypeHistoryCardProps {
   onEditRun: (run: Run) => void;
   itemId?: string;
   itemStatus?: string;
+  itemStartCount?: number | null;
   onPause?: (itemId: string) => void;
   onResume?: (itemId: string) => void;
   onCancel?: (itemId: string) => void;
@@ -79,6 +80,7 @@ export function TypeHistoryCard({
   onEditRun,
   itemId,
   itemStatus,
+  itemStartCount,
   onPause,
   onResume,
   onCancel,
@@ -98,7 +100,17 @@ export function TypeHistoryCard({
     const status = (run.status || '').toString().toLowerCase().trim();
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
-    return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+    if (status !== 'cancelled' && status !== 'canceled') return false;
+    // Any auto-cancellation caused by the public target already being reached
+    // should be shown to the user as "Completed" (the delivery counts either
+    // came in organically or were already reserved with the provider).
+    return (
+      message.startsWith('target met') ||
+      message.startsWith('delivery reserved') ||
+      message.includes('target reached') ||
+      message.includes('already delivered') ||
+      message.includes('auto-cancelled (target')
+    );
   };
 
   const getEffectiveStatus = (run: Run): 'pending' | 'started' | 'completed' | 'failed' => {
