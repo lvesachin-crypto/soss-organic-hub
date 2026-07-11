@@ -871,6 +871,7 @@ export default function EngagementOrderDetail() {
               provider_status: run.provider_status || null,
               provider_order_id: run.provider_order_id || null,
               provider_remains: run.provider_remains ?? null,
+              provider_start_count: run.provider_start_count ?? null,
               last_status_check: run.last_status_check || null,
             }));
             // Prefer backend live-count tracking: delivered = current_count - start_count,

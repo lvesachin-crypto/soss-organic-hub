@@ -48,6 +48,7 @@ interface Run {
   peak_multiplier?: number;
   provider_order_id?: string;
   provider_remains?: number | null;
+  provider_start_count?: number | null;
   error_message?: string;
   provider_account_name?: string | null;
   provider_status?: string | null;
@@ -101,15 +102,17 @@ export function TypeHistoryCard({
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
     if (status !== 'cancelled' && status !== 'canceled') return false;
-    // Any auto-cancellation caused by the public target already being reached
-    // should be shown to the user as "Completed" (the delivery counts either
-    // came in organically or were already reserved with the provider).
+    // Any auto-cancellation triggered because the target/item is already
+    // fulfilled should be shown to the user as "Completed". These runs
+    // were never actually failed — they just weren't needed.
     return (
       message.startsWith('target met') ||
       message.startsWith('delivery reserved') ||
       message.includes('target reached') ||
       message.includes('already delivered') ||
-      message.includes('auto-cancelled (target')
+      message.includes('auto-cancelled (target') ||
+      message.includes('auto-cancelled (item completed') ||
+      message.includes('auto-completed')
     );
   };
 
@@ -166,15 +169,21 @@ export function TypeHistoryCard({
   const runsWithSchedule = (() => {
     let cumulativeScheduled = 0;
     let cumulativeDelivered = 0;
-    const baseStart = typeof itemStartCount === 'number' && itemStartCount > 0 ? itemStartCount : 0;
     return sortedRuns.map((run) => {
       const eff = getEffectiveStatus(run);
       const countsTowardSchedule = eff !== 'failed';
-      const runStartCount = baseStart + cumulativeScheduled;
       if (countsTowardSchedule) cumulativeScheduled += run.quantity_to_send;
       const actualDel = calculateActualDelivered(run);
       cumulativeDelivered += actualDel;
-      const runEndCount = baseStart + cumulativeScheduled;
+      // Real-time provider counts (not target math):
+      // - startCount = provider's public count captured when this run went to provider
+      // - endCount   = startCount + what the provider actually delivered so far
+      const providerStart =
+        typeof run.provider_start_count === 'number' && run.provider_start_count > 0
+          ? run.provider_start_count
+          : null;
+      const runStartCount = providerStart;
+      const runEndCount = providerStart !== null ? providerStart + actualDel : null;
       return {
         ...run,
         plannedQuantity: run.quantity_to_send,
@@ -467,19 +476,27 @@ export function TypeHistoryCard({
 
                         {/* Timestamps Row - Colorful */}
                         <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground flex-wrap">
-                          {(itemStartCount ?? 0) > 0 && (
+                          {run.runStartCount !== null && run.runStartCount !== undefined && (
                             <span className="flex items-center gap-1 text-cyan-400">
-                              📊 Baseline:
+                              📊
                               <span className="font-bold tabular-nums text-foreground">
                                 {run.runStartCount.toLocaleString()}
                               </span>
                               <span className="text-muted-foreground">→</span>
-                              <span className="font-bold tabular-nums text-emerald-400">
-                                {run.runEndCount.toLocaleString()}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                (+{run.plannedQuantity.toLocaleString()})
-                              </span>
+                              {isCompleted && run.runEndCount !== null ? (
+                                <span className="font-bold tabular-nums text-emerald-400">
+                                  {run.runEndCount.toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="tabular-nums text-muted-foreground italic">
+                                  in progress…
+                                </span>
+                              )}
+                              {isCompleted && run.actualDeliveredThisRun > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  (+{run.actualDeliveredThisRun.toLocaleString()})
+                                </span>
+                              )}
                             </span>
                           )}
                           <span className="flex items-center gap-1">
