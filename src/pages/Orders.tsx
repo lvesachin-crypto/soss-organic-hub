@@ -80,13 +80,21 @@ export default function Orders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, status, price, link, quantity, remains, start_count, provider_order_id, is_organic_mode, is_drip_feed, created_at, updated_at, error_message, service:services(name, category)')
+        .select('id, order_number, status, price, link, quantity, remains, start_count, current_count, target_count, delivered_count, remaining_count, progress_percentage, last_synced_at, provider_order_id, is_organic_mode, is_drip_feed, created_at, updated_at, error_message, service:services(name, category)')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(200);
       
       if (error) throw error;
-      return data as (Order & { service: { name: string; category: string } | null })[];
+      return data as unknown as (Order & {
+        current_count?: number | null;
+        target_count?: number | null;
+        delivered_count?: number | null;
+        remaining_count?: number | null;
+        progress_percentage?: number | null;
+        last_synced_at?: string | null;
+        service: { name: string; category: string } | null;
+      })[];
     },
     enabled: !!user?.id,
     staleTime: 10000, // Cache for 10s - instant subsequent loads
@@ -410,6 +418,41 @@ export default function Orders() {
                           </div>
                           <span className="text-xs text-muted-foreground">Processing...</span>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Real-time count tracking (non-organic direct orders) */}
+                    {!order.is_organic_mode && order.provider_order_id && ((order as any).target_count ?? 0) > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border/50">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
+                          <div>
+                            <p className="text-muted-foreground">Starting</p>
+                            <p className="font-semibold">{(order.start_count ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Current</p>
+                            <p className="font-semibold">{((order as any).current_count ?? order.start_count ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Target</p>
+                            <p className="font-semibold">{((order as any).target_count ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Remaining</p>
+                            <p className="font-semibold">{Math.max(0, (order as any).remaining_count ?? 0).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Progress value={Math.min(100, Number((order as any).progress_percentage ?? 0))} className="h-2 flex-1" />
+                          <span className="text-xs font-medium text-muted-foreground w-14 text-right">
+                            {Number((order as any).progress_percentage ?? 0).toFixed(1)}%
+                          </span>
+                        </div>
+                        {(order as any).last_synced_at && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Last sync: {new Date((order as any).last_synced_at).toLocaleTimeString()}
+                          </p>
+                        )}
                       </div>
                     )}
 
