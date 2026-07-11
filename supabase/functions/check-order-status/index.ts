@@ -1082,6 +1082,8 @@ Deno.serve(async (req) => {
 async function updateEngagementOrderStatus(supabase: any, engagementOrderId: string, itemId: string) {
   if (!engagementOrderId) return
 
+  const tracking = await syncEngagementItemTracking(supabase, itemId)
+
   const { data: parentOrder } = await supabase
     .from('engagement_orders')
     .select('status')
@@ -1102,12 +1104,16 @@ async function updateEngagementOrderStatus(supabase: any, engagementOrderId: str
       .maybeSingle()
 
     if (currentItem?.status !== 'cancelled') {
+      if (tracking && !tracking.targetReached && currentItem?.status !== 'paused') {
+        await supabase.from('engagement_order_items').update({ status: 'processing' }).eq('id', itemId)
+      }
+
       const { data: itemRuns } = await supabase
         .from('organic_run_schedule')
         .select('status')
         .eq('engagement_order_item_id', itemId)
 
-      if (itemRuns && itemRuns.length > 0) {
+      if (itemRuns && itemRuns.length > 0 && (!tracking || tracking.targetReached)) {
         const completedCount = itemRuns.filter((r: any) => r.status === 'completed').length
         const failedCount = itemRuns.filter((r: any) => r.status === 'failed').length
         const cancelledCount = itemRuns.filter((r: any) => r.status === 'cancelled').length
@@ -1125,7 +1131,9 @@ async function updateEngagementOrderStatus(supabase: any, engagementOrderId: str
           itemStatus = 'failed'
         }
 
-        await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        if (!tracking || tracking.targetReached || itemStatus !== 'completed') {
+          await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        }
       }
     }
   }
