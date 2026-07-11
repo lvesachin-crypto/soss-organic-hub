@@ -806,6 +806,104 @@ Deno.serve(async (req) => {
     console.log(`\n=== STATUS CHECK COMPLETE ===`)
     console.log(`Completed: ${completed}, Still Processing: ${stillProcessing}, Failed: ${failed}`)
 
+    // ============================================
+    // STEP 3: Sync NON-ORGANIC direct orders (orders sent straight to provider)
+    // Updates orders.current_count from provider's live count.
+    // Completion is gated by the DB trigger — only flips to 'completed' when
+    // current_count >= start_count + quantity.
+    // ============================================
+    console.log(`\n--- Syncing Non-Organic Direct Orders ---`)
+    let directQuery = supabase
+      .from('orders')
+      .select('id, quantity, start_count, current_count, provider_order_id, status, service:services(provider_id)')
+      .in('status', ['pending', 'processing'])
+      .eq('is_organic_mode', false)
+      .not('provider_order_id', 'is', null)
+    const { data: directOrders } = await directQuery
+    console.log(`Found ${directOrders?.length || 0} direct orders to sync`)
+
+    for (const ord of directOrders || []) {
+      try {
+        const providerId = (ord as any).service?.provider_id
+        if (!providerId) continue
+        const { data: prov } = await supabase.from('providers').select('*').eq('id', providerId).single()
+        if (!prov) continue
+
+        const fd = new URLSearchParams()
+        fd.append('key', prov.api_key)
+        fd.append('action', 'status')
+        fd.append('order', ord.provider_order_id!)
+        const r = await fetch(prov.api_url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: fd.toString(),
+        })
+        const txt = await r.text()
+        let js: any = {}
+        try { js = JSON.parse(txt) } catch { js = { error: txt } }
+
+        const upd: any = { last_synced_at: new Date().toISOString() }
+
+        if (js.error) {
+          const errStr = String(js.error).toLowerCase()
+          if (isProviderCredentialError(String(js.error))) {
+            upd.status = 'failed'
+            upd.error_message = `Provider credential error: ${js.error}`
+          } else if (errStr.includes('cancel') || errStr.includes('refund')) {
+            upd.status = 'failed'
+            upd.error_message = `Provider cancelled: ${js.error}`
+          }
+          await supabase.from('orders').update(upd).eq('id', ord.id)
+          continue
+        }
+
+        const pStatus = String(js.status || '').toLowerCase()
+        const sc = js.start_count !== undefined && js.start_count !== null
+          ? (parseInt(String(js.start_count)) || 0) : null
+        const remRaw = js.remains
+        const remProvided = remRaw !== undefined && remRaw !== null && String(remRaw).trim() !== ''
+        const rem = remProvided ? (parseInt(String(remRaw)) || 0) : null
+
+        // Establish starting_count if missing
+        const baselineStart = ord.start_count ?? sc ?? 0
+        if (ord.start_count === null && sc !== null) {
+          upd.start_count = sc
+        }
+
+        // Compute current_count = start + (ordered - remains)
+        let cur: number | null = null
+        if (rem !== null) {
+          const delivered = Math.max(0, (ord.quantity || 0) - rem)
+          cur = baselineStart + delivered
+          upd.remains = rem
+        }
+        if (cur !== null) upd.current_count = cur
+
+        // Only mark completed if counts actually reached target (trigger will re-check anyway)
+        const target = baselineStart + (ord.quantity || 0)
+        if (
+          (pStatus === 'completed' || pStatus === 'complete' || pStatus === 'success')
+          && cur !== null && cur >= target
+        ) {
+          upd.status = 'completed'
+        } else if (pStatus === 'partial' && cur !== null && cur > baselineStart) {
+          // Only partial-complete if some real delivery happened
+          upd.status = 'completed'
+          upd.error_message = `Partial delivery: ${rem} remaining`
+        } else if (['cancelled','canceled','refunded','refund','canscelled'].includes(pStatus)) {
+          upd.status = 'failed'
+          upd.error_message = 'Provider cancelled/refunded'
+        } else if (ord.status === 'pending') {
+          upd.status = 'processing'
+        }
+
+        await supabase.from('orders').update(upd).eq('id', ord.id)
+      } catch (e) {
+        console.log(`Direct sync error for ${ord.id}: ${(e as Error).message}`)
+      }
+      await new Promise(res => setTimeout(res, 150))
+    }
+
     // Send admin alert if there were failures
     if (failed > 0) {
       try {
