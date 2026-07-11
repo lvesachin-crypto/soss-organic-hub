@@ -102,15 +102,17 @@ export function TypeHistoryCard({
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
     if (status !== 'cancelled' && status !== 'canceled') return false;
-    // Any auto-cancellation caused by the public target already being reached
-    // should be shown to the user as "Completed" (the delivery counts either
-    // came in organically or were already reserved with the provider).
+    // Any auto-cancellation triggered because the target/item is already
+    // fulfilled should be shown to the user as "Completed". These runs
+    // were never actually failed — they just weren't needed.
     return (
       message.startsWith('target met') ||
       message.startsWith('delivery reserved') ||
       message.includes('target reached') ||
       message.includes('already delivered') ||
-      message.includes('auto-cancelled (target')
+      message.includes('auto-cancelled (target') ||
+      message.includes('auto-cancelled (item completed') ||
+      message.includes('auto-completed')
     );
   };
 
