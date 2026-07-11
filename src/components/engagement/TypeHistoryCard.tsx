@@ -48,6 +48,7 @@ interface Run {
   peak_multiplier?: number;
   provider_order_id?: string;
   provider_remains?: number | null;
+  provider_start_count?: number | null;
   error_message?: string;
   provider_account_name?: string | null;
   provider_status?: string | null;
