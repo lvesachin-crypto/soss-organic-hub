@@ -168,9 +168,17 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
     ? Number(item.start_count)
     : null
   const firstProviderStart = validRuns.length > 0 ? Number(validRuns[0].provider_start_count) : null
-  const baseline = existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0
-    ? existingStart
-    : firstProviderStart
+  // If a legacy/backfilled row has start_count=0 but the first provider status
+  // shows the video already had public views, trust the provider baseline.
+  const shouldUseProviderBaseline = firstProviderStart !== null
+    && Number.isFinite(firstProviderStart)
+    && firstProviderStart >= 0
+    && (existingStart === null || existingStart === 0)
+  const baseline = shouldUseProviderBaseline
+    ? firstProviderStart
+    : existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0
+      ? existingStart
+      : firstProviderStart
 
   if (baseline === null || !Number.isFinite(baseline) || baseline < 0) return null
 
