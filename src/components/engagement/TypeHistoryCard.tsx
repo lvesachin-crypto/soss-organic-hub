@@ -169,12 +169,16 @@ export function TypeHistoryCard({
   const runsWithSchedule = (() => {
     let cumulativeScheduled = 0;
     let cumulativeDelivered = 0;
+    // Baseline for types where provider doesn't return start_count (likes/comments/shares/etc).
+    // Prefer the item's captured start_count; otherwise 0. Each subsequent run starts from
+    // baseline + delivered-so-far, so users still see start → end progression.
+    const fallbackBaseline =
+      typeof itemStartCount === 'number' && itemStartCount >= 0 ? itemStartCount : 0;
     return sortedRuns.map((run) => {
       const eff = getEffectiveStatus(run);
       const countsTowardSchedule = eff !== 'failed';
       if (countsTowardSchedule) cumulativeScheduled += run.quantity_to_send;
       const actualDel = calculateActualDelivered(run);
-      cumulativeDelivered += actualDel;
       // Real-time provider counts (not target math):
       // - startCount = provider's public count captured when this run went to provider
       // - endCount   = startCount + what the provider actually delivered so far
@@ -182,8 +186,12 @@ export function TypeHistoryCard({
         typeof run.provider_start_count === 'number' && run.provider_start_count > 0
           ? run.provider_start_count
           : null;
-      const runStartCount = providerStart;
-      const runEndCount = providerStart !== null ? providerStart + actualDel : null;
+      // Fallback for likes/comments/shares where provider omits start_count:
+      // use itemStartCount (or 0) + everything delivered before this run.
+      const runStartCount =
+        providerStart !== null ? providerStart : fallbackBaseline + cumulativeDelivered;
+      const runEndCount = runStartCount + actualDel;
+      cumulativeDelivered += actualDel;
       return {
         ...run,
         plannedQuantity: run.quantity_to_send,
