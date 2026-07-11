@@ -1873,7 +1873,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             successAccount = selectedAccount
             success = true
             await updateAccountLastUsed(supabase, selectedAccount.id)
-            console.log(`✅ Run #${run.run_number} placed via ${selectedAccount.name}! Order ID: ${providerOrderId} (status check deferred)`)
+            console.log(`✅ Run #${run.run_number} placed via ${selectedAccount.name}! Order ID: ${providerOrderId} (initial live count checked)`)
             break
           }
         } catch (fetchError: any) {
@@ -1972,9 +1972,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           status: providerIsTerminal ? 'completed' : 'started',
         })
 
-        if (providerIsTerminal) {
-          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
-        }
+        await syncEngagementItemTracking(supabase, item.id)
+        await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
       } else if (lastError !== null) {
         const retryCount = (run.retry_count || 0) + 1
         const lastErr = (lastError || '').toLowerCase()
