@@ -169,15 +169,21 @@ export function TypeHistoryCard({
   const runsWithSchedule = (() => {
     let cumulativeScheduled = 0;
     let cumulativeDelivered = 0;
-    const baseStart = typeof itemStartCount === 'number' && itemStartCount > 0 ? itemStartCount : 0;
     return sortedRuns.map((run) => {
       const eff = getEffectiveStatus(run);
       const countsTowardSchedule = eff !== 'failed';
-      const runStartCount = baseStart + cumulativeScheduled;
       if (countsTowardSchedule) cumulativeScheduled += run.quantity_to_send;
       const actualDel = calculateActualDelivered(run);
       cumulativeDelivered += actualDel;
-      const runEndCount = baseStart + cumulativeScheduled;
+      // Real-time provider counts (not target math):
+      // - startCount = provider's public count captured when this run went to provider
+      // - endCount   = startCount + what the provider actually delivered so far
+      const providerStart =
+        typeof run.provider_start_count === 'number' && run.provider_start_count > 0
+          ? run.provider_start_count
+          : null;
+      const runStartCount = providerStart;
+      const runEndCount = providerStart !== null ? providerStart + actualDel : null;
       return {
         ...run,
         plannedQuantity: run.quantity_to_send,
