@@ -467,6 +467,21 @@ export function TypeHistoryCard({
 
                         {/* Timestamps Row - Colorful */}
                         <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground flex-wrap">
+                          {(itemStartCount ?? 0) > 0 && (
+                            <span className="flex items-center gap-1 text-cyan-400">
+                              📊 Baseline:
+                              <span className="font-bold tabular-nums text-foreground">
+                                {run.runStartCount.toLocaleString()}
+                              </span>
+                              <span className="text-muted-foreground">→</span>
+                              <span className="font-bold tabular-nums text-emerald-400">
+                                {run.runEndCount.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                (+{run.plannedQuantity.toLocaleString()})
+                              </span>
+                            </span>
+                          )}
                           <span className="flex items-center gap-1">
                             📅 Scheduled: {format(scheduledDate, 'MMM d, hh:mm a')}
                             <span className={`ml-1 font-medium ${isActive ? 'text-blue-400' : isPastDue ? 'text-amber-500' : 'text-teal-400'}`}>
