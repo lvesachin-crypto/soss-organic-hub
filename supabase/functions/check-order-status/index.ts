@@ -27,7 +27,7 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
 function calculateObservedRunDelivery(run: any): number {
   const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
 
-  if (providerStatus === 'completed' || providerStatus === 'complete' || run?.status === 'completed') {
+  if (providerStatus === 'completed' || providerStatus === 'complete' || providerStatus === 'success') {
     return Number(run?.quantity_to_send || 0)
   }
 
@@ -80,19 +80,30 @@ async function syncObservedOverdeliveryGuard(supabase: any, itemId?: string | nu
     ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
     : 0
 
-  const delivered = Math.max(askedSent, observedByRuns, publicCountDelta)
-  if (delivered < orderedQty) return
+  // Actual delivery must come from provider remains/status or reliable public count delta.
+  // `askedSent` only means sent to provider, so it can stop pending runs but must not
+  // mark the item completed before the target is visible/reported.
+  const actualDelivered = Math.max(observedByRuns, publicCountDelta)
+  const reservedOrDelivered = Math.max(askedSent, actualDelivered)
+  if (reservedOrDelivered < orderedQty) return
 
   await supabase.from('organic_run_schedule').update({
     status: 'cancelled',
     completed_at: new Date().toISOString(),
-    error_message: `Target met (asked=${askedSent}, observed=${observedByRuns}, public_delta=${publicCountDelta}, target=${orderedQty}) — cancelling remaining runs`,
+    error_message: `Delivery reserved (asked=${askedSent}, observed=${observedByRuns}, public_delta=${publicCountDelta}, target=${orderedQty}) — cancelling remaining runs`,
   }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
 
-  await supabase.from('engagement_order_items').update({
-    status: 'completed',
-    updated_at: new Date().toISOString(),
-  }).eq('id', itemId).neq('status', 'completed')
+  if (actualDelivered >= orderedQty) {
+    await supabase.from('engagement_order_items').update({
+      status: 'completed',
+      updated_at: new Date().toISOString(),
+    }).eq('id', itemId).neq('status', 'completed')
+  } else {
+    await supabase.from('engagement_order_items').update({
+      status: 'processing',
+      updated_at: new Date().toISOString(),
+    }).eq('id', itemId).not('status', 'in', '("cancelled","paused","completed")')
+  }
 }
 
 function isProviderStatusLookupMiss(errorMsg: string): boolean {
