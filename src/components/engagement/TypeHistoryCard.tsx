@@ -476,19 +476,27 @@ export function TypeHistoryCard({
 
                         {/* Timestamps Row - Colorful */}
                         <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground flex-wrap">
-                          {(itemStartCount ?? 0) > 0 && (
+                          {run.runStartCount !== null && run.runStartCount !== undefined && (
                             <span className="flex items-center gap-1 text-cyan-400">
-                              📊 Baseline:
+                              📊
                               <span className="font-bold tabular-nums text-foreground">
                                 {run.runStartCount.toLocaleString()}
                               </span>
                               <span className="text-muted-foreground">→</span>
-                              <span className="font-bold tabular-nums text-emerald-400">
-                                {run.runEndCount.toLocaleString()}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                (+{run.plannedQuantity.toLocaleString()})
-                              </span>
+                              {isCompleted && run.runEndCount !== null ? (
+                                <span className="font-bold tabular-nums text-emerald-400">
+                                  {run.runEndCount.toLocaleString()}
+                                </span>
+                              ) : (
+                                <span className="tabular-nums text-muted-foreground italic">
+                                  in progress…
+                                </span>
+                              )}
+                              {isCompleted && run.actualDeliveredThisRun > 0 && (
+                                <span className="text-xs text-muted-foreground">
+                                  (+{run.actualDeliveredThisRun.toLocaleString()})
+                                </span>
+                              )}
                             </span>
                           )}
                           <span className="flex items-center gap-1">
