@@ -86,7 +86,15 @@ export default function Orders() {
         .limit(200);
       
       if (error) throw error;
-      return data as (Order & { service: { name: string; category: string } | null })[];
+      return data as unknown as (Order & {
+        current_count?: number | null;
+        target_count?: number | null;
+        delivered_count?: number | null;
+        remaining_count?: number | null;
+        progress_percentage?: number | null;
+        last_synced_at?: string | null;
+        service: { name: string; category: string } | null;
+      })[];
     },
     enabled: !!user?.id,
     staleTime: 10000, // Cache for 10s - instant subsequent loads
