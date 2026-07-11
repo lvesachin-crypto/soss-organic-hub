@@ -421,6 +421,41 @@ export default function Orders() {
                       </div>
                     )}
 
+                    {/* Real-time count tracking (non-organic direct orders) */}
+                    {!order.is_organic_mode && order.provider_order_id && ((order as any).target_count ?? 0) > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border/50">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3">
+                          <div>
+                            <p className="text-muted-foreground">Starting</p>
+                            <p className="font-semibold">{(order.start_count ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Current</p>
+                            <p className="font-semibold">{((order as any).current_count ?? order.start_count ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Target</p>
+                            <p className="font-semibold">{((order as any).target_count ?? 0).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Remaining</p>
+                            <p className="font-semibold">{Math.max(0, (order as any).remaining_count ?? 0).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Progress value={Math.min(100, Number((order as any).progress_percentage ?? 0))} className="h-2 flex-1" />
+                          <span className="text-xs font-medium text-muted-foreground w-14 text-right">
+                            {Number((order as any).progress_percentage ?? 0).toFixed(1)}%
+                          </span>
+                        </div>
+                        {(order as any).last_synced_at && (
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Last sync: {new Date((order as any).last_synced_at).toLocaleTimeString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Error Message */}
                     {order.error_message && (
                       <div className="mt-3 p-2 rounded bg-destructive/10 border border-destructive/20 text-xs text-destructive">
