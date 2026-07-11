@@ -873,8 +873,12 @@ export default function EngagementOrderDetail() {
               provider_remains: run.provider_remains ?? null,
               last_status_check: run.last_status_check || null,
             }));
-            // Calculate ACTUAL delivered from provider data
-            const itemDelivered = itemRuns.reduce((sum: number, r: any) => {
+            // Prefer backend live-count tracking: delivered = current_count - start_count,
+            // capped by ordered quantity. Fallback to per-run provider remains for old rows.
+            const trackedDelivered = typeof item.delivered_count === 'number'
+              ? item.delivered_count
+              : null;
+            const itemDelivered = trackedDelivered !== null ? trackedDelivered : itemRuns.reduce((sum: number, r: any) => {
               const status = (r.status || '').toString().toLowerCase().trim();
               const message = (r.error_message || '').toString().toLowerCase().trim();
               const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
