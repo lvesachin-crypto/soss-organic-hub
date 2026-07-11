@@ -434,7 +434,10 @@ export type Database = {
       }
       orders: {
         Row: {
+          completion_locked_at: string | null
           created_at: string | null
+          current_count: number | null
+          delivered_count: number | null
           drip_interval: number | null
           drip_interval_unit: string | null
           drip_quantity_per_run: number | null
@@ -443,22 +446,30 @@ export type Database = {
           id: string
           is_drip_feed: boolean | null
           is_organic_mode: boolean | null
+          last_synced_at: string | null
           link: string
+          max_observed_count: number | null
           order_number: number
           peak_hours_enabled: boolean | null
           price: number
+          progress_percentage: number | null
           provider_order_id: string | null
           quantity: number
+          remaining_count: number | null
           remains: number | null
           service_id: string | null
           start_count: number | null
           status: string | null
+          target_count: number | null
           updated_at: string | null
           user_id: string
           variance_percent: number | null
         }
         Insert: {
+          completion_locked_at?: string | null
           created_at?: string | null
+          current_count?: number | null
+          delivered_count?: number | null
           drip_interval?: number | null
           drip_interval_unit?: string | null
           drip_quantity_per_run?: number | null
@@ -467,22 +478,30 @@ export type Database = {
           id?: string
           is_drip_feed?: boolean | null
           is_organic_mode?: boolean | null
+          last_synced_at?: string | null
           link: string
+          max_observed_count?: number | null
           order_number?: number
           peak_hours_enabled?: boolean | null
           price: number
+          progress_percentage?: number | null
           provider_order_id?: string | null
           quantity: number
+          remaining_count?: number | null
           remains?: number | null
           service_id?: string | null
           start_count?: number | null
           status?: string | null
+          target_count?: number | null
           updated_at?: string | null
           user_id: string
           variance_percent?: number | null
         }
         Update: {
+          completion_locked_at?: string | null
           created_at?: string | null
+          current_count?: number | null
+          delivered_count?: number | null
           drip_interval?: number | null
           drip_interval_unit?: string | null
           drip_quantity_per_run?: number | null
@@ -491,16 +510,21 @@ export type Database = {
           id?: string
           is_drip_feed?: boolean | null
           is_organic_mode?: boolean | null
+          last_synced_at?: string | null
           link?: string
+          max_observed_count?: number | null
           order_number?: number
           peak_hours_enabled?: boolean | null
           price?: number
+          progress_percentage?: number | null
           provider_order_id?: string | null
           quantity?: number
+          remaining_count?: number | null
           remains?: number | null
           service_id?: string | null
           start_count?: number | null
           status?: string | null
+          target_count?: number | null
           updated_at?: string | null
           user_id?: string
           variance_percent?: number | null
