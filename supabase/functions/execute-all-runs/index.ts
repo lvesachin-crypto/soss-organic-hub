@@ -502,7 +502,7 @@ const getNestedEngagementOrderLink = (value: any) => {
 const calculateObservedRunDelivery = (run: any) => {
   const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
 
-  if (providerStatus === 'completed' || providerStatus === 'complete' || run?.status === 'completed') {
+  if (providerStatus === 'completed' || providerStatus === 'complete' || providerStatus === 'success') {
     return Number(run?.quantity_to_send || 0)
   }
 
@@ -547,7 +547,9 @@ const calculateObservedItemDelivery = (runs: any[], targetQty: number = 0) => {
 
   const startCounts = (runs || [])
     .map((run: any) => Number(run?.provider_start_count))
-    .filter((value: number) => Number.isFinite(value) && value >= 0)
+    // Ignore 0/null start counts. A zero from a failed/unverified provider status
+    // was making public_delta huge and closing orders after only a few runs.
+    .filter((value: number) => Number.isFinite(value) && value > 0)
 
   const publicCountDelta = startCounts.length > 0
     ? Math.max(0, Math.max(...startCounts) - Math.min(...startCounts))
@@ -572,7 +574,10 @@ const calculateObservedItemDelivery = (runs: any[], targetQty: number = 0) => {
     // when a post also has organic traffic than to overshoot 10-15×.
     // Organic buffer (PUBLIC_DELTA_BUFFER_PERCENT / PUBLIC_DELTA_BUFFER_MIN) softens
     // the publicCountDelta so genuine organic viewers don't prematurely stop the order.
-    delivered: Math.max(askedSent, observedByRuns, adjustedPublicCountDelta),
+    // IMPORTANT: do not count `askedSent` as delivered. It only means a quantity was
+    // submitted to providers, not that the public target count has been reached.
+    delivered: Math.max(observedByRuns, adjustedPublicCountDelta),
+    reserved: Math.max(askedSent, observedByRuns, adjustedPublicCountDelta),
   }
 }
 
@@ -901,9 +906,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           }
 
           return supabase.from('organic_run_schedule').update({
-            status: 'completed', completed_at: new Date().toISOString(),
-            provider_status: stuck.provider_status || 'Stale',
-            error_message: `Auto-completed after ${ageMin}min (status: ${stuck.provider_status || 'unknown'})`,
+            last_status_check: new Date().toISOString(),
+            error_message: `Still waiting for provider completion after ${ageMin}min (status: ${stuck.provider_status || 'unknown'})`,
           }).eq('id', stuck.id)
         }
       })
@@ -1086,20 +1090,28 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             .in('status', ['completed', 'started', 'failed'])
 
           const observed = calculateObservedItemDelivery(sentRows || [], orderedQty)
-          const alreadySent = observed.delivered
-          const remaining = orderedQty - alreadySent
+          const actualDelivered = observed.delivered
+          const reservedOrDelivered = observed.reserved
+          const remaining = orderedQty - reservedOrDelivered
           if (remaining <= 0) {
-            // Target met (or exceeded via over-delivery) — cancel ALL remaining pending runs
+            // Enough quantity is already sent/reserved or target is actually met — stop pending runs.
+            // Only mark the item completed when actual provider/public delivery reached target.
             await supabase.from('organic_run_schedule').update({
               status: 'cancelled',
-              error_message: `Target met (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — cancelling remaining runs`,
+              error_message: `Delivery reserved (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — cancelling remaining runs`,
               completed_at: new Date().toISOString(),
             }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
-            await supabase.from('engagement_order_items').update({
-              status: 'completed', updated_at: new Date().toISOString(),
-            }).eq('id', item.id).neq('status', 'completed')
+            if (actualDelivered >= orderedQty) {
+              await supabase.from('engagement_order_items').update({
+                status: 'completed', updated_at: new Date().toISOString(),
+              }).eq('id', item.id).neq('status', 'completed')
+            } else {
+              await supabase.from('engagement_order_items').update({
+                status: 'processing', updated_at: new Date().toISOString(),
+              }).eq('id', item.id).not('status', 'in', '("cancelled","paused","completed")')
+            }
             skipped++
-            console.log(`🛡️ Item ${item.id} target met — asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}. Cancelling remaining.`)
+            console.log(`🛡️ Item ${item.id} delivery reserved — asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}. Cancelling remaining pending runs.`)
             continue
           }
           if (run.quantity_to_send > remaining) {
