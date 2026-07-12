@@ -159,8 +159,12 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
     .eq('engagement_order_item_id', itemId)
     .order('run_number', { ascending: true })
 
+  // Filter: only runs where provider ACTUALLY returned a start_count. Explicit
+  // null check — Number(null)===0 was previously dragging baseline to 0.
   const validRuns = (runs || []).filter((run: any) => {
-    const value = Number(run.provider_start_count)
+    const raw = run?.provider_start_count
+    if (raw === null || raw === undefined) return false
+    const value = Number(raw)
     return Number.isFinite(value) && value >= 0
   })
 
@@ -168,32 +172,49 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
     ? Number(item.start_count)
     : null
   const firstProviderStart = validRuns.length > 0 ? Number(validRuns[0].provider_start_count) : null
-  // If a legacy/backfilled row has start_count=0 but the first provider status
-  // shows the video already had public views, trust the provider baseline.
-  const shouldUseProviderBaseline = firstProviderStart !== null
-    && Number.isFinite(firstProviderStart)
-    && firstProviderStart >= 0
-    && (existingStart === null || existingStart === 0)
-  const baseline = shouldUseProviderBaseline
-    ? firstProviderStart
-    : existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0
-      ? existingStart
-      : firstProviderStart
 
-  if (baseline === null || !Number.isFinite(baseline) || baseline < 0) return null
+  let baseline: number
+  if (existingStart !== null && Number.isFinite(existingStart) && existingStart > 0) {
+    baseline = existingStart
+  } else if (firstProviderStart !== null && Number.isFinite(firstProviderStart) && firstProviderStart > 0) {
+    baseline = firstProviderStart
+  } else if (existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0) {
+    baseline = existingStart
+  } else {
+    baseline = 0
+  }
 
-  const observedCounts = validRuns
+  // Delivery-based progress: SUM across all runs (not MAX of individual runs).
+  const totalDeliveredByRuns = (runs || []).reduce((sum: number, run: any) => {
+    const qty = Number(run?.quantity_to_send || 0)
+    if (qty <= 0) return sum
+    const rawStatus = (run?.provider_status || run?.status || '').toString().toLowerCase().trim()
+    const remainsRaw = run?.provider_remains
+    if (remainsRaw !== null && remainsRaw !== undefined) {
+      const remains = Number(remainsRaw)
+      if (Number.isFinite(remains)) {
+        return sum + Math.max(0, qty - Math.max(0, remains))
+      }
+    }
+    if (rawStatus === 'completed' || rawStatus === 'complete' || rawStatus === 'success') {
+      return sum + qty
+    }
+    return sum
+  }, 0)
+
+  const deliveredCapped = Math.min(orderedQty, totalDeliveredByRuns)
+  const publicObservedCounts = validRuns
     .map((run: any) => getRunObservedCurrentCount(run))
     .filter((value: number | null): value is number => value !== null && Number.isFinite(value) && value >= 0)
 
   const current = Math.max(
-    baseline,
+    baseline + deliveredCapped,
     Number(item.current_count || baseline),
-    ...(observedCounts.length ? observedCounts : [baseline]),
+    ...(publicObservedCounts.length ? publicObservedCounts : [baseline]),
   )
   const target = baseline + orderedQty
   const remaining = Math.max(0, target - current)
-  const targetReached = current >= target
+  const targetReached = deliveredCapped >= orderedQty || current >= target
 
   const itemUpdate: any = {
     start_count: baseline,
@@ -209,9 +230,10 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
       error_message: `Target count reached (${current}/${target}) — cancelling remaining runs`,
       last_status_check: new Date().toISOString(),
     }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
-  } else if (item.status === 'completed' || item.status === 'partial') {
-    itemUpdate.status = 'processing'
   }
+  // Do NOT force back to 'processing' when target not reached — downstream
+  // updateEngagementOrderStatus decides based on ACTUAL run outcomes so items
+  // whose providers don't expose a public counter don't get stuck.
 
   await supabase.from('engagement_order_items').update(itemUpdate).eq('id', itemId)
 
