@@ -120,7 +120,10 @@ export function TypeHistoryCard({
     // If the whole type already hit its target and this run never went to a
     // provider, it was only skipped because delivery is complete. Users should
     // see it as Completed, not Cancelled.
-    return !run.provider_order_id && targetQuantity > 0 && deliveredQuantity >= targetQuantity && Boolean(run.completed_at);
+    return !run.provider_order_id && Boolean(run.completed_at) && (
+      itemStatus === 'completed' ||
+      (targetQuantity > 0 && deliveredQuantity >= targetQuantity)
+    );
   };
 
   const getEffectiveStatus = (run: Run): 'pending' | 'started' | 'completed' | 'failed' => {
