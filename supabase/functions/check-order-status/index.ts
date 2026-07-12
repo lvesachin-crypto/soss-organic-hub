@@ -812,6 +812,10 @@ Deno.serve(async (req) => {
 
     if (targetRunId) {
       legacyQuery = legacyQuery.eq('id', targetRunId)
+    } else {
+      legacyQuery = legacyQuery
+        .order('last_status_check', { ascending: true, nullsFirst: true })
+        .limit(CHECK_STATUS_BATCH_LIMIT)
     }
 
     const { data: legacyRuns, error: legacyError } = await legacyQuery
@@ -850,13 +854,18 @@ Deno.serve(async (req) => {
       console.log(`Checking ${runs!.length} legacy orders on ${provider.name}`)
 
       for (const run of runs!) {
+        if (!targetRunId && overBudget()) {
+          budgetExceeded = true
+          skippedOverBudget++
+          continue
+        }
         try {
           const formData = new URLSearchParams()
           formData.append('key', provider.api_key)
           formData.append('action', 'status')
           formData.append('order', run.provider_order_id)
 
-          const response = await fetch(provider.api_url, {
+          const response = await fetchWithTimeout(provider.api_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData.toString()
