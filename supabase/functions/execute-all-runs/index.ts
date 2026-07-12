@@ -787,16 +787,12 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
       .maybeSingle()
 
     if (currentItem?.status !== 'cancelled') {
-      if (tracking && !tracking.targetReached && currentItem?.status !== 'paused') {
-        await supabase.from('engagement_order_items').update({ status: 'processing' }).eq('id', itemId)
-      }
-
       const { data: itemRuns } = await supabase
         .from('organic_run_schedule')
         .select('status')
         .eq('engagement_order_item_id', itemId)
 
-      if (itemRuns && itemRuns.length > 0 && (!tracking || tracking.targetReached)) {
+      if (itemRuns && itemRuns.length > 0) {
         const completedCount = itemRuns.filter((r: any) => r.status === 'completed').length
         const failedCount = itemRuns.filter((r: any) => r.status === 'failed').length
         const cancelledCount = itemRuns.filter((r: any) => r.status === 'cancelled').length
@@ -809,9 +805,20 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
         else if (completedCount > 0 && completedCount + failedCount + cancelledCount === totalRuns) itemStatus = 'partial'
         else if (failedCount + cancelledCount === totalRuns) itemStatus = 'failed'
 
-        if (!tracking || tracking.targetReached || itemStatus !== 'completed') {
-          await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        // If tracking exists AND has a REAL public baseline but delivery hasn't
+        // reached the target yet, downgrade a runs-based 'completed' to 'partial'
+        // (all runs done but public target not met). For items without a public
+        // baseline (start_count = 0), trust the runs-based decision so items
+        // don't get stuck perpetually in 'processing'.
+        if (
+          itemStatus === 'completed'
+          && tracking
+          && !tracking.targetReached
+          && tracking.baseline > 0
+        ) {
+          itemStatus = 'partial'
         }
+        await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
       }
     }
   }
