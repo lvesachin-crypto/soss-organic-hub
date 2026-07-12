@@ -62,11 +62,30 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
   const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
 
   const normalizeProviderStatus = (s?: string | null) => (s ?? '').toString().toLowerCase().trim();
+  const targetStateByType: Record<string, TypeTarget> = {};
+  typeTargets.forEach(t => { targetStateByType[t.type] = t; });
+  const isTargetCompleteCancelMessage = (message: string) => (
+    message.startsWith('target met') ||
+    message.startsWith('target count reached') ||
+    message.includes('target count reached') ||
+    message.includes('target reached') ||
+    message.includes('cancelling remaining runs') ||
+    message.startsWith('delivery reserved') ||
+    message.includes('already delivered') ||
+    message.includes('auto-cancelled') ||
+    message.includes('auto completed') ||
+    message.includes('auto-completed') ||
+    message.includes('item completed')
+  );
   const isTargetMetAutoCompleted = (run: MergedRun) => {
     const status = (run.status || '').toString().toLowerCase().trim();
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
-    return (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
+    if (status !== 'cancelled' && status !== 'canceled') return false;
+    if (isTargetCompleteCancelMessage(message)) return true;
+
+    const typeTarget = targetStateByType[run.engagement_type];
+    return !run.provider_order_id && Boolean(run.completed_at) && Boolean(typeTarget?.target) && typeTarget.delivered >= typeTarget.target;
   };
 
   const getEffectiveStatus = (run: MergedRun): 'pending' | 'started' | 'completed' | 'failed' | 'cancelled' => {

@@ -69,6 +69,20 @@ const STATUS_CONFIG = {
   paused: { color: "bg-amber-500/20 text-amber-400 border-amber-500/30", icon: Pause, label: "Paused" },
 };
 
+const isTargetCompleteCancelMessage = (message: string) => (
+  message.startsWith('target met') ||
+  message.startsWith('target count reached') ||
+  message.includes('target count reached') ||
+  message.includes('target reached') ||
+  message.includes('cancelling remaining runs') ||
+  message.startsWith('delivery reserved') ||
+  message.includes('already delivered') ||
+  message.includes('auto-cancelled') ||
+  message.includes('auto completed') ||
+  message.includes('auto-completed') ||
+  message.includes('item completed')
+);
+
 interface EditRunData {
   id: string;
   quantity: number;
@@ -535,16 +549,20 @@ export default function EngagementOrderDetail() {
         ...run,
         engagement_type: item.engagement_type,
         item_id: item.id,
+        item_quantity: item.quantity,
+        item_delivered_count: typeof item.delivered_count === 'number' ? item.delivered_count : null,
         provider_account_name: run.provider_account_name || null,
         error_message: run.error_message || null,
       }))
     );
-    
+
     const isTargetMetAutoCompleted = (run: any): boolean => {
       const status = (run.status || '').toString().toLowerCase().trim();
       const message = (run.error_message || '').toString().toLowerCase().trim();
 
-      return (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
+      if (status !== 'cancelled' && status !== 'canceled') return false;
+      if (isTargetCompleteCancelMessage(message)) return true;
+      return !run.provider_order_id && Boolean(run.completed_at) && Number(run.item_quantity || 0) > 0 && Number(run.item_delivered_count || 0) >= Number(run.item_quantity || 0);
     };
 
     const completedRuns = allRuns.filter((r: any) => r.status === 'completed' || isTargetMetAutoCompleted(r));
@@ -882,7 +900,7 @@ export default function EngagementOrderDetail() {
             const itemDelivered = trackedDelivered !== null ? trackedDelivered : itemRuns.reduce((sum: number, r: any) => {
               const status = (r.status || '').toString().toLowerCase().trim();
               const message = (r.error_message || '').toString().toLowerCase().trim();
-              const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
+              const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && isTargetCompleteCancelMessage(message);
 
               if (r.status === 'completed' || isTargetMetAutoCompleted) {
                 return sum + r.quantity_to_send;

@@ -66,8 +66,8 @@ export default function EngagementOrders() {
         .select(`
           id, order_number, status, total_price, link, base_quantity, created_at, updated_at, is_organic_mode,
           items:engagement_order_items(
-            id, engagement_type, quantity, status,
-            runs:organic_run_schedule(id, status, quantity_to_send, scheduled_at, run_number, provider_status, provider_remains, error_message)
+            id, engagement_type, quantity, delivered_count, status,
+            runs:organic_run_schedule(id, status, quantity_to_send, scheduled_at, completed_at, run_number, provider_status, provider_remains, provider_order_id, error_message)
           )
         `)
         .eq('user_id', user.id)
@@ -184,10 +184,26 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const { formatPrice } = useCurrency();
   // Calculate progress
   const allRuns = order.items?.flatMap((item: any) => item.runs || []) || [];
+  const isTargetCompleteCancelMessage = (message: string) => (
+    message.startsWith('target met') ||
+    message.startsWith('target count reached') ||
+    message.includes('target count reached') ||
+    message.includes('target reached') ||
+    message.includes('cancelling remaining runs') ||
+    message.startsWith('delivery reserved') ||
+    message.includes('already delivered') ||
+    message.includes('auto-cancelled') ||
+    message.includes('auto completed') ||
+    message.includes('auto-completed') ||
+    message.includes('item completed')
+  );
   // Auto-cancelled-because-target-met runs should display as completed.
-  // (Backend marks them cancelled with error_message starting with "Target met".)
-  const isAutoCompletedCancel = (r: any) =>
-    r.status === 'cancelled' && (() => { const m = (r.error_message || '').toLowerCase(); return m.startsWith('target met') || m.startsWith('target count reached') || m.includes('auto-cancelled'); })();
+  const isAutoCompletedCancel = (r: any) => {
+    const status = (r.status || '').toString().toLowerCase().trim();
+    const message = (r.error_message || '').toString().toLowerCase().trim();
+    if (status !== 'cancelled' && status !== 'canceled') return false;
+    return isTargetCompleteCancelMessage(message);
+  };
   const completedRuns = allRuns.filter((r: any) => r.status === 'completed' || isAutoCompletedCancel(r)).length;
   // Exclude user-cancelled runs from total — auto-completed ones still count.
   const effectiveRuns = allRuns.filter((r: any) => r.status !== 'cancelled' || isAutoCompletedCancel(r)).length;
@@ -198,8 +214,8 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   const calculateActualDelivered = (run: any): number => {
     const ps = normalizeProviderStatus(run.provider_status);
     if (
-      run.status === 'cancelled' &&
-      (() => { const m = (run.error_message || '').toLowerCase(); return m.startsWith('target met') || m.startsWith('target count reached') || m.includes('auto-cancelled'); })()
+      (run.status === 'cancelled' || run.status === 'canceled') &&
+      isTargetCompleteCancelMessage((run.error_message || '').toLowerCase())
     ) {
       return run.quantity_to_send;
     }

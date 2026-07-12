@@ -97,22 +97,32 @@ export function TypeHistoryCard({
 
   // Provider-first helper: delivered + effective status should follow provider_status/remains
   const normalizeProviderStatus = (s?: string | null) => (s ?? '').toString().toLowerCase().trim();
+  const isTargetCompleteCancelMessage = (message: string) => (
+    message.startsWith('target met') ||
+    message.startsWith('target count reached') ||
+    message.includes('target count reached') ||
+    message.includes('target reached') ||
+    message.includes('cancelling remaining runs') ||
+    message.startsWith('delivery reserved') ||
+    message.includes('already delivered') ||
+    message.includes('auto-cancelled') ||
+    message.includes('auto completed') ||
+    message.includes('auto-completed') ||
+    message.includes('item completed')
+  );
   const isTargetMetAutoCompleted = (run: Run) => {
     const status = (run.status || '').toString().toLowerCase().trim();
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
     if (status !== 'cancelled' && status !== 'canceled') return false;
-    // Any auto-cancellation triggered because the target/item is already
-    // fulfilled should be shown to the user as "Completed". These runs
-    // were never actually failed — they just weren't needed.
-    return (
-      message.startsWith('target met') ||
-      message.startsWith('delivery reserved') ||
-      message.includes('target reached') ||
-      message.includes('already delivered') ||
-      message.includes('auto-cancelled (target') ||
-      message.includes('auto-cancelled (item completed') ||
-      message.includes('auto-completed')
+    if (isTargetCompleteCancelMessage(message)) return true;
+
+    // If the whole type already hit its target and this run never went to a
+    // provider, it was only skipped because delivery is complete. Users should
+    // see it as Completed, not Cancelled.
+    return !run.provider_order_id && Boolean(run.completed_at) && (
+      itemStatus === 'completed' ||
+      (targetQuantity > 0 && deliveredQuantity >= targetQuantity)
     );
   };
 
