@@ -623,8 +623,14 @@ async function syncEngagementItemTracking(supabase: SupabaseClient, itemId?: str
     .eq('engagement_order_item_id', itemId)
     .order('run_number', { ascending: true })
 
+  // Filter: only trust runs whose provider ACTUALLY returned a start_count.
+  // Using `Number()` coerces null→0 so `Number.isFinite(Number(null))===true`,
+  // which historically dragged the baseline to 0 for services (likes/comments/
+  // shares/subscribers) where providers omit start_count. Use explicit null check.
   const validRuns = (runs || []).filter((run: any) => {
-    const value = Number(run.provider_start_count)
+    const raw = run?.provider_start_count
+    if (raw === null || raw === undefined) return false
+    const value = Number(raw)
     return Number.isFinite(value) && value >= 0
   })
 
@@ -632,32 +638,57 @@ async function syncEngagementItemTracking(supabase: SupabaseClient, itemId?: str
     ? Number(item.start_count)
     : null
   const firstProviderStart = validRuns.length > 0 ? Number(validRuns[0].provider_start_count) : null
-  // If a legacy/backfilled row has start_count=0 but the first provider status
-  // shows the video already had public views, trust the provider baseline.
-  const shouldUseProviderBaseline = firstProviderStart !== null
-    && Number.isFinite(firstProviderStart)
-    && firstProviderStart >= 0
-    && (existingStart === null || existingStart === 0)
-  const baseline = shouldUseProviderBaseline
-    ? firstProviderStart
-    : existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0
-      ? existingStart
-      : firstProviderStart
 
-  if (baseline === null || !Number.isFinite(baseline) || baseline < 0) return null
+  // Baseline preference:
+  //   1) existing non-zero start_count on the item (stable across syncs)
+  //   2) real provider baseline captured on the first run
+  //   3) fall back to 0 when no provider ever exposed a public counter
+  // NEVER overwrite a real existing baseline with 0.
+  let baseline: number
+  if (existingStart !== null && Number.isFinite(existingStart) && existingStart > 0) {
+    baseline = existingStart
+  } else if (firstProviderStart !== null && Number.isFinite(firstProviderStart) && firstProviderStart > 0) {
+    baseline = firstProviderStart
+  } else if (existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0) {
+    baseline = existingStart
+  } else {
+    baseline = 0
+  }
 
-  const observedCounts = validRuns
+  // Delivery-based progress: SUM of delivered across ALL runs (not MAX).
+  // For each run: qty_to_send - max(0, provider_remains); if provider says the
+  // run finished (completed/success), count the whole qty; else 0.
+  const totalDeliveredByRuns = (runs || []).reduce((sum: number, run: any) => {
+    const qty = Number(run?.quantity_to_send || 0)
+    if (qty <= 0) return sum
+    const rawStatus = (run?.provider_status || run?.status || '').toString().toLowerCase().trim()
+    const remainsRaw = run?.provider_remains
+    if (remainsRaw !== null && remainsRaw !== undefined) {
+      const remains = Number(remainsRaw)
+      if (Number.isFinite(remains)) {
+        return sum + Math.max(0, qty - Math.max(0, remains))
+      }
+    }
+    if (rawStatus === 'completed' || rawStatus === 'complete' || rawStatus === 'success') {
+      return sum + qty
+    }
+    return sum
+  }, 0)
+
+  const deliveredCapped = Math.min(orderedQty, totalDeliveredByRuns)
+  const publicObservedCounts = validRuns
     .map((run: any) => getRunObservedCurrentCount(run))
     .filter((value: number | null): value is number => value !== null && Number.isFinite(value) && value >= 0)
 
   const current = Math.max(
-    baseline,
+    baseline + deliveredCapped,
     Number(item.current_count || baseline),
-    ...(observedCounts.length ? observedCounts : [baseline]),
+    ...(publicObservedCounts.length ? publicObservedCounts : [baseline]),
   )
   const target = baseline + orderedQty
   const remaining = Math.max(0, target - current)
-  const targetReached = current >= target
+  // Delivery-based completion (source of truth for services without public counters).
+  const targetReached = deliveredCapped >= orderedQty || current >= target
 
   const itemUpdate: any = {
     start_count: baseline,
@@ -673,9 +704,11 @@ async function syncEngagementItemTracking(supabase: SupabaseClient, itemId?: str
       error_message: `Target count reached (${current}/${target}) — cancelling remaining runs`,
       last_status_check: new Date().toISOString(),
     }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
-  } else if (item.status === 'completed' || item.status === 'partial') {
-    itemUpdate.status = 'processing'
   }
+  // NOTE: no longer force back to 'processing' when target not reached — that
+  // decision is made downstream in updateEngagementOrderStatus based on the
+  // ACTUAL run outcomes, so items don't get stuck when providers never expose
+  // a public counter.
 
   await supabase.from('engagement_order_items').update(itemUpdate).eq('id', itemId)
 
@@ -754,16 +787,12 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
       .maybeSingle()
 
     if (currentItem?.status !== 'cancelled') {
-      if (tracking && !tracking.targetReached && currentItem?.status !== 'paused') {
-        await supabase.from('engagement_order_items').update({ status: 'processing' }).eq('id', itemId)
-      }
-
       const { data: itemRuns } = await supabase
         .from('organic_run_schedule')
         .select('status')
         .eq('engagement_order_item_id', itemId)
 
-      if (itemRuns && itemRuns.length > 0 && (!tracking || tracking.targetReached)) {
+      if (itemRuns && itemRuns.length > 0) {
         const completedCount = itemRuns.filter((r: any) => r.status === 'completed').length
         const failedCount = itemRuns.filter((r: any) => r.status === 'failed').length
         const cancelledCount = itemRuns.filter((r: any) => r.status === 'cancelled').length
@@ -776,9 +805,20 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
         else if (completedCount > 0 && completedCount + failedCount + cancelledCount === totalRuns) itemStatus = 'partial'
         else if (failedCount + cancelledCount === totalRuns) itemStatus = 'failed'
 
-        if (!tracking || tracking.targetReached || itemStatus !== 'completed') {
-          await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        // If tracking exists AND has a REAL public baseline but delivery hasn't
+        // reached the target yet, downgrade a runs-based 'completed' to 'partial'
+        // (all runs done but public target not met). For items without a public
+        // baseline (start_count = 0), trust the runs-based decision so items
+        // don't get stuck perpetually in 'processing'.
+        if (
+          itemStatus === 'completed'
+          && tracking
+          && !tracking.targetReached
+          && tracking.baseline > 0
+        ) {
+          itemStatus = 'partial'
         }
+        await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
       }
     }
   }

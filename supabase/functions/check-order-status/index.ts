@@ -23,6 +23,24 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
   }
 }
 
+// Wrap fetch with a hard per-request timeout so one slow provider can't stall
+// the whole cron invocation. Aborted requests throw and are caught by the
+// existing try/catch that increments `stillProcessing`.
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// Wall-clock budget so we always return under the edge-function limit and let
+// the cron job pick up the remaining runs on the next tick instead of 504-ing.
+const CHECK_STATUS_BUDGET_MS = 110_000
+const CHECK_STATUS_BATCH_LIMIT = 200
+
 // Stop future runs when public delivery already reached the target, even if a provider over-delivers.
 function calculateObservedRunDelivery(run: any): number {
   const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
@@ -159,8 +177,12 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
     .eq('engagement_order_item_id', itemId)
     .order('run_number', { ascending: true })
 
+  // Filter: only runs where provider ACTUALLY returned a start_count. Explicit
+  // null check — Number(null)===0 was previously dragging baseline to 0.
   const validRuns = (runs || []).filter((run: any) => {
-    const value = Number(run.provider_start_count)
+    const raw = run?.provider_start_count
+    if (raw === null || raw === undefined) return false
+    const value = Number(raw)
     return Number.isFinite(value) && value >= 0
   })
 
@@ -168,32 +190,49 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
     ? Number(item.start_count)
     : null
   const firstProviderStart = validRuns.length > 0 ? Number(validRuns[0].provider_start_count) : null
-  // If a legacy/backfilled row has start_count=0 but the first provider status
-  // shows the video already had public views, trust the provider baseline.
-  const shouldUseProviderBaseline = firstProviderStart !== null
-    && Number.isFinite(firstProviderStart)
-    && firstProviderStart >= 0
-    && (existingStart === null || existingStart === 0)
-  const baseline = shouldUseProviderBaseline
-    ? firstProviderStart
-    : existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0
-      ? existingStart
-      : firstProviderStart
 
-  if (baseline === null || !Number.isFinite(baseline) || baseline < 0) return null
+  let baseline: number
+  if (existingStart !== null && Number.isFinite(existingStart) && existingStart > 0) {
+    baseline = existingStart
+  } else if (firstProviderStart !== null && Number.isFinite(firstProviderStart) && firstProviderStart > 0) {
+    baseline = firstProviderStart
+  } else if (existingStart !== null && Number.isFinite(existingStart) && existingStart >= 0) {
+    baseline = existingStart
+  } else {
+    baseline = 0
+  }
 
-  const observedCounts = validRuns
+  // Delivery-based progress: SUM across all runs (not MAX of individual runs).
+  const totalDeliveredByRuns = (runs || []).reduce((sum: number, run: any) => {
+    const qty = Number(run?.quantity_to_send || 0)
+    if (qty <= 0) return sum
+    const rawStatus = (run?.provider_status || run?.status || '').toString().toLowerCase().trim()
+    const remainsRaw = run?.provider_remains
+    if (remainsRaw !== null && remainsRaw !== undefined) {
+      const remains = Number(remainsRaw)
+      if (Number.isFinite(remains)) {
+        return sum + Math.max(0, qty - Math.max(0, remains))
+      }
+    }
+    if (rawStatus === 'completed' || rawStatus === 'complete' || rawStatus === 'success') {
+      return sum + qty
+    }
+    return sum
+  }, 0)
+
+  const deliveredCapped = Math.min(orderedQty, totalDeliveredByRuns)
+  const publicObservedCounts = validRuns
     .map((run: any) => getRunObservedCurrentCount(run))
     .filter((value: number | null): value is number => value !== null && Number.isFinite(value) && value >= 0)
 
   const current = Math.max(
-    baseline,
+    baseline + deliveredCapped,
     Number(item.current_count || baseline),
-    ...(observedCounts.length ? observedCounts : [baseline]),
+    ...(publicObservedCounts.length ? publicObservedCounts : [baseline]),
   )
   const target = baseline + orderedQty
   const remaining = Math.max(0, target - current)
-  const targetReached = current >= target
+  const targetReached = deliveredCapped >= orderedQty || current >= target
 
   const itemUpdate: any = {
     start_count: baseline,
@@ -209,9 +248,10 @@ async function syncEngagementItemTracking(supabase: any, itemId?: string | null)
       error_message: `Target count reached (${current}/${target}) — cancelling remaining runs`,
       last_status_check: new Date().toISOString(),
     }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
-  } else if (item.status === 'completed' || item.status === 'partial') {
-    itemUpdate.status = 'processing'
   }
+  // Do NOT force back to 'processing' when target not reached — downstream
+  // updateEngagementOrderStatus decides based on ACTUAL run outcomes so items
+  // whose providers don't expose a public counter don't get stuck.
 
   await supabase.from('engagement_order_items').update(itemUpdate).eq('id', itemId)
 
@@ -288,9 +328,14 @@ Deno.serve(async (req) => {
     console.log(`Time: ${new Date().toISOString()}`)
     console.log(`Target Run: ${targetRunId || 'ALL STARTED RUNS'}`)
 
+    const invocationStart = Date.now()
+    let budgetExceeded = false
+    const overBudget = () => (Date.now() - invocationStart) > CHECK_STATUS_BUDGET_MS
+
     let completed = 0
     let stillProcessing = 0
     let failed = 0
+    let skippedOverBudget = 0
     const results: any[] = []
 
     // ============================================
@@ -328,6 +373,13 @@ Deno.serve(async (req) => {
 
     if (targetRunId) {
       engagementQuery = engagementQuery.eq('id', targetRunId)
+    } else {
+      // Process oldest-checked runs first and cap the batch so one invocation
+      // finishes inside the edge-function time budget. Remaining runs are
+      // picked up on the next cron tick.
+      engagementQuery = engagementQuery
+        .order('last_status_check', { ascending: true, nullsFirst: true })
+        .limit(CHECK_STATUS_BATCH_LIMIT)
     }
 
     const { data: engagementRuns, error: engagementError } = await engagementQuery
@@ -341,6 +393,11 @@ Deno.serve(async (req) => {
     // Process each run individually using its ACTUAL provider account
     // (Not grouped by service provider_id - that was the bug!)
     for (const run of engagementRuns || []) {
+      if (!targetRunId && overBudget()) {
+        budgetExceeded = true
+        skippedOverBudget++
+        continue
+      }
       try {
         const orderStatus = run.engagement_order_item?.engagement_order?.status
         const itemStatus = run.engagement_order_item?.status
@@ -397,7 +454,7 @@ Deno.serve(async (req) => {
         formData.append('action', 'status')
         formData.append('order', run.provider_order_id)
 
-        const response = await fetch(apiUrl, {
+        const response = await fetchWithTimeout(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formData.toString()
@@ -755,6 +812,10 @@ Deno.serve(async (req) => {
 
     if (targetRunId) {
       legacyQuery = legacyQuery.eq('id', targetRunId)
+    } else {
+      legacyQuery = legacyQuery
+        .order('last_status_check', { ascending: true, nullsFirst: true })
+        .limit(CHECK_STATUS_BATCH_LIMIT)
     }
 
     const { data: legacyRuns, error: legacyError } = await legacyQuery
@@ -793,13 +854,18 @@ Deno.serve(async (req) => {
       console.log(`Checking ${runs!.length} legacy orders on ${provider.name}`)
 
       for (const run of runs!) {
+        if (!targetRunId && overBudget()) {
+          budgetExceeded = true
+          skippedOverBudget++
+          continue
+        }
         try {
           const formData = new URLSearchParams()
           formData.append('key', provider.api_key)
           formData.append('action', 'status')
           formData.append('order', run.provider_order_id)
 
-          const response = await fetch(provider.api_url, {
+          const response = await fetchWithTimeout(provider.api_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData.toString()
@@ -942,10 +1008,17 @@ Deno.serve(async (req) => {
       .in('status', ['pending', 'processing'])
       .eq('is_organic_mode', false)
       .not('provider_order_id', 'is', null)
+      .order('last_synced_at', { ascending: true, nullsFirst: true })
+      .limit(CHECK_STATUS_BATCH_LIMIT)
     const { data: directOrders } = await directQuery
     console.log(`Found ${directOrders?.length || 0} direct orders to sync`)
 
     for (const ord of directOrders || []) {
+      if (overBudget()) {
+        budgetExceeded = true
+        skippedOverBudget++
+        continue
+      }
       try {
         const providerId = (ord as any).service?.provider_id
         if (!providerId) continue
@@ -956,7 +1029,7 @@ Deno.serve(async (req) => {
         fd.append('key', prov.api_key)
         fd.append('action', 'status')
         fd.append('order', ord.provider_order_id!)
-        const r = await fetch(prov.api_url, {
+        const r = await fetchWithTimeout(prov.api_url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: fd.toString(),
@@ -1069,6 +1142,9 @@ Deno.serve(async (req) => {
       completed,
       stillProcessing,
       failed,
+      skipped_over_budget: skippedOverBudget,
+      budget_exceeded: budgetExceeded,
+      duration_ms: Date.now() - invocationStart,
       results,
       timestamp: new Date().toISOString()
     }), {
@@ -1112,16 +1188,12 @@ async function updateEngagementOrderStatus(supabase: any, engagementOrderId: str
       .maybeSingle()
 
     if (currentItem?.status !== 'cancelled') {
-      if (tracking && !tracking.targetReached && currentItem?.status !== 'paused') {
-        await supabase.from('engagement_order_items').update({ status: 'processing' }).eq('id', itemId)
-      }
-
       const { data: itemRuns } = await supabase
         .from('organic_run_schedule')
         .select('status')
         .eq('engagement_order_item_id', itemId)
 
-      if (itemRuns && itemRuns.length > 0 && (!tracking || tracking.targetReached)) {
+      if (itemRuns && itemRuns.length > 0) {
         const completedCount = itemRuns.filter((r: any) => r.status === 'completed').length
         const failedCount = itemRuns.filter((r: any) => r.status === 'failed').length
         const cancelledCount = itemRuns.filter((r: any) => r.status === 'cancelled').length
@@ -1139,9 +1211,19 @@ async function updateEngagementOrderStatus(supabase: any, engagementOrderId: str
           itemStatus = 'failed'
         }
 
-        if (!tracking || tracking.targetReached || itemStatus !== 'completed') {
-          await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        // Only downgrade 'completed' to 'partial' when we truly have a public
+        // baseline to check against and it hasn't been reached. Items without
+        // a public baseline (start_count = 0) must not be blocked from
+        // completing — that was the "stuck on processing" bug.
+        if (
+          itemStatus === 'completed'
+          && tracking
+          && !tracking.targetReached
+          && tracking.baseline > 0
+        ) {
+          itemStatus = 'partial'
         }
+        await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
       }
     }
   }
