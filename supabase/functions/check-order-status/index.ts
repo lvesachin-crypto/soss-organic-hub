@@ -23,6 +23,24 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
   }
 }
 
+// Wrap fetch with a hard per-request timeout so one slow provider can't stall
+// the whole cron invocation. Aborted requests throw and are caught by the
+// existing try/catch that increments `stillProcessing`.
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// Wall-clock budget so we always return under the edge-function limit and let
+// the cron job pick up the remaining runs on the next tick instead of 504-ing.
+const CHECK_STATUS_BUDGET_MS = 110_000
+const CHECK_STATUS_BATCH_LIMIT = 200
+
 // Stop future runs when public delivery already reached the target, even if a provider over-delivers.
 function calculateObservedRunDelivery(run: any): number {
   const providerStatus = (run?.provider_status || '').toString().toLowerCase().trim()
