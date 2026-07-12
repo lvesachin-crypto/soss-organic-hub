@@ -1008,10 +1008,17 @@ Deno.serve(async (req) => {
       .in('status', ['pending', 'processing'])
       .eq('is_organic_mode', false)
       .not('provider_order_id', 'is', null)
+      .order('last_synced_at', { ascending: true, nullsFirst: true })
+      .limit(CHECK_STATUS_BATCH_LIMIT)
     const { data: directOrders } = await directQuery
     console.log(`Found ${directOrders?.length || 0} direct orders to sync`)
 
     for (const ord of directOrders || []) {
+      if (overBudget()) {
+        budgetExceeded = true
+        skippedOverBudget++
+        continue
+      }
       try {
         const providerId = (ord as any).service?.provider_id
         if (!providerId) continue
@@ -1022,7 +1029,7 @@ Deno.serve(async (req) => {
         fd.append('key', prov.api_key)
         fd.append('action', 'status')
         fd.append('order', ord.provider_order_id!)
-        const r = await fetch(prov.api_url, {
+        const r = await fetchWithTimeout(prov.api_url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: fd.toString(),
