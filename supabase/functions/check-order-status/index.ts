@@ -1142,6 +1142,9 @@ Deno.serve(async (req) => {
       completed,
       stillProcessing,
       failed,
+      skipped_over_budget: skippedOverBudget,
+      budget_exceeded: budgetExceeded,
+      duration_ms: Date.now() - invocationStart,
       results,
       timestamp: new Date().toISOString()
     }), {
