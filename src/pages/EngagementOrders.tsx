@@ -187,7 +187,7 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
   // Auto-cancelled-because-target-met runs should display as completed.
   // (Backend marks them cancelled with error_message starting with "Target met".)
   const isAutoCompletedCancel = (r: any) =>
-    r.status === 'cancelled' && (r.error_message || '').toLowerCase().startsWith('target met');
+    r.status === 'cancelled' && (() => { const m = (r.error_message || '').toLowerCase(); return m.startsWith('target met') || m.startsWith('target count reached') || m.includes('auto-cancelled'); })();
   const completedRuns = allRuns.filter((r: any) => r.status === 'completed' || isAutoCompletedCancel(r)).length;
   // Exclude user-cancelled runs from total — auto-completed ones still count.
   const effectiveRuns = allRuns.filter((r: any) => r.status !== 'cancelled' || isAutoCompletedCancel(r)).length;
@@ -199,7 +199,7 @@ function OrderCard({ order, onClick }: { order: any; onClick: () => void }) {
     const ps = normalizeProviderStatus(run.provider_status);
     if (
       run.status === 'cancelled' &&
-      (run.error_message || '').toLowerCase().startsWith('target met')
+      (() => { const m = (run.error_message || '').toLowerCase(); return m.startsWith('target met') || m.startsWith('target count reached') || m.includes('auto-cancelled'); })()
     ) {
       return run.quantity_to_send;
     }
