@@ -328,9 +328,14 @@ Deno.serve(async (req) => {
     console.log(`Time: ${new Date().toISOString()}`)
     console.log(`Target Run: ${targetRunId || 'ALL STARTED RUNS'}`)
 
+    const invocationStart = Date.now()
+    let budgetExceeded = false
+    const overBudget = () => (Date.now() - invocationStart) > CHECK_STATUS_BUDGET_MS
+
     let completed = 0
     let stillProcessing = 0
     let failed = 0
+    let skippedOverBudget = 0
     const results: any[] = []
 
     // ============================================
