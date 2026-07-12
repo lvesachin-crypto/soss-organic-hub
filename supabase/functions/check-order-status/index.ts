@@ -373,6 +373,13 @@ Deno.serve(async (req) => {
 
     if (targetRunId) {
       engagementQuery = engagementQuery.eq('id', targetRunId)
+    } else {
+      // Process oldest-checked runs first and cap the batch so one invocation
+      // finishes inside the edge-function time budget. Remaining runs are
+      // picked up on the next cron tick.
+      engagementQuery = engagementQuery
+        .order('last_status_check', { ascending: true, nullsFirst: true })
+        .limit(CHECK_STATUS_BATCH_LIMIT)
     }
 
     const { data: engagementRuns, error: engagementError } = await engagementQuery
@@ -386,6 +393,11 @@ Deno.serve(async (req) => {
     // Process each run individually using its ACTUAL provider account
     // (Not grouped by service provider_id - that was the bug!)
     for (const run of engagementRuns || []) {
+      if (!targetRunId && overBudget()) {
+        budgetExceeded = true
+        skippedOverBudget++
+        continue
+      }
       try {
         const orderStatus = run.engagement_order_item?.engagement_order?.status
         const itemStatus = run.engagement_order_item?.status
