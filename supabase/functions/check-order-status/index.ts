@@ -454,7 +454,7 @@ Deno.serve(async (req) => {
         formData.append('action', 'status')
         formData.append('order', run.provider_order_id)
 
-        const response = await fetch(apiUrl, {
+        const response = await fetchWithTimeout(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formData.toString()
