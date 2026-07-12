@@ -16,7 +16,9 @@ interface Run {
   started_at?: string;
   completed_at?: string;
   provider_remains?: number;
+  provider_order_id?: string | null;
   error_message?: string | null;
+  completed_at?: string;
 }
 
 interface OrderProgressChartProps {
@@ -44,6 +46,20 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
+  const isTargetCompleteCancelMessage = (message: string) => (
+    message.startsWith('target met') ||
+    message.startsWith('target count reached') ||
+    message.includes('target count reached') ||
+    message.includes('target reached') ||
+    message.includes('cancelling remaining runs') ||
+    message.startsWith('delivery reserved') ||
+    message.includes('already delivered') ||
+    message.includes('auto-cancelled') ||
+    message.includes('auto completed') ||
+    message.includes('auto-completed') ||
+    message.includes('item completed')
+  );
+
   const { chartData, stats, activeTypes } = useMemo(() => {
     if (!runs || runs.length === 0) {
       return { chartData: [], stats: null, activeTypes: [] };
@@ -56,7 +72,7 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
     const deliveredRuns = runs.filter(run => {
       const status = (run.status || '').toLowerCase().trim();
       const message = (run.error_message || '').toLowerCase().trim();
-      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && isTargetCompleteCancelMessage(message);
 
       if (run.status === 'completed' || isTargetMetAutoCompleted) return true;
       if ((run.status === 'started' || run.status === 'failed') && 
@@ -104,7 +120,7 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
       const runTime = new Date(run.completed_at || run.started_at || run.scheduled_at);
       const status = (run.status || '').toLowerCase().trim();
       const message = (run.error_message || '').toLowerCase().trim();
-      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && isTargetCompleteCancelMessage(message);
       
       // Calculate ACTUAL delivered quantity
       let deliveredQty = 0;
@@ -147,7 +163,7 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
     const completedRuns = runs.filter((r) => {
       const status = (r.status || '').toLowerCase().trim();
       const message = (r.error_message || '').toLowerCase().trim();
-      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && isTargetCompleteCancelMessage(message);
       return r.status === 'completed' || isTargetMetAutoCompleted;
     }).length;
     const pendingRuns = runs.filter(r => r.status === 'pending').length;
