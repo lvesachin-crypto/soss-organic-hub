@@ -18,7 +18,6 @@ interface Run {
   provider_remains?: number;
   provider_order_id?: string | null;
   error_message?: string | null;
-  completed_at?: string;
 }
 
 interface OrderProgressChartProps {
