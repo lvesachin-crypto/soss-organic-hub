@@ -56,7 +56,7 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
     const deliveredRuns = runs.filter(run => {
       const status = (run.status || '').toLowerCase().trim();
       const message = (run.error_message || '').toLowerCase().trim();
-      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
 
       if (run.status === 'completed' || isTargetMetAutoCompleted) return true;
       if ((run.status === 'started' || run.status === 'failed') && 
@@ -104,7 +104,7 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
       const runTime = new Date(run.completed_at || run.started_at || run.scheduled_at);
       const status = (run.status || '').toLowerCase().trim();
       const message = (run.error_message || '').toLowerCase().trim();
-      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
       
       // Calculate ACTUAL delivered quantity
       let deliveredQty = 0;
@@ -147,7 +147,7 @@ export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
     const completedRuns = runs.filter((r) => {
       const status = (r.status || '').toLowerCase().trim();
       const message = (r.error_message || '').toLowerCase().trim();
-      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+      const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
       return r.status === 'completed' || isTargetMetAutoCompleted;
     }).length;
     const pendingRuns = runs.filter(r => r.status === 'pending').length;

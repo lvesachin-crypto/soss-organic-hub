@@ -544,7 +544,7 @@ export default function EngagementOrderDetail() {
       const status = (run.status || '').toString().toLowerCase().trim();
       const message = (run.error_message || '').toString().toLowerCase().trim();
 
-      return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+      return (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
     };
 
     const completedRuns = allRuns.filter((r: any) => r.status === 'completed' || isTargetMetAutoCompleted(r));
@@ -882,7 +882,7 @@ export default function EngagementOrderDetail() {
             const itemDelivered = trackedDelivered !== null ? trackedDelivered : itemRuns.reduce((sum: number, r: any) => {
               const status = (r.status || '').toString().toLowerCase().trim();
               const message = (r.error_message || '').toString().toLowerCase().trim();
-              const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+              const isTargetMetAutoCompleted = (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
 
               if (r.status === 'completed' || isTargetMetAutoCompleted) {
                 return sum + r.quantity_to_send;

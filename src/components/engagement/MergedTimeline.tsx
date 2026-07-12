@@ -66,7 +66,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
     const status = (run.status || '').toString().toLowerCase().trim();
     const message = (run.error_message || '').toString().toLowerCase().trim();
 
-    return (status === 'cancelled' || status === 'canceled') && message.startsWith('target met');
+    return (status === 'cancelled' || status === 'canceled') && (message.startsWith('target met') || message.startsWith('target count reached') || message.includes('auto-cancelled'));
   };
 
   const getEffectiveStatus = (run: MergedRun): 'pending' | 'started' | 'completed' | 'failed' | 'cancelled' => {
