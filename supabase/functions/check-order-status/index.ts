@@ -1134,16 +1134,12 @@ async function updateEngagementOrderStatus(supabase: any, engagementOrderId: str
       .maybeSingle()
 
     if (currentItem?.status !== 'cancelled') {
-      if (tracking && !tracking.targetReached && currentItem?.status !== 'paused') {
-        await supabase.from('engagement_order_items').update({ status: 'processing' }).eq('id', itemId)
-      }
-
       const { data: itemRuns } = await supabase
         .from('organic_run_schedule')
         .select('status')
         .eq('engagement_order_item_id', itemId)
 
-      if (itemRuns && itemRuns.length > 0 && (!tracking || tracking.targetReached)) {
+      if (itemRuns && itemRuns.length > 0) {
         const completedCount = itemRuns.filter((r: any) => r.status === 'completed').length
         const failedCount = itemRuns.filter((r: any) => r.status === 'failed').length
         const cancelledCount = itemRuns.filter((r: any) => r.status === 'cancelled').length
@@ -1161,9 +1157,19 @@ async function updateEngagementOrderStatus(supabase: any, engagementOrderId: str
           itemStatus = 'failed'
         }
 
-        if (!tracking || tracking.targetReached || itemStatus !== 'completed') {
-          await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
+        // Only downgrade 'completed' to 'partial' when we truly have a public
+        // baseline to check against and it hasn't been reached. Items without
+        // a public baseline (start_count = 0) must not be blocked from
+        // completing — that was the "stuck on processing" bug.
+        if (
+          itemStatus === 'completed'
+          && tracking
+          && !tracking.targetReached
+          && tracking.baseline > 0
+        ) {
+          itemStatus = 'partial'
         }
+        await supabase.from('engagement_order_items').update({ status: itemStatus }).eq('id', itemId)
       }
     }
   }
