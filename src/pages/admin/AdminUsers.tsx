@@ -91,9 +91,12 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [balanceAction, setBalanceAction] = useState<'subtract' | 'add'>('subtract');
-  // Only this admin (zyrofit.my) can manually add funds. Everyone else: subtract only.
-  const SUPER_ADMIN_USER_ID = '581a69bb-fe78-4da6-98cd-f36fdeff8f28';
-  const isSuperAdmin = user?.id === SUPER_ADMIN_USER_ID;
+  // Super-admins can manually add/subtract funds. Everyone else: subtract only.
+  const SUPER_ADMIN_USER_IDS = [
+    '581a69bb-fe78-4da6-98cd-f36fdeff8f28', // zyrofit.my@gmail.com
+    '82f9bd93-1e39-47ef-bdc0-f579262a122a', // admin@gmail.com
+  ];
+  const isSuperAdmin = !!user?.id && SUPER_ADMIN_USER_IDS.includes(user.id);
   const [removeSubUser, setRemoveSubUser] = useState<UserProfile | null>(null);
   const [pauseUser, setPauseUser] = useState<UserProfile | null>(null);
   const [cancelUser, setCancelUser] = useState<UserProfile | null>(null);
