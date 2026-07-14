@@ -402,13 +402,13 @@ const Index = () => {
               </p>
             </div>
             <div>
-              <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Quick Links</h4>
+              <h3 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Quick Links</h3>
               <div className="space-y-2.5">
                 <Link to="/auth" className="block text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
               </div>
             </div>
             <div>
-              <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Legal</h4>
+              <h3 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Legal</h3>
               <div className="space-y-2.5">
                 {[
                   { to: '/terms', icon: FileText, label: 'Terms of Service' },
@@ -424,7 +424,7 @@ const Index = () => {
               </div>
             </div>
             <div>
-              <h4 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Support</h4>
+              <h3 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Support</h3>
               <div className="space-y-2.5">
                 {[
                   { to: '/about', icon: HelpCircle, label: 'About Us' },
