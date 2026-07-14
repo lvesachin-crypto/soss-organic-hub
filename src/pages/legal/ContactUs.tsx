@@ -102,6 +102,42 @@ export default function ContactUs() {
           </div>
         </div>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            name: "Extips Panel LLC",
+            url: "https://extipspanel.com/",
+            email: "support@extipspanel.com",
+            telephone: "+1-367-828-8027",
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "8 The Green, Suite #14490",
+              addressLocality: "Dover",
+              addressRegion: "DE",
+              postalCode: "19901",
+              addressCountry: "US",
+            },
+            openingHoursSpecification: [
+              {
+                "@type": "OpeningHoursSpecification",
+                dayOfWeek: [
+                  "Monday",
+                  "Tuesday",
+                  "Wednesday",
+                  "Thursday",
+                  "Friday",
+                  "Saturday",
+                ],
+                opens: "09:00",
+                closes: "18:00",
+              },
+            ],
+          }),
+        }}
+      />
     </>
   );
 }
