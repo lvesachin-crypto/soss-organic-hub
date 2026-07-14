@@ -125,13 +125,13 @@ html {
 
   .gradient-text {
     @apply bg-clip-text text-transparent font-extrabold;
-    background-image: linear-gradient(135deg, hsl(160 84% 39%), hsl(150 70% 55%));
+    background-image: linear-gradient(135deg, hsl(217 91% 60%), hsl(210 100% 72%));
   }
 
   /* ════ BUTTONS ════ */
   .btn-3d {
     @apply relative overflow-hidden font-bold rounded-xl flex items-center justify-center transition-all duration-200;
-    background: linear-gradient(135deg, hsl(160 84% 39%), hsl(155 80% 32%));
+    background: linear-gradient(135deg, hsl(217 91% 60%), hsl(224 76% 48%));
     color: white;
     box-shadow: 0 4px 16px rgba(59,130,246, 0.28);
   }
