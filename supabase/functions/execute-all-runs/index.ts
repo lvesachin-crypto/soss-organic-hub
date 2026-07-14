@@ -1377,12 +1377,24 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         }
       }
 
-      // FALLBACK: Exclude every provider already attempted for this run
-      // (tracked in provider_response.tried_providers by check-order-status).
+      // FALLBACK: Exclude providers already attempted for this run only after a
+      // hard failure. Soft queue states (active-order / provider busy / temp
+      // error) must NOT permanently blacklist providers; otherwise a run can
+      // stay queued forever even after the earlier provider becomes free.
       const triedProviders: string[] = Array.isArray(run.provider_response?.tried_providers)
         ? run.provider_response.tried_providers : []
-      for (const tp of triedProviders) {
-        if (tp && !busyAccountIds.includes(tp)) busyAccountIds.push(tp)
+      const currentRunMessage = (run.error_message || '').toLowerCase()
+      const softQueuedRun =
+        isActiveOrderErrorMsg(currentRunMessage) ||
+        currentRunMessage.includes('[queued') ||
+        currentRunMessage.includes('[batch queued') ||
+        currentRunMessage.includes('all providers busy') ||
+        currentRunMessage.includes('temporary provider error')
+      const shouldExcludeTriedProviders = isRetry && !softQueuedRun
+      if (shouldExcludeTriedProviders) {
+        for (const tp of triedProviders) {
+          if (tp && !busyAccountIds.includes(tp)) busyAccountIds.push(tp)
+        }
       }
 
       // FALLBACK: Also exclude any provider_account_id that already failed/cancelled
