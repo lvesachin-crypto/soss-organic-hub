@@ -334,6 +334,7 @@ export default function Support() {
         </div>
 
         {/* Tickets List */}
+        <h2 className="sr-only">Your Support Tickets</h2>
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
