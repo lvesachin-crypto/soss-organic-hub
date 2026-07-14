@@ -563,7 +563,7 @@ export default function Orders() {
                                     isActive 
                                       ? 'bg-amber-500/10 border-2 border-amber-500/50 shadow-md shadow-amber-500/20' 
                                       : isCompleted
-                                        ? 'bg-emerald-500/10 border border-emerald-500/30'
+                                        ? 'bg-blue-500/10 border border-blue-500/30'
                                         : isFailed
                                           ? 'bg-green-500/10 border border-green-500/30'
                                           : 'bg-violet-500/5 border border-violet-500/20'
@@ -577,7 +577,7 @@ export default function Orders() {
                                         isActive 
                                           ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white animate-pulse' 
                                           : isCompleted
-                                            ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white'
+                                            ? 'bg-gradient-to-br from-blue-500 to-teal-500 text-white'
                                             : isFailed
                                               ? 'bg-gradient-to-br from-green-500 to-red-500 text-white'
                                               : 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
@@ -593,7 +593,7 @@ export default function Orders() {
                                             isActive 
                                               ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
                                               : isCompleted
-                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                                                 : isFailed
                                                   ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                                                   : 'bg-violet-500/20 text-violet-400 border border-violet-500/30'

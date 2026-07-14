@@ -18,7 +18,7 @@ import {
 const ENGAGEMENT_CONFIG: Record<string, { icon: typeof Eye; label: string; emoji: string; color: string; bg: string; border: string }> = {
   views: { icon: Eye, label: "Views", emoji: "👁️", color: "text-cyan-400", bg: "bg-cyan-500/20", border: "border-cyan-500/40" },
   likes: { icon: Heart, label: "Likes", emoji: "❤️", color: "text-green-400", bg: "bg-green-500/20", border: "border-green-500/40" },
-  comments: { icon: MessageCircle, label: "Comments", emoji: "💬", color: "text-emerald-400", bg: "bg-emerald-500/20", border: "border-emerald-500/40" },
+  comments: { icon: MessageCircle, label: "Comments", emoji: "💬", color: "text-blue-400", bg: "bg-blue-500/20", border: "border-blue-500/40" },
   saves: { icon: Bookmark, label: "Saves", emoji: "📥", color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/40" },
   shares: { icon: Share2, label: "Shares", emoji: "🔄", color: "text-violet-400", bg: "bg-violet-500/20", border: "border-violet-500/40" },
   reposts: { icon: Share2, label: "Reposts", emoji: "🔁", color: "text-indigo-400", bg: "bg-indigo-500/20", border: "border-indigo-500/40" },
@@ -191,7 +191,7 @@ export function PerTypeBreakdown({ types, allRuns = [], onTypeClick, itemStatuse
                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-destructive via-red-400 to-destructive rounded-t-xl" />
                 )}
                 {isCompleted && (
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 rounded-t-xl" />
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500 rounded-t-xl" />
                 )}
 
                 <div className="flex items-center justify-between mb-1">
@@ -210,7 +210,7 @@ export function PerTypeBreakdown({ types, allRuns = [], onTypeClick, itemStatuse
                     </span>
                   )}
                   {isCompleted && (
-                    <span className="flex items-center gap-1 text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20 uppercase tracking-wider">
+                    <span className="flex items-center gap-1 text-[10px] font-black text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-md border border-blue-500/20 uppercase tracking-wider">
                       ✓ Completed
                     </span>
                   )}
@@ -226,7 +226,7 @@ export function PerTypeBreakdown({ types, allRuns = [], onTypeClick, itemStatuse
                   <div className="flex items-center gap-1 mt-2.5 pt-2 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
                     {isPaused ? (
                       <button 
-                        className="flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1 rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-1 rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors"
                         onClick={() => onResumeType?.(itemInfo.id)}
                       >
                         <Play className="h-3 w-3" /> Resume

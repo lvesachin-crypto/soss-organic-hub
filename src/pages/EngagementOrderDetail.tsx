@@ -968,7 +968,7 @@ export default function EngagementOrderDetail() {
                         ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
                         : order.variance_percent <= 35
                           ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                          : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                   }>
                     {order.variance_percent <= 15 
                       ? "⚠ Very High" 
@@ -990,7 +990,7 @@ export default function EngagementOrderDetail() {
                           ? "h-full rounded-full transition-all duration-300 bg-amber-500" 
                           : order.variance_percent <= 35
                             ? "h-full rounded-full transition-all duration-300 bg-green-500"
-                            : "h-full rounded-full transition-all duration-300 bg-emerald-500"
+                            : "h-full rounded-full transition-all duration-300 bg-blue-500"
                     }
                     style={{ 
                       width: `${Math.min(100, ((order.variance_percent - 10) / 40) * 100)}%` 

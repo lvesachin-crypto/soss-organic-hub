@@ -786,12 +786,12 @@ function BundleCard({
       <CardContent className="p-4 space-y-4">
         {/* AI Organic Mode Toggle - MAIN FEATURE */}
         <div className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${aiOrganicEnabled
-          ? 'bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-teal-500/10 border-green-500/40'
+          ? 'bg-gradient-to-r from-green-500/10 via-blue-500/5 to-teal-500/10 border-green-500/40'
           : 'bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-yellow-500/10 border-orange-500/40'
           }`}>
           <div className="flex items-center gap-3">
             {aiOrganicEnabled ? (
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/25">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center shadow-lg shadow-green-500/25">
                 <Brain className="h-6 w-6 text-white" />
               </div>
             ) : (

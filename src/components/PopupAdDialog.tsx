@@ -494,7 +494,7 @@ export function PopupAdDialog() {
               </div>
               <span className="text-[10px] sm:text-[11px] font-medium text-slate-300 shrink-0">
                 {canSkip ? (
-                  <span className="text-emerald-400">Close now ✓</span>
+                  <span className="text-blue-400">Close now ✓</span>
                 ) : (
                   <span>
                     Skip in{" "}

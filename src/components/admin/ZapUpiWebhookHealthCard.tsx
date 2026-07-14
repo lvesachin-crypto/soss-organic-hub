@@ -90,7 +90,7 @@ export function ZapUpiWebhookHealthCard() {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               {healthy ? (
-                <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 gap-1">
+                <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Receiving webhooks
                 </Badge>
               ) : (
@@ -141,7 +141,7 @@ export function ZapUpiWebhookHealthCard() {
 
 function Stat({ label, value, tone }: { label: string; value: string | number; tone?: 'good' | 'bad' | 'warn' }) {
   const color =
-    tone === 'good' ? 'text-emerald-600' : tone === 'bad' ? 'text-red-600' : tone === 'warn' ? 'text-amber-600' : 'text-foreground';
+    tone === 'good' ? 'text-blue-600' : tone === 'bad' ? 'text-red-600' : tone === 'warn' ? 'text-amber-600' : 'text-foreground';
   return (
     <div className="rounded-lg border bg-background/50 p-2">
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>

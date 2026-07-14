@@ -34,7 +34,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       icons={{
         success: (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
             <Check className="h-3 w-3 text-white stroke-[3]" />
           </div>
         ),
