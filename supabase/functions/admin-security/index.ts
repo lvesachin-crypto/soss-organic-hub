@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       .select("role")
       .eq("user_id", user.id)
       .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Not admin" }), {
