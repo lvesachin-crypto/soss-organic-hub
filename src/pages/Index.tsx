@@ -56,7 +56,7 @@ const Index = () => {
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
             <div className="flex items-center gap-2 leading-none">
-              <span className="text-[15px] sm:text-[16px] font-extrabold tracking-tight" style={{ color: C.ink }}>ExtipsPanel</span>
+              <span className="text-[15px] sm:text-[16px] font-extrabold tracking-tight" style={{ color: C.ink }}>Extips Panel</span>
               <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-[3px] rounded-md"
                 style={{ background: C.peach, color: C.orangeDeep }}>v2.0</span>
             </div>
@@ -395,7 +395,7 @@ const Index = () => {
             <div className="col-span-2 sm:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
                 <img src={logo} alt="ExtipsPanel platform logo" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
-                <span className="text-[15px] font-bold" style={{ color: C.ink }}>ExtipsPanel</span>
+                <span className="text-[15px] font-bold" style={{ color: C.ink }}>Extips Panel</span>
               </div>
               <p className="text-[13px] leading-relaxed" style={{ color: C.muted }}>
                 Revolutionary organic social media growth platform with natural delivery patterns.
