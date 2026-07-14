@@ -1130,7 +1130,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const isDeprioritizedBusyRun = (run: any) => {
       const message = (run.error_message || '').toLowerCase()
       return message.includes('[postponed] all providers busy') ||
+        message.includes('[queued] all providers busy') ||
         message.includes('[batch postponed]') ||
+        message.includes('[batch queued]') ||
         message.includes('[waiting for merge]') ||
         message.includes('active order on link')
     }
