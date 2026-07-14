@@ -903,8 +903,9 @@ serve(async (req) => {
     {
       const token = authHeader.replace('Bearer ', '').trim()
       const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      const cronSecret = Deno.env.get('CRON_SECRET') ?? ''
       const payload = decodeJwtPayload(token)
-      const isServiceRoleToken = token === serviceKey || payload?.role === 'service_role'
+      const isServiceRoleToken = token === serviceKey || (cronSecret && token === cronSecret) || payload?.role === 'service_role'
       if (!isServiceRoleToken) {
         const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
         if (claimsErr || !claims?.claims?.sub) {
