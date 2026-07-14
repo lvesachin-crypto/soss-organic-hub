@@ -719,7 +719,6 @@ async function batchPostponeEngagementRunsForLink(
   supabase: SupabaseClient,
   normalizedLink: string,
   engagementType: string,
-  scheduledAt: string,
   reason: string,
 ) {
   if (!normalizedLink) return 0
@@ -751,7 +750,6 @@ async function batchPostponeEngagementRunsForLink(
   const { data: updatedRuns, error: updateError } = await supabase
     .from('organic_run_schedule')
     .update({
-      scheduled_at: scheduledAt,
       error_message: reason,
       last_status_check: new Date().toISOString(),
     })
@@ -1178,11 +1176,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       const runType = (run.engagement_order_item?.engagement_type || '').toLowerCase()
       const linkTypeKey = `${runLink}|${runType}`
       if (runLink && activeOrderLinkTypes.has(linkTypeKey)) {
-        const newScheduledAt = new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString()
         await supabase.from('organic_run_schedule').update({
           status: 'pending',
-          scheduled_at: newScheduledAt,
-          error_message: `[Postponed] Active order on link for ${runType}`,
+          error_message: `[Queued] Active order on link for ${runType}`,
           last_status_check: new Date().toISOString(),
         }).eq('id', run.id)
         skipped++
@@ -1537,18 +1533,16 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       
       if (accountsToTry.length === 0) {
         if (mappingCache.hasConfiguredMappingForService(item.service.id)) {
-          // POSTPONE: All providers busy — push scheduled_at forward so we don't waste cycles
-          const postponeMs = ACTIVE_ORDER_RETRY_MS
-          const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
+          // QUEUE: All mapped providers are busy for this link/type.
+          // Keep scheduled_at unchanged so admin/user sees the run as queued, not auto-rescheduled.
           await supabase.from('organic_run_schedule').update({
-            scheduled_at: newScheduledAt,
-            error_message: `[Postponed] All providers busy for this link`,
+            error_message: `[Queued] All providers busy for this link`,
             last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
           skipped++
-          console.log(`⏳ Run #${run.run_number} postponed ${postponeMs / 60000}min (all providers pre-filtered as busy)`)
+          console.log(`⏸️ Run #${run.run_number} queued (all providers pre-filtered as busy)`)
           results.push({ run_id: run.id, run_number: run.run_number, type: item.engagement_type,
-            success: false, skipped: true, reason: `All providers busy - postponed ${postponeMs / 60000}min` })
+            success: false, skipped: true, reason: `All providers busy - queued` })
         } else {
           // No mapping configured for this service — postpone (don't fail) so that
           // as soon as admin maps a provider in Service → Provider Mapping, the
@@ -2027,14 +2021,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const retryCount = (run.retry_count || 0) + 1
         const lastErr = (lastError || '').toLowerCase()
         const isActiveOrderError = isActiveOrderErrorMsg(lastErr)
-        
-        const postponeMs = isActiveOrderError ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
-        const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
-        
-        await supabase.from('organic_run_schedule').update({
+
+        const retryUpdate: any = {
           status: 'pending', started_at: null,
-          scheduled_at: newScheduledAt,
-          error_message: `[Auto-retry #${retryCount}] All ${accountsToTry.length} accounts busy: ${lastError}`,
+          error_message: isActiveOrderError
+            ? `[Queued #${retryCount}] All ${accountsToTry.length} accounts busy for this link: ${lastError}`
+            : `[Auto-retry #${retryCount}] Temporary provider error: ${lastError}`,
           provider_response: {
             ...(providerResult || {}),
             tried_providers: triedProviderIds,
@@ -2044,10 +2036,18 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           provider_order_id: null,
           provider_status: null,
           retry_count: retryCount, last_status_check: new Date().toISOString(),
-        }).eq('id', run.id)
+        }
+
+        let postponeMs = 0
+        if (!isActiveOrderError) {
+          postponeMs = TEMPORARY_RETRY_MS
+          retryUpdate.scheduled_at = new Date(Date.now() + postponeMs).toISOString()
+        }
+
+        await supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
         skipped++
 
-        // BATCH POSTPONE: If active order error, mark link+type and batch-postpone same-type runs for this link
+        // BATCH QUEUE: If active order error, mark link+type and queue same-type runs for this link
         if (isActiveOrderError && sameLink) {
           const linkTypeKey = `${sameLink}|${currentTypeNormalized}`
           activeOrderLinkTypes.add(linkTypeKey)
@@ -2055,10 +2055,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             supabase,
             sameLink,
             currentTypeNormalized,
-            newScheduledAt,
-            `[Batch postponed] Active order on link for ${currentTypeNormalized}`,
+            `[Batch queued] Active order on link for ${currentTypeNormalized}`,
           )
-          console.log(`⏳ Link+type batch-postponed ${postponeMs / 60000}min: ${batchCount} matching ${currentTypeNormalized} runs (active order)`)
+          console.log(`⏸️ Link+type batch-queued: ${batchCount} matching ${currentTypeNormalized} runs (active order)`)
         }
         results.push({ run_id: run.id, type: item.engagement_type, run_number: run.run_number, 
           success: false, error: lastError, will_retry: true, retry_attempt: retryCount, postponed_min: postponeMs / 60000 })
@@ -2160,10 +2159,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
       if (hasLegacyMapping) {
         if (mappedAccountsLegacy.length === 0) {
-          const postponeMs = ACTIVE_ORDER_RETRY_MS
           await supabase.from('organic_run_schedule').update({
-            scheduled_at: new Date(Date.now() + postponeMs).toISOString(),
-            error_message: '[Postponed] All mapped providers busy for this link',
+            error_message: '[Queued] All mapped providers busy for this link',
             last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
           skipped++
@@ -2277,12 +2274,14 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         if (isTemporaryError) {
           const cleanError = lastError?.replace('TEMP_ERROR: ', '') || ''
           const isActiveOrder = isActiveOrderErrorMsg(cleanError)
-          const postponeMs = isActiveOrder ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
-          await supabase.from('organic_run_schedule').update({
+          const retryUpdate: any = {
             status: 'pending', started_at: null,
-            scheduled_at: new Date(Date.now() + postponeMs).toISOString(),
-            error_message: `[Will retry] ${cleanError}`,
-          }).eq('id', run.id)
+            error_message: isActiveOrder ? `[Queued] ${cleanError}` : `[Will retry] ${cleanError}`,
+          }
+          if (!isActiveOrder) {
+            retryUpdate.scheduled_at = new Date(Date.now() + TEMPORARY_RETRY_MS).toISOString()
+          }
+          await supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
           skipped++
         } else {
           await supabase.from('organic_run_schedule').update({
