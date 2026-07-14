@@ -474,6 +474,7 @@ export default function Support() {
         </Dialog>
 
         {/* Help Section */}
+        <h2 className="sr-only">Quick Help</h2>
         <Card className="glass-card border-primary/20">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
