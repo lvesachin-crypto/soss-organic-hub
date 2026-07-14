@@ -30,8 +30,8 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full overflow-x-hidden" style={{ background: C.bg, color: C.ink, fontFamily: "'Inter', system-ui, sans-serif" }}>
       <PageMeta
-        title="OrganicSMM — Organic Social Media Growth Platform"
-        description="Revolutionary organic social media growth with natural delivery patterns. 100% safe for your accounts."
+        title="Extips Panel — Smart Social Growth, Delivered Human-Style"
+        description="Grow your Instagram, YouTube and TikTok with delivery flows that behave like real audiences — smooth, unpredictable and safe for every account."
         canonicalPath="/"
         breadcrumbs={[{ name: 'Home', path: '/' }]}
       />
@@ -52,11 +52,11 @@ const Index = () => {
             <div className="relative">
               <div className="absolute -inset-1 rounded-2xl opacity-60 blur-md transition-opacity group-hover:opacity-90"
                 style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)` }} />
-              <img src={logo} alt="OrganicSMM platform logo" width={36} height={36} fetchPriority="high" decoding="async" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
+              <img src={logo} alt="Extips Panel platform logo" width={36} height={36} fetchPriority="high" decoding="async" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
             <div className="flex items-center gap-2 leading-none">
-              <span className="text-[15px] sm:text-[16px] font-extrabold tracking-tight" style={{ color: C.ink }}>OrganicSMM</span>
+              <span className="text-[15px] sm:text-[16px] font-extrabold tracking-tight" style={{ color: C.ink }}>Extips Panel</span>
               <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-[3px] rounded-md"
                 style={{ background: C.peach, color: C.orangeDeep }}>v2.0</span>
             </div>
@@ -92,34 +92,34 @@ const Index = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: C.orange }} />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: C.orange }} />
               </span>
-              v2.0 — World's first AI-organic panel
+              v2.0 — The human-pattern growth engine
             </Pill>
           </div>
 
           <h1 className="text-[2.4rem] sm:text-5xl lg:text-[4.5rem] font-black leading-[1.04] tracking-[-0.035em] mb-5"
             style={{ color: C.ink, fontFamily: "'Outfit', 'Inter', system-ui, sans-serif" }}>
-            Organic growth,<br className="hidden sm:block" />
-            <span style={{ color: C.orangeDeep }}>made simple.</span>
+            Growth that feels<br className="hidden sm:block" />
+            <span style={{ color: C.orangeDeep }}>authentically human.</span>
           </h1>
 
           <p className="text-[15px] sm:text-[17.5px] leading-[1.65] mb-9 max-w-xl mx-auto" style={{ color: C.ink2 }}>
-            Natural delivery patterns that look, feel and behave like real people.
-            100% safe for your accounts — zero bans, ever.
+            Every follower, like and view arrives on a rhythm real audiences follow —
+            no spikes, no floods, no risk to your handles.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold text-white flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5"
               style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(16,185,129,.38)' }}>
-              <Sparkles className="w-4 h-4" /> Start growing free
+              <Sparkles className="w-4 h-4" /> Launch my account free
             </Link>
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold flex items-center justify-center gap-2 transition-colors"
               style={{ color: C.ink, background: C.card, border: `1px solid ${C.line}`, boxShadow: C.soft }}>
-              View services <ChevronRight className="w-4 h-4" />
+              Explore the catalog <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
           <div className="flex items-center justify-center gap-x-5 gap-y-2 flex-wrap text-[12px] sm:text-[13px] font-medium" style={{ color: C.muted }}>
-            {['No credit card', 'All features included', 'Setup in seconds'].map((t) => (
+            {['No card needed', 'Every tool unlocked', 'Ready in a minute'].map((t) => (
               <span key={t} className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> {t}</span>
             ))}
           </div>
@@ -129,11 +129,11 @@ const Index = () => {
             <div className="flex items-center gap-1.5">
               {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-current" style={{ color: '#FFB400' }} />)}
               <span className="text-[12.5px] font-semibold ml-1" style={{ color: C.ink }}>4.9/5</span>
-              <span className="text-[12px]" style={{ color: C.muted }}>· 2,400+ creators</span>
+              <span className="text-[12px]" style={{ color: C.muted }}>· 2,400+ creators onboard</span>
             </div>
             <span className="hidden sm:inline-block w-px h-5" style={{ background: C.line }} />
             <span className="text-[12.5px] font-medium" style={{ color: C.ink2 }}>
-              <strong style={{ color: C.ink }}>50,000+</strong> orders delivered
+              <strong style={{ color: C.ink }}>50,000+</strong> campaigns shipped
             </span>
           </div>
         </div>
@@ -143,21 +143,21 @@ const Index = () => {
       <section id="features" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
-            <Pill><Zap className="w-3 h-3" /> Features no other panel has</Pill>
+          <Pill><Zap className="w-3 h-3" /> Tools you won't find elsewhere</Pill>
             <h2 className="mt-4 text-[1.75rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight"
               style={{ color: C.ink, fontFamily: "'Outfit', system-ui" }}>
-              Engineered to look <span style={{ color: C.orange }}>perfectly natural</span>
+              Tuned to move <span style={{ color: C.orange }}>like real people do</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {[
-              { icon: TrendingUp, title: 'S-Curve Pattern', desc: 'Natural viral growth simulation' },
-              { icon: Shuffle, title: '±50% Variance', desc: 'Random qty each delivery' },
-              { icon: Clock, title: 'Peak Hour Boost', desc: '1.5x during 6–10 PM IST' },
-              { icon: Moon, title: 'Night Slowdown', desc: 'Realistic sleep patterns' },
-              { icon: Timer, title: '±5min Jitter', desc: 'Anti-detection timing' },
-              { icon: Eye, title: 'Live Preview', desc: 'See delivery before order' },
+              { icon: TrendingUp, title: 'S-Curve Rollout', desc: 'Momentum builds like a real trend' },
+              { icon: Shuffle, title: '±50% Variance', desc: 'Batch sizes shift every drop' },
+              { icon: Clock, title: 'Peak-Hour Push', desc: '1.5× lift during 6–10 PM IST' },
+              { icon: Moon, title: 'Overnight Ease-Off', desc: 'Mimics real sleep cycles' },
+              { icon: Timer, title: '±5min Jitter', desc: 'Timing no bot can fake' },
+              { icon: Eye, title: 'Live Preview', desc: 'Watch the plan before you pay' },
             ].map((f) => (
               <div key={f.title} className="group rounded-2xl p-4 sm:p-5 text-center transition-all hover:-translate-y-1"
                 style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: C.soft }}>
@@ -184,14 +184,14 @@ const Index = () => {
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#F4F4F0' }}>
                   <span className="text-[16px]" style={{ color: C.muted }}>×</span>
                 </div>
-                <span className="text-[15px] font-bold" style={{ color: C.ink }}>Regular SMM Panels</span>
+                <span className="text-[15px] font-bold" style={{ color: C.ink }}>Typical SMM Panels</span>
               </div>
               <div className="space-y-3">
                 {[
-                  'Same quantity every batch — easy to detect',
-                  'Fixed intervals — bot pattern visible',
-                  '24/7 delivery — unnatural behavior',
-                  'Accounts get flagged & banned',
+                  'Identical batches every run — dead giveaway',
+                  'Clockwork intervals — bots leave a fingerprint',
+                  'Non-stop dumping — nothing about it looks human',
+                  'Handles get shadow-flagged or wiped',
                 ].map((t) => (
                   <div key={t} className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#EF4444' }} />
@@ -203,19 +203,19 @@ const Index = () => {
             {/* Us */}
             <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #ECFDF5, #FFFFFF)' }}>
               <span className="absolute top-5 right-5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md"
-                style={{ background: C.orange, color: 'white' }}>This panel</span>
+                style={{ background: C.orange, color: 'white' }}>Our approach</span>
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D1FAE5' }}>
                   <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#10B981', width: 18, height: 18 }} />
                 </div>
-                <span className="text-[15px] font-bold" style={{ color: C.ink }}>OrganicSMM</span>
+                <span className="text-[15px] font-bold" style={{ color: C.ink }}>Extips Panel</span>
               </div>
               <div className="space-y-3">
                 {[
-                  'Random variance — looks like real users',
-                  'Jittered timing — undetectable patterns',
-                  'Peak hours + night slow — human behavior',
-                  '100% safe, zero bans reported',
+                  'Every drop is a fresh shape — reads like real fans',
+                  'Micro-jittered timing — no repeating cadence',
+                  'Prime-time lift, quiet nights — matches user habits',
+                  'Zero bans logged across 50k+ deliveries',
                 ].map((t) => (
                   <div key={t} className="flex items-start gap-2.5">
                     <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#10B981' }} />
@@ -228,9 +228,9 @@ const Index = () => {
           <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap py-5 px-6"
             style={{ borderTop: `1px solid ${C.line}`, background: '#FAFAF7' }}>
             {[
-              { icon: '🏆', text: '50,000+ Orders Delivered' },
-              { icon: '🛡️', text: 'Zero Account Bans' },
-              { icon: '⚡', text: '99.9% Success Rate' },
+              { icon: '🏆', text: '50,000+ Campaigns Shipped' },
+              { icon: '🛡️', text: 'Zero Handles Banned' },
+              { icon: '⚡', text: '99.9% Delivery Uptime' },
             ].map((s) => (
               <span key={s.text} className="flex items-center gap-2 text-[12.5px] font-semibold" style={{ color: C.ink2 }}>
                 <span>{s.icon}</span> {s.text}
@@ -247,10 +247,10 @@ const Index = () => {
             <Pill><Sparkles className="w-3 h-3" /> How it works</Pill>
             <h2 className="mt-4 text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight"
               style={{ color: C.ink, fontFamily: "'Outfit', system-ui" }}>
-              One link. <span style={{ color: C.orange }}>Full engagement.</span><br className="hidden sm:block" /> Delivered organically.
+              Drop one link. <span style={{ color: C.orange }}>Everything else</span><br className="hidden sm:block" /> runs on its own.
             </h2>
             <p className="mt-4 text-[14px] sm:text-[16px] leading-[1.65] max-w-2xl mx-auto" style={{ color: C.ink2 }}>
-              Paste your post link once. Views, likes, comments, saves and shares are all delivered automatically — in patterns that look exactly like real users.
+              One URL is all it takes. Views, likes, comments, saves and shares roll out automatically — pacing themselves like the fans you actually want.
             </p>
           </div>
 
@@ -285,7 +285,7 @@ const Index = () => {
               ))}
             </div>
             <p className="mt-4 text-center text-[11.5px] sm:text-[12.5px]" style={{ color: C.muted }}>
-              Everything in one single order — pick and choose what you need.
+              Bundle whatever you like into a single order — mix, match, done.
             </p>
           </div>
 
@@ -295,26 +295,26 @@ const Index = () => {
               {
                 step: '01',
                 icon: Link2,
-                title: 'Paste your link',
-                desc: 'Drop in any Instagram, YouTube or TikTok post link. That is the only input we need.',
+                title: 'Drop the URL',
+                desc: 'Paste any Instagram, YouTube or TikTok link — that single input is all we need to plan the rest.',
               },
               {
                 step: '02',
                 icon: Sparkles,
-                title: 'Pick engagement',
-                desc: 'Toggle Views, Likes, Comments, Saves and Shares — set the quantity you want for each.',
+                title: 'Choose the mix',
+                desc: 'Flip on Views, Likes, Comments, Saves or Shares and dial in the numbers that fit your goal.',
               },
               {
                 step: '03',
                 icon: Brain,
-                title: 'AI plans delivery',
-                desc: 'S-curve schedule, ±50% quantity variance, peak-hour boost and night slowdown — all auto-calculated.',
+                title: 'Smart engine plans it',
+                desc: 'S-curve pacing, ±50% batch variance, peak-hour lifts and calm nights — every step laid out for you.',
               },
               {
                 step: '04',
                 icon: TrendingUp,
-                title: 'Grow naturally',
-                desc: 'Engagement trickles in over hours instead of dumping at once. Live progress visible. Zero ban risk.',
+                title: 'Watch it unfold',
+                desc: 'Everything rolls in gradually, tracked live on your dashboard, with your handles staying totally safe.',
               },
             ].map((s) => (
               <div key={s.step} className="relative rounded-2xl p-5 sm:p-6"
@@ -337,15 +337,15 @@ const Index = () => {
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-4 h-4" style={{ color: C.orangeDeep }} />
               <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>
-                What "organic" actually means here
+                What we mean by "human-style" delivery
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {[
-                'Every batch ships a randomised quantity (±50%) — the same number is never repeated.',
-                'Peak hours (6–10 PM IST) run at 1.5× speed, night hours slow down — mirroring real user behaviour.',
-                '±5 min timing jitter on every run — impossible to detect any bot pattern.',
-                'Multi-provider rotation keeps quality consistent with no single point of failure.',
+                'Batch sizes are shuffled by up to ±50%, so no two drops ever look the same.',
+                'Prime hours (6–10 PM IST) push 1.5× harder, night hours ease down — matching real audience rhythm.',
+                'A ±5 min jitter sits on every run, erasing any repeating cadence a platform could flag.',
+                'Traffic is rotated across multiple providers, so quality holds even if one source dips.',
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#10B981' }} />
@@ -370,18 +370,18 @@ const Index = () => {
           <div className="relative">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest mb-5"
               style={{ background: 'rgba(255,255,255,.1)', color: '#6EE7B7', border: '1px solid rgba(134,239,172,.2)' }}>
-              <Sparkles className="w-3 h-3" /> Free to start
+              <Sparkles className="w-3 h-3" /> Free onboarding
             </span>
             <h2 className="text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight mb-4 text-white"
               style={{ fontFamily: "'Outfit', system-ui" }}>
-              Ready to grow <span style={{ color: '#6EE7B7' }}>organically</span>?
+              Time to grow the <span style={{ color: '#6EE7B7' }}>human way</span>?
             </h2>
             <p className="text-[14.5px] sm:text-[16px] mb-8 max-w-md mx-auto" style={{ color: 'rgba(255,255,255,.7)' }}>
-              Join thousands of creators using our organic delivery system. No credit card required.
+              Thousands of creators are already scaling with human-pattern delivery — jump in without touching your wallet.
             </p>
             <Link to="/auth" className="inline-flex h-12 sm:h-13 px-8 rounded-xl text-[14.5px] font-bold items-center gap-2 transition-transform hover:-translate-y-0.5"
               style={{ background: 'white', color: C.ink, boxShadow: '0 10px 30px rgba(0,0,0,.25)' }}>
-              Create free account <ArrowRight className="w-4 h-4" />
+              Open my free account <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
@@ -394,8 +394,8 @@ const Index = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 sm:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <img src={logo} alt="OrganicSMM platform logo" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
-                <span className="text-[15px] font-bold" style={{ color: C.ink }}>OrganicSMM</span>
+                <img src={logo} alt="Extips Panel platform logo" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
+                <span className="text-[15px] font-bold" style={{ color: C.ink }}>Extips Panel</span>
               </div>
               <p className="text-[13px] leading-relaxed" style={{ color: C.muted }}>
                 Revolutionary organic social media growth platform with natural delivery patterns.
@@ -436,10 +436,10 @@ const Index = () => {
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
-                <a href="mailto:support@organicsmm.online" className="block text-[12px] mt-2" style={{ color: C.muted }}>support@organicsmm.online</a>
+                <a href="mailto:support@extipspanel.com" className="block text-[12px] mt-2" style={{ color: C.muted }}>support@extipspanel.com</a>
                 <a href="tel:+13678288027" className="block text-[12px]" style={{ color: C.muted }}>+1 (367) 828-8027</a>
                 <p className="text-[12px] leading-relaxed mt-2" style={{ color: C.muted }}>
-                  OrganicSMM LLC<br />
+                  Extips Panel LLC<br />
                   8 The Green, Suite #14490<br />
                   Dover, DE 19901<br />
                   United States
@@ -449,7 +449,7 @@ const Index = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6" style={{ borderTop: `1px solid ${C.line}` }}>
-            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} OrganicSMM LLC — Dover, Delaware, USA. All rights reserved.</p>
+            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} Extips Panel LLC — Dover, Delaware, USA. All rights reserved.</p>
             <div className="flex items-center gap-5 text-[12px] font-medium" style={{ color: C.muted }}>
               <span className="flex items-center gap-1"><Shield className="w-3 h-3" style={{ color: '#10b981' }} /> SSL Secured</span>
               <span className="flex items-center gap-1"><Zap className="w-3 h-3" style={{ color: C.orange }} /> 99.9% Uptime</span>
