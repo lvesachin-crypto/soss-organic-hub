@@ -55,7 +55,8 @@ serve(async (req) => {
     }
     const token = authHeader.replace('Bearer ', '').trim()
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    if (token !== serviceKey) {
+    const cronSecret = Deno.env.get('CRON_SECRET') ?? ''
+    if (token !== serviceKey && !(cronSecret && token === cronSecret)) {
       const { data: claims, error: claimsErr } = await supabase.auth.getClaims(token)
       if (claimsErr || !claims?.claims?.sub) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
