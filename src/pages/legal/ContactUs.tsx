@@ -31,7 +31,7 @@ export default function ContactUs() {
                 <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
                   <Mail className="h-5 w-5 text-orange-500" />
                 </div>
-                <h3 className="font-semibold">Email Support</h3>
+                <h2 className="font-semibold text-base">Email Support</h2>
               </div>
               <a href="mailto:support@extipspanel.com" className="text-sm text-orange-500 hover:underline break-all">
                 support@extipspanel.com
@@ -44,7 +44,7 @@ export default function ContactUs() {
                 <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
                   <MessageCircle className="h-5 w-5 text-green-500" />
                 </div>
-                <h3 className="font-semibold">WhatsApp</h3>
+                <h2 className="font-semibold text-base">WhatsApp</h2>
               </div>
               <a href="https://wa.me/13678288027" target="_blank" rel="noreferrer" className="text-sm text-green-500 hover:underline">
                 +1 (367) 828-8027
@@ -57,7 +57,7 @@ export default function ContactUs() {
                 <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
                   <Phone className="h-5 w-5 text-blue-500" />
                 </div>
-                <h3 className="font-semibold">Phone</h3>
+                <h2 className="font-semibold text-base">Phone</h2>
               </div>
               <a href="tel:+13678288027" className="text-sm text-blue-500 hover:underline">
                 +1 (367) 828-8027
@@ -70,7 +70,7 @@ export default function ContactUs() {
                 <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-purple-500" />
                 </div>
-                <h3 className="font-semibold">Working Hours</h3>
+                <h2 className="font-semibold text-base">Working Hours</h2>
               </div>
               <p className="text-sm">Monday – Saturday</p>
               <p className="text-sm">9:00 AM – 6:00 PM EST</p>
@@ -84,7 +84,7 @@ export default function ContactUs() {
                 <MapPin className="h-5 w-5 text-orange-500" />
               </div>
               <div>
-                <h3 className="font-semibold mb-2">Registered Business Address</h3>
+                <h2 className="font-semibold mb-2 text-base">Registered Business Address</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Extips Panel LLC<br />
                   8 The Green, Suite #14490,<br />
