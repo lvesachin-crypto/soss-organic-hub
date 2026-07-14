@@ -52,7 +52,7 @@ const Index = () => {
             <div className="relative">
               <div className="absolute -inset-1 rounded-2xl opacity-60 blur-md transition-opacity group-hover:opacity-90"
                 style={{ background: `linear-gradient(135deg, ${C.orange}, #6EE7B7)` }} />
-              <img src={logo} alt="ExtipsPanel platform logo" width={36} height={36} fetchPriority="high" decoding="async" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
+              <img src={logo} alt="Extips Panel platform logo" width={36} height={36} fetchPriority="high" decoding="async" className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover bg-white"
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
             <div className="flex items-center gap-2 leading-none">
@@ -394,7 +394,7 @@ const Index = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 sm:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <img src={logo} alt="ExtipsPanel platform logo" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
+                <img src={logo} alt="Extips Panel platform logo" className="w-9 h-9 rounded-xl object-cover" style={{ border: `1px solid ${C.line}` }} />
                 <span className="text-[15px] font-bold" style={{ color: C.ink }}>Extips Panel</span>
               </div>
               <p className="text-[13px] leading-relaxed" style={{ color: C.muted }}>
@@ -439,7 +439,7 @@ const Index = () => {
                 <a href="mailto:support@extipspanel.com" className="block text-[12px] mt-2" style={{ color: C.muted }}>support@extipspanel.com</a>
                 <a href="tel:+13678288027" className="block text-[12px]" style={{ color: C.muted }}>+1 (367) 828-8027</a>
                 <p className="text-[12px] leading-relaxed mt-2" style={{ color: C.muted }}>
-                  ExtipsPanel LLC<br />
+                  Extips Panel LLC<br />
                   8 The Green, Suite #14490<br />
                   Dover, DE 19901<br />
                   United States
@@ -449,7 +449,7 @@ const Index = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6" style={{ borderTop: `1px solid ${C.line}` }}>
-            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} ExtipsPanel LLC — Dover, Delaware, USA. All rights reserved.</p>
+            <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} Extips Panel LLC — Dover, Delaware, USA. All rights reserved.</p>
             <div className="flex items-center gap-5 text-[12px] font-medium" style={{ color: C.muted }}>
               <span className="flex items-center gap-1"><Shield className="w-3 h-3" style={{ color: '#10b981' }} /> SSL Secured</span>
               <span className="flex items-center gap-1"><Zap className="w-3 h-3" style={{ color: C.orange }} /> 99.9% Uptime</span>

@@ -19,8 +19,8 @@ interface PageMetaProps {
   faqItems?: FaqItem[];
 }
 
-const DEFAULT_DESCRIPTION = "ExtipsPanel — World's first AI-extips panel panel. Real Instagram, YouTube & TikTok engagement with natural delivery. 50,000+ orders, zero bans, 100% safe.";
-const SITE_NAME = 'ExtipsPanel';
+const DEFAULT_DESCRIPTION = "Extips Panel — World's first AI-extips panel panel. Real Instagram, YouTube & TikTok engagement with natural delivery. 50,000+ orders, zero bans, 100% safe.";
+const SITE_NAME = 'Extips Panel';
 const BASE_URL = 'https://extipspanel.com';
 const BREADCRUMB_SCRIPT_ID = 'breadcrumb-jsonld';
 const FAQ_SCRIPT_ID = 'faq-page-jsonld';

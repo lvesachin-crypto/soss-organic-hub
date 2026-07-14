@@ -1,4 +1,4 @@
-# ExtipsPanel — robots.txt
+# Extips Panel — robots.txt
 # Site:    https://extipspanel.com
 # Updated: 2026-05-05
 
