@@ -7,9 +7,12 @@ const corsHeaders = {
 };
 
 const INR_RATE = 90;
-// Only THIS admin user can manually add funds. Everyone else (admin or not) is blocked.
+// Only these super-admin users can manually add funds. Everyone else (admin or not) is blocked.
 // Funds otherwise come exclusively from successful ZapUPI payments.
-const SUPER_ADMIN_USER_ID = "581a69bb-fe78-4da6-98cd-f36fdeff8f28"; // zyrofit.my@gmail.com
+const SUPER_ADMIN_USER_IDS = new Set<string>([
+  "581a69bb-fe78-4da6-98cd-f36fdeff8f28", // zyrofit.my@gmail.com
+  "82f9bd93-1e39-47ef-bdc0-f579262a122a", // admin@gmail.com
+]);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -48,11 +51,11 @@ Deno.serve(async (req) => {
       }, 403);
     }
 
-    // 🔒 Manual `add` and `subtract` are allowed ONLY for the super-admin (zyrofit.my).
+    // 🔒 Manual `add` and `subtract` are allowed ONLY for super-admins.
     // All other admins are blocked from any wallet balance mutation.
-    if ((action === "add" || action === "subtract") && user.id !== SUPER_ADMIN_USER_ID) {
+    if ((action === "add" || action === "subtract") && !SUPER_ADMIN_USER_IDS.has(user.id)) {
       return json({
-        error: "Only the super-admin (zyrofit.my) can add or subtract funds. All other credits must come via ZapUPI.",
+        error: "Only a super-admin can add or subtract funds. All other credits must come via ZapUPI.",
       }, 403);
     }
 
