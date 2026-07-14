@@ -106,7 +106,7 @@ export default function Auth() {
             <img src={logo} alt="Extips Panel platform logo" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <div className="flex flex-col">
               <span className="text-[16px] font-bold tracking-tight" style={{ color: '#1a1a2e' }}>Extips Panel</span>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ background: 'linear-gradient(90deg, #16a34a, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>✦ Updated Version</span>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ background: 'linear-gradient(90deg, #2563eb, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>✦ Updated Version</span>
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export default function Auth() {
           {showVerifyEmail ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ background: '#f0fdf4' }}>
-                <Mail className="w-7 h-7" style={{ color: '#22c55e' }} />
+                <Mail className="w-7 h-7" style={{ color: '#3b82f6' }} />
               </div>
               <h3 className="text-xl font-bold mb-2" style={{ color: '#1a1a2e' }}>Check your inbox</h3>
               <p className="text-[13px] mb-2" style={{ color: '#888' }}>Verification link sent to:</p>
@@ -142,7 +142,7 @@ export default function Auth() {
                     <Input type="email" placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} />
                   </div>
                   {error && <p className="text-[13px] font-medium" style={{ color: '#ef4444' }}>{error}</p>}
-                  {successMessage && <p className="text-[13px] font-medium" style={{ color: '#22c55e' }}>{successMessage}</p>}
+                  {successMessage && <p className="text-[13px] font-medium" style={{ color: '#3b82f6' }}>{successMessage}</p>}
                   <button type="submit" disabled={isSubmitting} className="w-full h-11 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2" style={{ background: '#1a1a2e' }}>
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Send reset link <ArrowRight className="w-3.5 h-3.5" /></>}
                   </button>
@@ -180,7 +180,7 @@ export default function Auth() {
                   </div>
 
                   {error && <p className="text-[13px] font-medium" style={{ color: '#ef4444' }}>{error}</p>}
-                  {successMessage && <p className="text-[13px] font-medium" style={{ color: '#22c55e' }}>{successMessage}</p>}
+                  {successMessage && <p className="text-[13px] font-medium" style={{ color: '#3b82f6' }}>{successMessage}</p>}
 
                   <button type="submit" disabled={isSubmitting} className="w-full h-11 rounded-xl text-[13px] font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-70" style={{ background: '#1a1a2e' }}>
                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isLogin ? 'Sign in' : 'Create account'} <ArrowRight className="w-3.5 h-3.5" /></>}

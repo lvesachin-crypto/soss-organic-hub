@@ -648,7 +648,7 @@ export function EngagementTypeCard({
                       "font-mono text-sm font-bold px-2 py-0.5 rounded-lg",
                       variancePercent <= 15 ? "text-red-400 bg-red-500/20"
                         : variancePercent <= 25 ? "text-amber-400 bg-amber-500/20"
-                          : variancePercent <= 35 ? "text-emerald-400 bg-emerald-500/20"
+                          : variancePercent <= 35 ? "text-blue-400 bg-blue-500/20"
                             : "text-green-400 bg-green-400/20"
                     )}>±{variancePercent}%</span>
                   </Label>
@@ -671,7 +671,7 @@ export function EngagementTypeCard({
                           : variancePercent <= 25
                             ? "from-amber-600 to-amber-500"
                             : variancePercent <= 35
-                              ? "from-emerald-600 to-emerald-500"
+                              ? "from-blue-600 to-blue-500"
                               : "from-green-500 to-green-400"
                       )}
                       thumbClassName={cn(
@@ -681,7 +681,7 @@ export function EngagementTypeCard({
                           : variancePercent <= 25
                             ? "border-amber-500 shadow-amber-500/30"
                             : variancePercent <= 35
-                              ? "border-emerald-500 shadow-emerald-500/30"
+                              ? "border-blue-500 shadow-blue-500/30"
                               : "border-green-400 shadow-green-400/30"
                       )}
                     />
@@ -702,7 +702,7 @@ export function EngagementTypeCard({
                       : variancePercent <= 25
                         ? "border-amber-500/60 bg-amber-500/10"
                         : variancePercent <= 35
-                          ? "border-emerald-500/60 bg-emerald-500/10"
+                          ? "border-blue-500/60 bg-blue-500/10"
                           : "border-green-400/60 bg-green-400/10"
                   )}>
                     <div className="flex items-center justify-between gap-2">
@@ -714,7 +714,7 @@ export function EngagementTypeCard({
                           : variancePercent <= 25
                             ? "bg-amber-500 text-black border-amber-400"
                             : variancePercent <= 35
-                              ? "bg-emerald-500 text-white border-emerald-400"
+                              ? "bg-blue-500 text-white border-blue-400"
                               : "bg-green-400 text-black border-green-300"
                       )}>
                         {variancePercent <= 15
@@ -737,7 +737,7 @@ export function EngagementTypeCard({
                             : variancePercent <= 25
                               ? "bg-amber-500"
                               : variancePercent <= 35
-                                ? "bg-emerald-500"
+                                ? "bg-blue-500"
                                 : "bg-green-400"
                         )}
                         style={{ width: `${Math.min(100, ((variancePercent - 10) / 40) * 100)}%` }}
@@ -752,7 +752,7 @@ export function EngagementTypeCard({
                         : variancePercent <= 25
                           ? "text-amber-400"
                           : variancePercent <= 35
-                            ? "text-emerald-400"
+                            ? "text-blue-400"
                             : "text-green-400"
                     )}>
                       {variancePercent <= 15

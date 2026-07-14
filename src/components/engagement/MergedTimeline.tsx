@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const ENGAGEMENT_CONFIG: Record<string, { icon: typeof Eye; label: string; emoji: string; color: string; bg: string; border: string }> = {
   views: { icon: Eye, label: "views", emoji: "👁️", color: "text-cyan-400", bg: "bg-cyan-500/20", border: "border-cyan-500/40" },
   likes: { icon: Heart, label: "likes", emoji: "❤️", color: "text-green-400", bg: "bg-green-500/20", border: "border-green-500/40" },
-  comments: { icon: MessageCircle, label: "comments", emoji: "💬", color: "text-emerald-400", bg: "bg-emerald-500/20", border: "border-emerald-500/40" },
+  comments: { icon: MessageCircle, label: "comments", emoji: "💬", color: "text-blue-400", bg: "bg-blue-500/20", border: "border-blue-500/40" },
   saves: { icon: Bookmark, label: "saves", emoji: "📥", color: "text-amber-400", bg: "bg-amber-500/20", border: "border-amber-500/40" },
   shares: { icon: Share2, label: "shares", emoji: "🔄", color: "text-violet-400", bg: "bg-violet-500/20", border: "border-violet-500/40" },
   reposts: { icon: Share2, label: "reposts", emoji: "🔁", color: "text-indigo-400", bg: "bg-indigo-500/20", border: "border-indigo-500/40" },
@@ -316,7 +316,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                 className={`rounded-xl border transition-all ${isActive
                   ? 'bg-blue-500/10 border-2 border-blue-500/40 shadow-lg shadow-blue-500/10'
                   : isCompleted
-                    ? 'bg-emerald-500/10 border border-emerald-500/30'
+                    ? 'bg-blue-500/10 border border-blue-500/30'
                     : isFailed
                       ? 'bg-green-500/10 border border-green-500/30'
                       : 'bg-violet-500/5 border border-violet-500/20 hover:bg-violet-500/10 cursor-pointer'
@@ -326,7 +326,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                 {/* Main Row */}
                 <div className="p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                   {/* Run Number Circle - Colorful Gradient */}
-                  <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full font-bold text-sm sm:text-base shrink-0 ${isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
+                  <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full font-bold text-sm sm:text-base shrink-0 ${isCompleted ? 'bg-gradient-to-br from-blue-500 to-teal-500 text-white' :
                     isActive ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white animate-pulse' :
                         isFailed ? 'bg-gradient-to-br from-green-500 to-red-500 text-white' :
                           'bg-gradient-to-br from-amber-400 to-yellow-500 text-white'
@@ -338,7 +338,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
                       {/* Status Badge - Colorful */}
-                      <Badge className={`text-sm px-3 py-1 ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                      <Badge className={`text-sm px-3 py-1 ${isCompleted ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
                         isActive ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
                           isFailed ? 'bg-green-500/20 text-green-400 border border-green-500/40' :
                             isUpcoming ? 'bg-amber-400/20 text-amber-500 border border-amber-400/40' :
@@ -449,7 +449,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                     {/* Hide for auto-completed (target-met) cancellations — no provider order, badge already says Completed */}
                     {!isAutoCompletedCancel && (run.error_message || run.provider_status || run.provider_order_id) && (
                       <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${run.provider_status === 'Completed' || run.provider_status === 'Partial' || (hasProviderOrder && run.provider_remains === 0)
-                        ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                        ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
                         : run.provider_status === 'In progress' || run.provider_status === 'Processing' || (providerStatus === 'pending' && hasProviderOrder)
                           ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
                           : providerStatus === 'pending'

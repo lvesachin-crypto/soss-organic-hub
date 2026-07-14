@@ -12,16 +12,16 @@ const C = {
   muted: '#6B6B78',
   line: 'rgba(11,11,18,.07)',
   card: '#FFFFFF',
-  orange: '#10B981',
-  orangeDeep: '#059669',
-  peach: '#ECFDF5',
+  orange: '#3B82F6',
+  orangeDeep: '#2563eb',
+  peach: '#EFF6FF',
   soft: '0 1px 2px rgba(11,11,18,.04), 0 8px 24px rgba(11,11,18,.05)',
-  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(16,185,129,.12)',
+  softLg: '0 2px 4px rgba(11,11,18,.04), 0 24px 60px rgba(59,130,246,.12)',
 };
 
 const Pill: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] sm:text-[12px] font-semibold"
-    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(16,185,129,.20)` }}>
+    style={{ background: C.peach, color: C.orangeDeep, border: `1px solid rgba(59,130,246,.20)` }}>
     {children}
   </span>
 );
@@ -39,9 +39,9 @@ const Index = () => {
       {/* Subtle background glow */}
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1100px] h-[600px] rounded-full"
-          style={{ background: 'radial-gradient(closest-side, rgba(16,185,129,.20), transparent 70%)', filter: 'blur(20px)' }} />
+          style={{ background: 'radial-gradient(closest-side, rgba(59,130,246,.20), transparent 70%)', filter: 'blur(20px)' }} />
         <div className="absolute top-[40%] -right-40 w-[500px] h-[500px] rounded-full"
-          style={{ background: 'radial-gradient(closest-side, rgba(110,231,183,.25), transparent 70%)', filter: 'blur(20px)' }} />
+          style={{ background: 'radial-gradient(closest-side, rgba(147,197,253,.25), transparent 70%)', filter: 'blur(20px)' }} />
       </div>
 
       {/* ═══ NAV ═══ */}
@@ -109,7 +109,7 @@ const Index = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold text-white flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5"
-              style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(16,185,129,.38)' }}>
+              style={{ background: `linear-gradient(135deg, ${C.orange}, ${C.orangeDeep})`, boxShadow: '0 10px 30px rgba(59,130,246,.38)' }}>
               <Sparkles className="w-4 h-4" /> Launch my account free
             </Link>
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold flex items-center justify-center gap-2 transition-colors"
@@ -120,7 +120,7 @@ const Index = () => {
 
           <div className="flex items-center justify-center gap-x-5 gap-y-2 flex-wrap text-[12px] sm:text-[13px] font-medium" style={{ color: C.muted }}>
             {['No card needed', 'Every tool unlocked', 'Ready in a minute'].map((t) => (
-              <span key={t} className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#10b981' }} /> {t}</span>
+              <span key={t} className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#3b82f6' }} /> {t}</span>
             ))}
           </div>
 
@@ -201,12 +201,12 @@ const Index = () => {
               </div>
             </div>
             {/* Us */}
-            <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #ECFDF5, #FFFFFF)' }}>
+            <div className="p-6 sm:p-9 relative" style={{ background: 'linear-gradient(180deg, #EFF6FF, #FFFFFF)' }}>
               <span className="absolute top-5 right-5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md"
                 style={{ background: C.orange, color: 'white' }}>Our approach</span>
               <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#D1FAE5' }}>
-                  <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#10B981', width: 18, height: 18 }} />
+                  <CheckCircle2 className="w-4.5 h-4.5" style={{ color: '#3B82F6', width: 18, height: 18 }} />
                 </div>
                 <span className="text-[15px] font-bold" style={{ color: C.ink }}>Extips Panel</span>
               </div>
@@ -218,7 +218,7 @@ const Index = () => {
                   'Zero bans logged across 50k+ deliveries',
                 ].map((t) => (
                   <div key={t} className="flex items-start gap-2.5">
-                    <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#10B981' }} />
+                    <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0" style={{ background: '#3B82F6' }} />
                     <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
                   </div>
                 ))}
@@ -272,7 +272,7 @@ const Index = () => {
                 { icon: Heart, label: 'Likes', color: '#EF4444' },
                 { icon: MessageCircle, label: 'Comments', color: '#8B5CF6' },
                 { icon: Bookmark, label: 'Saves', color: '#F59E0B' },
-                { icon: Share2, label: 'Shares', color: '#10B981' },
+                { icon: Share2, label: 'Shares', color: '#3B82F6' },
               ].map((e) => (
                 <div key={e.label} className="flex flex-col items-center gap-1.5 p-2.5 sm:p-3 rounded-xl"
                   style={{ background: '#FAFAF7', border: `1px solid ${C.line}` }}>
@@ -333,7 +333,7 @@ const Index = () => {
 
           {/* What "organic" actually means */}
           <div className="mt-10 sm:mt-14 rounded-2xl p-5 sm:p-7"
-            style={{ background: 'linear-gradient(135deg, #ECFDF5, #FFFFFF)', border: `1px solid rgba(16,185,129,.20)` }}>
+            style={{ background: 'linear-gradient(135deg, #EFF6FF, #FFFFFF)', border: `1px solid rgba(59,130,246,.20)` }}>
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-4 h-4" style={{ color: C.orangeDeep }} />
               <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>
@@ -348,7 +348,7 @@ const Index = () => {
                 'Traffic is rotated across multiple providers, so quality holds even if one source dips.',
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#10B981' }} />
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#3B82F6' }} />
                   <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
                 </div>
               ))}
@@ -363,9 +363,9 @@ const Index = () => {
           style={{ background: `linear-gradient(135deg, ${C.ink} 0%, #1A1A28 100%)`, boxShadow: C.softLg }}>
           {/* glow */}
           <div aria-hidden className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full"
-            style={{ background: `radial-gradient(closest-side, rgba(16,185,129,.42), transparent 70%)`, filter: 'blur(20px)' }} />
+            style={{ background: `radial-gradient(closest-side, rgba(59,130,246,.42), transparent 70%)`, filter: 'blur(20px)' }} />
           <div aria-hidden className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rounded-full"
-            style={{ background: `radial-gradient(closest-side, rgba(110,231,183,.32), transparent 70%)`, filter: 'blur(20px)' }} />
+            style={{ background: `radial-gradient(closest-side, rgba(147,197,253,.32), transparent 70%)`, filter: 'blur(20px)' }} />
 
           <div className="relative">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest mb-5"
@@ -404,7 +404,7 @@ const Index = () => {
             <div>
               <h3 className="text-[12px] font-bold uppercase tracking-wider mb-4" style={{ color: C.ink }}>Quick Links</h3>
               <div className="space-y-2.5">
-                <Link to="/auth" className="block text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
+                <Link to="/auth" className="block text-[13px] hover:text-blue-600 transition-colors" style={{ color: C.ink2 }}>Get Started</Link>
               </div>
             </div>
             <div>
@@ -417,7 +417,7 @@ const Index = () => {
                   { to: '/shipping', icon: FileText, label: 'Shipping & Delivery' },
                   { to: '/cookies', icon: FileText, label: 'Cookie Policy' },
                 ].map((l) => (
-                  <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>
+                  <Link key={l.to} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-blue-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
@@ -432,7 +432,7 @@ const Index = () => {
                   { to: '/support', icon: HelpCircle, label: 'Help Center' },
                   { to: '/api-access', icon: Code2, label: 'API Documentation' },
                 ].map((l) => (
-                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-emerald-600 transition-colors" style={{ color: C.ink2 }}>
+                  <Link key={l.label} to={l.to} className="flex items-center gap-1.5 text-[13px] hover:text-blue-600 transition-colors" style={{ color: C.ink2 }}>
                     <l.icon className="w-3 h-3 flex-shrink-0" /> {l.label}
                   </Link>
                 ))}
@@ -451,7 +451,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6" style={{ borderTop: `1px solid ${C.line}` }}>
             <p className="text-[12px]" style={{ color: C.muted }}>© {new Date().getFullYear()} Extips Panel LLC — Dover, Delaware, USA. All rights reserved.</p>
             <div className="flex items-center gap-5 text-[12px] font-medium" style={{ color: C.muted }}>
-              <span className="flex items-center gap-1"><Shield className="w-3 h-3" style={{ color: '#10b981' }} /> SSL Secured</span>
+              <span className="flex items-center gap-1"><Shield className="w-3 h-3" style={{ color: '#3b82f6' }} /> SSL Secured</span>
               <span className="flex items-center gap-1"><Zap className="w-3 h-3" style={{ color: C.orange }} /> 99.9% Uptime</span>
             </div>
           </div>

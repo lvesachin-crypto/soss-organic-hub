@@ -76,7 +76,7 @@ export default function AdminOxaPayEvents() {
   const statusBadge = (s: string, credited?: boolean) => {
     const low = (s || '').toLowerCase();
     if (credited || ['paid','completed','confirmed','success'].includes(low))
-      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">{s || 'paid'}</Badge>;
+      return <Badge className="bg-blue-100 text-blue-700 border-blue-200">{s || 'paid'}</Badge>;
     if (['expired','failed','cancelled','canceled','error'].includes(low))
       return <Badge className="bg-red-100 text-red-700 border-red-200">{s}</Badge>;
     return <Badge className="bg-amber-100 text-amber-700 border-amber-200">{s || 'waiting'}</Badge>;
@@ -141,7 +141,7 @@ export default function AdminOxaPayEvents() {
                           <td className="py-2 pr-3">${d.amount_usd} / ₹{d.amount_inr}</td>
                           <td className="py-2 pr-3">{d.pay_currency || '—'}</td>
                           <td className="py-2 pr-3">{statusBadge(d.status, d.credited)}</td>
-                          <td className="py-2 pr-3">{d.credited ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <XCircle className="h-4 w-4 text-slate-400" />}</td>
+                          <td className="py-2 pr-3">{d.credited ? <CheckCircle2 className="h-4 w-4 text-blue-600" /> : <XCircle className="h-4 w-4 text-slate-400" />}</td>
                         </tr>
                       ))}
                       {!filteredDeposits.length && <tr><td colSpan={6} className="text-center py-6 text-muted-foreground">No deposits</td></tr>}
@@ -176,10 +176,10 @@ export default function AdminOxaPayEvents() {
                           <td className="py-2 pr-3">{statusBadge(e.status || '')}</td>
                           <td className="py-2 pr-3">
                             {e.signature_valid
-                              ? <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200"><ShieldCheck className="h-3 w-3 mr-1" />valid</Badge>
+                              ? <Badge className="bg-blue-100 text-blue-700 border-blue-200"><ShieldCheck className="h-3 w-3 mr-1" />valid</Badge>
                               : <Badge className="bg-red-100 text-red-700 border-red-200"><ShieldAlert className="h-3 w-3 mr-1" />invalid</Badge>}
                           </td>
-                          <td className="py-2 pr-3">{e.processed ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <XCircle className="h-4 w-4 text-slate-400" />}</td>
+                          <td className="py-2 pr-3">{e.processed ? <CheckCircle2 className="h-4 w-4 text-blue-600" /> : <XCircle className="h-4 w-4 text-slate-400" />}</td>
                           <td className="py-2 pr-3 text-xs text-muted-foreground max-w-xs truncate">{e.notes || '—'}</td>
                         </tr>
                       ))}

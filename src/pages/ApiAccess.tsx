@@ -188,7 +188,7 @@ export default function ApiAccess() {
                 {/* API Documentation */}
                 <div className="rounded-2xl bg-zinc-950 border border-white/[0.07] p-6 space-y-6">
                     <div className="flex items-center gap-2">
-                        <ListOrdered className="h-4 w-4 text-emerald-400" />
+                        <ListOrdered className="h-4 w-4 text-blue-400" />
                         <h2 className="text-base font-semibold text-white">API Endpoints</h2>
                     </div>
 
@@ -203,7 +203,7 @@ export default function ApiAccess() {
                     <div className="space-y-4">
                         {/* services */}
                         <EndpointCard
-                            icon={<ListOrdered className="h-4 w-4 text-emerald-400" />}
+                            icon={<ListOrdered className="h-4 w-4 text-blue-400" />}
                             method="POST"
                             action="services"
                             label="Services List"
@@ -318,7 +318,7 @@ function EndpointCard({
                 </button>
                 <button
                     onClick={() => setTab('response')}
-                    className={`flex-1 py-2 text-[12px] font-medium transition-colors ${tab === 'response' ? 'text-white border-b-2 border-emerald-500 bg-emerald-500/5' : 'text-zinc-600 hover:text-zinc-400'
+                    className={`flex-1 py-2 text-[12px] font-medium transition-colors ${tab === 'response' ? 'text-white border-b-2 border-blue-500 bg-blue-500/5' : 'text-zinc-600 hover:text-zinc-400'
                         }`}
                 >
                     Response

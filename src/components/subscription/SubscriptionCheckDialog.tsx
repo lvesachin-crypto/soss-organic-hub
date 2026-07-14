@@ -96,15 +96,15 @@ export function SubscriptionCheckDialog({ open, onOpenChange }: SubscriptionChec
                   </div>
                   <ul className="space-y-1 text-[11px] font-bold text-muted-foreground/80">
                     <li className="flex items-center gap-1.5 transition-all hover:translate-x-1">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      <CheckCircle2 className="h-3 w-3 text-blue-500" />
                       Global Markup Control
                     </li>
                     <li className="flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      <CheckCircle2 className="h-3 w-3 text-blue-500" />
                       Full Platform Access
                     </li>
                     <li className="flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      <CheckCircle2 className="h-3 w-3 text-blue-500" />
                       Cancel Anytime
                     </li>
                   </ul>

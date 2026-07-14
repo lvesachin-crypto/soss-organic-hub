@@ -72,7 +72,7 @@ export default function OxaPayAddFunds() {
         </div>
         <div
           className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
-          style={{ background: 'rgba(16,185,129,.08)', color: '#059669', border: '1px solid rgba(16,185,129,.18)' }}
+          style={{ background: 'rgba(59,130,246,.08)', color: '#2563eb', border: '1px solid rgba(59,130,246,.18)' }}
         >
           <ShieldCheck className="h-3 w-3" /> AUTO-CREDIT
         </div>

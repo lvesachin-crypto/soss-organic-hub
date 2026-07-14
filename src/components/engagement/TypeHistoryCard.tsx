@@ -250,7 +250,7 @@ export function TypeHistoryCard({
           <span className="text-sm font-semibold text-amber-400">Paused</span>
           <span className="text-xs text-muted-foreground">— Runs are being skipped until resumed</span>
           {itemId && (
-            <Button variant="outline" size="sm" className="ml-auto h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10" onClick={() => onResume?.(itemId)}>
+            <Button variant="outline" size="sm" className="ml-auto h-7 text-xs text-blue-400 border-blue-500/30 hover:bg-blue-500/10" onClick={() => onResume?.(itemId)}>
               <PlayCircle className="h-3 w-3 mr-1" /> Resume Now
             </Button>
           )}
@@ -317,7 +317,7 @@ export function TypeHistoryCard({
 
             <Badge className={`text-[10px] font-black uppercase tracking-widest border-none ${isPaused ? "bg-amber-500/20 text-amber-400" :
               isCancelled ? "bg-destructive/20 text-destructive" :
-                itemStatus === 'completed' ? "bg-emerald-500/20 text-emerald-400" :
+                itemStatus === 'completed' ? "bg-blue-500/20 text-blue-400" :
                   "bg-primary/20 text-primary"
               }`}>
               {isPaused && <Pause className="h-3 w-3 mr-1 fill-current" />}
@@ -359,7 +359,7 @@ export function TypeHistoryCard({
       <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500/60"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500/60"></span>
           </span>
           <Zap className="h-4 w-4 text-white/40" />
           <span className="font-semibold text-sm uppercase tracking-wider">LIVE DELIVERY TRACKING</span>
@@ -385,7 +385,7 @@ export function TypeHistoryCard({
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Runs</p>
         </div>
         <div className="p-4 text-center">
-          <p className="text-2xl font-black text-emerald-500/40">{completedCount}</p>
+          <p className="text-2xl font-black text-blue-500/40">{completedCount}</p>
           <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Completed</p>
         </div>
         <div className="p-4 text-center">
@@ -397,7 +397,7 @@ export function TypeHistoryCard({
           <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Pending</p>
         </div>
         <div className="p-4 text-center">
-          <p className="text-2xl font-black text-emerald-500/60">{totalDelivered.toLocaleString()}</p>
+          <p className="text-2xl font-black text-blue-500/60">{totalDelivered.toLocaleString()}</p>
           <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.2em]">Delivered</p>
         </div>
       </div>
@@ -440,13 +440,13 @@ export function TypeHistoryCard({
                     className={`p-4 transition-colors ${isActive ? 'bg-blue-500/10' :
                       isFailed ? 'bg-green-500/5' :
                         isPending ? 'hover:bg-violet-500/5 cursor-pointer' :
-                          isCompleted ? 'bg-emerald-500/5' : ''
+                          isCompleted ? 'bg-blue-500/5' : ''
                       }`}
                     onClick={() => isPending && onEditRun(run)}
                   >
                     <div className="flex items-center gap-4">
                       {/* Run Number Circle - Colorful Gradient */}
-                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm ${isCompleted ? 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white' :
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm ${isCompleted ? 'bg-gradient-to-br from-blue-500 to-teal-500 text-white' :
                         isActive ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white animate-pulse' :
                           isFailed ? 'bg-gradient-to-br from-green-500 to-red-500 text-white' :
                             'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
@@ -458,7 +458,7 @@ export function TypeHistoryCard({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 flex-wrap">
                           {/* Status Badge - Colorful */}
-                          <Badge className={`text-xs ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                          <Badge className={`text-xs ${isCompleted ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
                             isActive ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' :
                               isFailed ? 'bg-green-500/20 text-green-400 border border-green-500/40' :
                                 isUpcoming ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' :
@@ -502,7 +502,7 @@ export function TypeHistoryCard({
                               </span>
                               <span className="text-muted-foreground">→</span>
                               {isCompleted && run.runEndCount !== null ? (
-                                <span className="font-bold tabular-nums text-emerald-400">
+                                <span className="font-bold tabular-nums text-blue-400">
                                   {run.runEndCount.toLocaleString()}
                                 </span>
                               ) : (
@@ -532,7 +532,7 @@ export function TypeHistoryCard({
                           )}
 
                           {run.completed_at && (
-                            <span className="flex items-center gap-1 text-emerald-400">
+                            <span className="flex items-center gap-1 text-blue-400">
                               <CheckCircle2 className="h-3 w-3" />
                               Done: {format(new Date(run.completed_at), 'hh:mm a')}
                             </span>
