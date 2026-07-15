@@ -274,7 +274,15 @@ export default function MassOrder() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <Label>Default Base Quantity (Views)</Label>
-              <Input type="number" className="input-3d mt-2 h-12" value={baseQty} onChange={e => setBaseQty(Number(e.target.value) || 0)} />
+              <Input
+                type="number"
+                className="input-3d mt-2 h-12"
+                value={baseQty}
+                onChange={e => recomputeDefaults(Number(e.target.value) || 0)}
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Changing this auto-fills other types using standard ratios. You can override each below.
+              </p>
             </div>
             <div>
               <Label>Default Timeframe</Label>
@@ -302,6 +310,31 @@ export default function MassOrder() {
               </div>
             </div>
           </div>
+
+          {/* Per-type default quantities from selected bundle */}
+          {allowedTypes.length > 0 && (
+            <div className="pt-2 border-t border-border">
+              <Label>Default Quantity Per Engagement Type</Label>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Every type in your selected bundle. Set the default quantity applied to each new link.
+              </p>
+              <div className="mt-3 grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {allowedTypes.map(t => (
+                  <div key={t} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-secondary/40">
+                    <span className="capitalize text-sm font-medium min-w-[80px]">{t}</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="input-3d h-9 flex-1"
+                      value={defaultsQty[t] ?? 0}
+                      onChange={e => setDefaultsQty({ ...defaultsQty, [t]: Math.max(0, Number(e.target.value) || 0) })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="text-[11px] text-muted-foreground">Defaults apply only to new links. Edit existing rows to override per-link values.</p>
         </div>
 
