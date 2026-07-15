@@ -383,7 +383,7 @@ export default function MassOrder() {
                       setEditing({ ...editing, base_quantity: b, qty: defaultQty(b) });
                     }}
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">Base badloge to har type ka default qty auto-adjust hoga.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Changing the base will auto-adjust the default quantity for every type.</p>
                 </div>
                 <div>
                   <Label>Timeframe</Label>
