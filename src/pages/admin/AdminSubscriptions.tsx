@@ -460,8 +460,15 @@ export default function AdminSubscriptions() {
                       <SelectItem value="monthly">
                         <span className="flex items-center gap-2">
                           <Zap className="h-4 w-4 text-blue-500" />
-                          Monthly (30 days)
+                          Monthly ($39 / 30 days)
                         </span>
+                      </SelectItem>
+                      <SelectItem value="yearly">
+                        <span className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-emerald-500" />
+                          Yearly ($99 / 365 days)
+                        </span>
+                      </SelectItem>
                       </SelectItem>
                       <SelectItem value="lifetime">
                         <span className="flex items-center gap-2">
