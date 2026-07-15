@@ -724,8 +724,8 @@ export default function AdminUsers() {
                       </p>
                       {u.created_at && (
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Clock className="h-3 w-3" />
-                          Signed up {formatDistanceToNow(new Date(u.created_at), { addSuffix: true })}
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(u.created_at), 'MMM d, yyyy')}
                         </p>
                       )}
                     </div>
