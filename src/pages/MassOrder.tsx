@@ -142,7 +142,7 @@ export default function MassOrder() {
   }
 
   async function submit() {
-    if (!bundleId) return toast.error('Pehle apna bundle select karo');
+    if (!bundleId) return toast.error('Please select a bundle first');
     if (!rows.length) return toast.error('No rows to submit');
     const items = selectedBundle?.user_bundle_items || [];
     const serviceMap: Record<string, { service_id: string | null; price: number }> = {};
