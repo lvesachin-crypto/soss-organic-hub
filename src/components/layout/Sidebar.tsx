@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ListOrdered, Settings, LifeBuoy, Shield, LogOut,
-  Rocket, Sparkles, X, Server, ListChecks, Boxes, Brain, Send
+  Rocket, Sparkles, X, Server, ListChecks, Boxes, Brain, Send, Crown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ const menuItems = [
   { icon: Boxes, label: 'Mass Order', path: '/mass-order', tag: 'NEW' },
   { icon: Brain, label: 'AI Intelligence', path: '/ai-intelligence' },
   { icon: Sparkles, label: 'Engagement Orders', path: '/engagement-orders' },
+  { icon: Crown, label: 'Subscription', path: '/subscription', tag: 'PRO' },
   { icon: LifeBuoy, label: 'Support', path: '/support' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];

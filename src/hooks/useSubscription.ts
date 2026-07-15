@@ -2,10 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
+export type PlanType = 'none' | 'monthly' | 'yearly' | 'lifetime' | 'trial';
+
 export interface Subscription {
   id: string;
   user_id: string;
-  plan_type: 'none' | 'monthly' | 'lifetime' | 'trial';
+  plan_type: PlanType;
   status: 'inactive' | 'active' | 'expired' | 'cancelled';
   activated_at: string | null;
   expires_at: string | null;
@@ -18,14 +20,14 @@ export interface SubscriptionRequest {
   full_name: string;
   email: string;
   phone: string;
-  plan_type: 'monthly' | 'lifetime';
+  plan_type: 'monthly' | 'yearly' | 'lifetime';
   message: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
 
 export function useSubscription() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
     queryKey: ['user-subscription', user?.id],
@@ -72,8 +74,10 @@ export function useSubscription() {
     enabled: !!user,
   });
 
-  const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'trial';
-  const isSubscriptionExpired = subscription?.status === 'expired';
+  const notExpired = !subscription?.expires_at || new Date(subscription.expires_at) > new Date();
+  const paidPlan = subscription?.plan_type && ['monthly', 'yearly', 'lifetime'].includes(subscription.plan_type);
+  const hasActiveSubscription = subscription?.status === 'active' && !!paidPlan && notExpired;
+  const isSubscriptionExpired = subscription?.status === 'expired' || (subscription?.status === 'active' && !notExpired);
   const hasPendingRequest = !!pendingRequest;
   const isTrial = subscription?.plan_type === 'trial' && subscription?.status === 'active';
   const trialDaysRemaining = null;
@@ -82,6 +86,8 @@ export function useSubscription() {
     subscription,
     pendingRequest,
     hasActiveSubscription,
+    // Admins can always create providers/bundles (matches DB trigger)
+    isActive: isAdmin || hasActiveSubscription,
     isSubscriptionExpired,
     hasPendingRequest,
     isTrial,

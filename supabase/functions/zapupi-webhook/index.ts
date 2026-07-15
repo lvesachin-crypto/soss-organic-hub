@@ -92,6 +92,27 @@ Deno.serve(async (req) => {
     })
     if (!claimed) return json({ ok: true, replay: true })
 
+    // ── Subscription payment routing (order_id starts with 'SUB_ZAPUPI_') ──
+    if (orderId.startsWith('SUB_ZAPUPI_')) {
+      const { data: subPay } = await admin.from('subscription_payments')
+        .select('id, user_id, plan_type, activated').eq('order_id', orderId).maybeSingle()
+      if (!subPay) return json({ ok: true, note: 'unknown sub order' })
+      // Verify via ZapUPI order-status (server-side truth)
+      const verify = await verifyOrder(orderId)
+      let subResult: any = null
+      if (verify.success && !subPay.activated) {
+        await admin.from('subscription_payments').update({
+          status: 'paid', raw_payload: { webhook: payload, verify: verify.raw },
+        }).eq('order_id', orderId)
+        const { data, error } = await admin.rpc('activate_subscription_from_payment', { p_order_id: orderId })
+        subResult = error ? { error: error.message } : data
+      }
+      await admin.from('zapupi_webhook_events').update({
+        processed: true, credit_result: { subscription: subResult, order_id: orderId },
+      }).eq('event_key', eventKey)
+      return json({ ok: true, subscription: subResult })
+    }
+
     // Load the expected deposit (server-side amount of record)
     const { data: dep } = await admin
       .from('zapupi_deposits')

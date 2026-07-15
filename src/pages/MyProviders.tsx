@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Server, Plus, RefreshCw, Trash2, KeyRound, Download, CheckCircle2, XCircle } from 'lucide-react';
+import { SubscriptionGuard } from '@/components/subscription/SubscriptionGuard';
 
 async function invoke(op: string, payload: any = {}) {
   const { data, error } = await supabase.functions.invoke('user-provider-manage', { body: { op, ...payload } });
@@ -86,6 +87,7 @@ export default function MyProviders() {
   return (
     <DashboardLayout>
       <PageMeta title="My Providers" description="Add and manage your own SMM panel API keys." canonicalPath="/my-providers" noIndex />
+      <SubscriptionGuard>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -159,6 +161,7 @@ export default function MyProviders() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </SubscriptionGuard>
     </DashboardLayout>
   );
 }

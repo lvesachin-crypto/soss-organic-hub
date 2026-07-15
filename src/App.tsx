@@ -27,6 +27,8 @@ import MyServices from "./pages/MyServices";
 import MyBundles from "./pages/MyBundles";
 import MassOrder from "./pages/MassOrder";
 import AIIntelligence from "./pages/AIIntelligence";
+import Subscription from "./pages/Subscription";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 
 // Engagement pages
 import EngagementOrder from "./pages/EngagementOrder";
@@ -119,6 +121,9 @@ const App = () => {
                     <Route path="/my-bundles" element={<MyBundles />} />
                     <Route path="/mass-order" element={<MassOrder />} />
                     <Route path="/ai-intelligence" element={<AIIntelligence />} />
+                    <Route path="/subscription" element={<Subscription />} />
+                    <Route path="/admin/subscriptions" element={<AdminGuard><AdminSubscriptions /></AdminGuard>} />
+
 
                     {/* Engagement */}
                     <Route path="/engagement-order" element={<EngagementOrder />} />
