@@ -94,7 +94,7 @@ export default function Auth() {
   const inputClass = "h-12 rounded-xl border-[#e5e5e5] bg-white focus:border-[#1a1a2e] focus:ring-1 focus:ring-[#1a1a2e] text-[#1a1a2e] font-medium px-4 placeholder:text-[#bbb] transition-all";
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ background: 'linear-gradient(180deg, #fff 0%, #f0fdf4 50%, #dcfce7 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ background: 'linear-gradient(180deg, #fff 0%, #fdf2f8 50%, #fbcfe8 100%)' }}>
       <PageMeta
         title={isLogin ? 'Sign in — Boostly Pro' : 'Create your account — Boostly Pro'}
         description="Sign in or create your free Boostly Pro account to launch organic Instagram, YouTube and TikTok growth campaigns. No credit card required."
