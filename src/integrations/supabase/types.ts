@@ -1537,6 +1537,7 @@ export type Database = {
           created_at: string
           engagement_type: string
           id: string
+          priority: number
           quantity: number
           updated_at: string
           user_bundle_id: string
@@ -1547,6 +1548,7 @@ export type Database = {
           created_at?: string
           engagement_type: string
           id?: string
+          priority?: number
           quantity?: number
           updated_at?: string
           user_bundle_id: string
@@ -1557,6 +1559,7 @@ export type Database = {
           created_at?: string
           engagement_type?: string
           id?: string
+          priority?: number
           quantity?: number
           updated_at?: string
           user_bundle_id?: string
