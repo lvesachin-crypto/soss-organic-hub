@@ -122,7 +122,7 @@ export default function MyProviders() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" disabled={busy === p.id} onClick={() => handleTest(p.id)}><RefreshCw className={`w-3.5 h-3.5 mr-1 ${busy === p.id ? 'animate-spin' : ''}`} /> Test</Button>
-                  <Button size="sm" variant="outline" disabled={busy === p.id + ':imp'} onClick={() => handleImport(p.id)}><Download className="w-3.5 h-3.5 mr-1" /> Import Services</Button>
+                  
                   <Button size="sm" variant="outline" onClick={() => setRotate({ id: p.id, name: p.name })}><KeyRound className="w-3.5 h-3.5 mr-1" /> Rotate Key</Button>
                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
