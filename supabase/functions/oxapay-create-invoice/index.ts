@@ -109,11 +109,11 @@ function json(b: unknown, status = 200) {
 }
 
 function getSafeReturnBase(input: unknown): string {
-  const fallback = 'https://extipspanel.com'
+  const fallback = 'https://boostlypro.com'
   try {
     const url = new URL(String(input || fallback))
     const host = url.hostname.toLowerCase()
-    const allowed = host === 'extipspanel.com'
+    const allowed = host === 'boostlypro.com'
       || host === 'sologrow-pro.lovable.app'
       || host.endsWith('.lovable.app')
       || host === 'localhost'

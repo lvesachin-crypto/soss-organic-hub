@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './Sidebar';
-import logo from '@/assets/logo.jpg';
+import logo from '@/assets/logo.png';
 
 export function MobileBottomNav() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,8 +14,8 @@ export function MobileBottomNav() {
             <Menu className="w-4 h-4" style={{ color: '#555' }} />
           </button>
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Extips Panel platform logo" className="w-7 h-7 rounded-md object-cover" />
-            <span className="text-[14px] font-bold tracking-tight" style={{ color: '#1a1a2e' }}>Extips Panel</span>
+            <img src={logo} alt="Boostly Pro platform logo" className="w-7 h-7 rounded-md object-cover" />
+            <span className="text-[14px] font-bold tracking-tight" style={{ color: '#1a1a2e' }}>Boostly Pro</span>
           </div>
           <div className="w-9" />
         </div>
