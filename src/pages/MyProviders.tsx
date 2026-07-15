@@ -14,7 +14,16 @@ import { SubscriptionGuard } from '@/components/subscription/SubscriptionGuard';
 
 async function invoke(op: string, payload: any = {}) {
   const { data, error } = await supabase.functions.invoke('user-provider-manage', { body: { op, ...payload } });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Supabase FunctionsHttpError hides the response body; try to read it
+    let detail = error.message;
+    try {
+      const ctx: any = (error as any).context;
+      if (ctx?.json) { const j = await ctx.json(); if (j?.error) detail = j.error; }
+      else if (ctx?.text) { const t = await ctx.text(); if (t) detail = t; }
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 }
