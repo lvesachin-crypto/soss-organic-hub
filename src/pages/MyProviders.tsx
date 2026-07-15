@@ -13,9 +13,14 @@ import { Server, Plus, RefreshCw, Trash2, KeyRound, Download, CheckCircle2, XCir
 import { SubscriptionGuard } from '@/components/subscription/SubscriptionGuard';
 
 async function invoke(op: string, payload: any = {}) {
-  const { data, error } = await supabase.functions.invoke('user-provider-manage', { body: { op, ...payload } });
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw new Error('Please sign in again — your session has expired.');
+  const { data, error } = await supabase.functions.invoke('user-provider-manage', {
+    body: { op, ...payload },
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (error) {
-    // Supabase FunctionsHttpError hides the response body; try to read it
     let detail = error.message;
     try {
       const ctx: any = (error as any).context;
