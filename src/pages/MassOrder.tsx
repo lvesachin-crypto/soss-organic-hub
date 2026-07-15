@@ -276,8 +276,8 @@ export default function MassOrder() {
           <div className="glass-card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Preview ({rows.length})</h2>
-              <span className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary font-mono text-sm">
-                Total: ${grandTotal.toFixed(2)}
+              <span className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium">
+                {rows.length} link(s)
               </span>
             </div>
 
@@ -306,7 +306,7 @@ export default function MassOrder() {
                     </div>
                     <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
                       <span>⏱ {r.timeframe}</span>
-                      <span className="text-primary font-semibold">${perRowCost(r).toFixed(2)}</span>
+                      <span className="text-primary font-semibold">{activeTypes.length} type(s)</span>
                     </div>
                   </div>
                 );
@@ -315,7 +315,7 @@ export default function MassOrder() {
 
             <div className="pt-2 flex items-center justify-between border-t border-border">
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">{totalValid}</span> order(s) ready · Total <span className="text-primary font-bold">${grandTotal.toFixed(2)}</span>
+                <span className="text-foreground font-semibold">{totalValid}</span> order(s) ready
               </p>
               <Button className="btn-3d h-11 px-6" disabled={submitting || !bundleId} onClick={submit}>
                 {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…</> : 'Submit All'}
@@ -380,7 +380,6 @@ export default function MassOrder() {
                   {(allowedTypes.length ? allowedTypes : ALL_TYPES).map(t => {
                     const on = !!editing.types[t];
                     const q = editing.qty[t] ?? Math.round(editing.base_quantity * (RATIOS[t] || 0));
-                    const lineCost = on ? (q / 1000) * (priceMap[t] ?? 0.1) : 0;
                     return (
                       <div key={t} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-secondary/40">
                         <label className="flex items-center gap-2 min-w-[110px] cursor-pointer">
@@ -399,16 +398,9 @@ export default function MassOrder() {
                           value={q}
                           onChange={e => setEditing({ ...editing, qty: { ...editing.qty, [t]: Math.max(0, Number(e.target.value) || 0) } })}
                         />
-                        <span className="text-[11px] text-muted-foreground w-16 text-right font-mono">
-                          ₹{lineCost.toFixed(2)}
-                        </span>
                       </div>
                     );
                   })}
-                </div>
-                <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 border border-primary/20">
-                  <span className="text-sm font-semibold">Total</span>
-                  <span className="text-sm font-bold text-primary font-mono">${perRowCost(editing).toFixed(2)}</span>
                 </div>
               </div>
             </div>

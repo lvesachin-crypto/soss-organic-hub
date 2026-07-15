@@ -552,9 +552,7 @@ export default function EngagementOrder() {
       }
 
       if (wallet.balance < totalPrice) {
-        throw new Error(
-          `Insufficient balance! You need ${formatPrice(totalPrice)} but only have ${formatPrice(wallet.balance)}. Please add funds.`
-        );
+        throw new Error(`Wallet balance kam hai. Please add funds.`);
       }
 
       if (totalPrice <= 0) {
@@ -650,7 +648,7 @@ export default function EngagementOrder() {
     onSuccess: (data) => {
       toast({
         title: "🚀 Order Placed!",
-        description: `Order #${data.order_number} created. ${formatPrice(totalPrice)} deducted.`,
+        description: `Order #${data.order_number} created.`,
       });
       // Immediately refresh wallet from auth context
       refreshWallet();
@@ -781,7 +779,7 @@ export default function EngagementOrder() {
     if (!canAfford) {
       toast({
         title: "💰 Insufficient Balance",
-        description: `Your wallet has ${formatPrice(wallet?.balance || 0)}. This order requires ${formatPrice(totalPrice)}. Please add funds!`,
+        description: `Wallet balance kam hai. Please add funds to continue.`,
         variant: "destructive",
       });
       navigate('/wallet');
@@ -1083,33 +1081,20 @@ export default function EngagementOrder() {
           />
         )}
 
-        {/* Order Summary - Compact on mobile */}
         <Card className="glass-card border-2 border-primary/40 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 overflow-hidden">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-1 sm:space-y-2">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">{formatPrice(totalPrice)}</span>
-                  <span className="text-muted-foreground text-xs sm:text-sm">total</span>
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary">{totalEngagements.toLocaleString()}</span>
+                  <span className="text-muted-foreground text-xs sm:text-sm">engagements</span>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  {totalEngagements.toLocaleString()} engagements • {Object.values(engagements).filter(e => e.enabled).length} types
+                  {Object.values(engagements).filter(e => e.enabled).length} types selected
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                <div className="text-left sm:text-right p-2.5 sm:p-3 rounded-xl bg-secondary/50">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm font-medium">
-                    <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
-                    <span>Balance: {formatPrice(wallet?.balance || 0)}</span>
-                  </div>
-                  {!canAfford && totalPrice > 0 && (
-                    <p className="text-[10px] sm:text-xs text-destructive mt-1">
-                      Insufficient balance
-                    </p>
-                  )}
-                </div>
-
                 <Button
                   size="lg"
                   onClick={handlePlaceOrder}
@@ -1129,7 +1114,7 @@ export default function EngagementOrder() {
                   ) : (
                     <>
                       <Rocket className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                      Place Order — {formatPrice(totalPrice)}
+                      Place Order
                     </>
                   )}
                 </Button>
