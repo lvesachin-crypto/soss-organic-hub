@@ -62,6 +62,7 @@ export default function MassOrder() {
   const { user } = useAuth();
   const [raw, setRaw] = useState('');
   const [baseQty, setBaseQty] = useState(1000);
+  const [defaultsQty, setDefaultsQty] = useState<Record<string, number>>(() => defaultQty(1000));
   const [timeframe, setTimeframe] = useState('Under 24 hours');
   const [campaign, setCampaign] = useState('');
   const [bundleId, setBundleId] = useState('');
@@ -98,6 +99,11 @@ export default function MassOrder() {
     return m;
   }, [selectedBundle]);
 
+  function recomputeDefaults(base: number) {
+    setBaseQty(base);
+    setDefaultsQty(defaultQty(base));
+  }
+
   const totalValid = useMemo(() => rows.length, [rows]);
   const perRowCost = (r: Row) => {
     let cost = 0;
@@ -114,7 +120,21 @@ export default function MassOrder() {
   function preview() {
     const links = parseLinks(raw);
     if (!links.length) return toast.error('No valid links found');
-    setRows(links.map(l => newRow(l, baseQty, timeframe, allowedTypes)));
+    const typesToUse = allowedTypes.length ? allowedTypes : ['views'];
+    setRows(links.map(l => {
+      const types: Record<string, boolean> = {};
+      ALL_TYPES.forEach(t => { types[t] = false; });
+      typesToUse.forEach(t => { types[t] = true; });
+      const qty: Record<string, number> = { ...defaultQty(baseQty), ...defaultsQty };
+      return {
+        id: crypto.randomUUID(),
+        link: l,
+        base_quantity: baseQty,
+        timeframe,
+        types,
+        qty,
+      };
+    }));
     toast.success(`${links.length} link(s) ready`);
   }
 
