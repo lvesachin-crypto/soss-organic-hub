@@ -131,7 +131,37 @@ export default function EngagementOrder() {
   }, []);
 
 
-  // Fetch ALL active bundles WITH items to know which platforms are available
+  // Fetch USER's own bundles + items (drives which platforms/types are visible)
+  const { data: userBundles, isLoading: userBundlesLoading } = useQuery({
+    queryKey: ['user-bundles-filter', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('user_bundles')
+        .select('id, platform, is_active, items:user_bundle_items(engagement_type)')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
+
+  // Map: platform -> Set of engagement_types user has in their bundle
+  const userPlatformTypes = useMemo<Record<string, Set<string>>>(() => {
+    const map: Record<string, Set<string>> = {};
+    (userBundles ?? []).forEach((b: any) => {
+      if (!b.items || b.items.length === 0) return;
+      if (!map[b.platform]) map[b.platform] = new Set();
+      b.items.forEach((it: any) => map[b.platform].add(it.engagement_type));
+    });
+    return map;
+  }, [userBundles]);
+
+  const hasAnyUserBundle = Object.keys(userPlatformTypes).length > 0;
+
+  // Fetch ALL active admin bundles WITH items (for pricing + service routing)
   const { data: allBundles } = useQuery({
     queryKey: ['all-bundles-with-items'],
     queryFn: async () => {
@@ -149,18 +179,17 @@ export default function EngagementOrder() {
     placeholderData: keepPreviousData,
   });
 
-  // Get unique platforms that have active bundles with engagement items
+  // Available platforms = platforms user has in their own bundle
+  // (admin bundle must also exist for that platform so pricing/services resolve)
   const availablePlatforms = useMemo(() => {
-    console.log('[EngagementOrder] allBundles:', allBundles);
     if (!allBundles) return [];
-    // Show platforms that have at least one bundle with items configured
-    const platforms = allBundles
-      .filter(b => b.items && b.items.length > 0)
-      .map(b => b.platform);
-    const result = [...new Set(platforms)];
-    console.log('[EngagementOrder] availablePlatforms:', result);
-    return result;
-  }, [allBundles]);
+    const adminPlatforms = new Set(
+      allBundles.filter(b => b.items && b.items.length > 0).map(b => b.platform)
+    );
+    const userPlatforms = Object.keys(userPlatformTypes);
+    // Intersection: only platforms present in BOTH user bundle and admin bundle
+    return userPlatforms.filter(p => adminPlatforms.has(p));
+  }, [allBundles, userPlatformTypes]);
 
   // Auto-select first available platform if current selection has no bundles
   useEffect(() => {
