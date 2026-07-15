@@ -297,7 +297,7 @@ export default function MassOrder() {
           <Textarea
             rows={7}
             className="input-3d font-mono text-[13px]"
-            placeholder={`Ek line par ek link.\nhttps://instagram.com/p/abc\nhttps://instagram.com/p/xyz\n\nYa CSV upload karo (first column = link).`}
+            placeholder={`One link per line.\nhttps://instagram.com/p/abc\nhttps://instagram.com/p/xyz\n\nOr upload a CSV (first column = link).`}
             value={raw}
             onChange={e => setRaw(e.target.value)}
           />
