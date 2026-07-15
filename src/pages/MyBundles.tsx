@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Package, Plus, Trash2, Globe, Eye, Heart, MessageCircle, Bookmark, Share2, Repeat, UserPlus } from 'lucide-react';
+import { Package, Plus, Trash2, Globe, Eye, Heart, MessageCircle, Bookmark, Share2, Repeat2, UserPlus } from 'lucide-react';
 import { SubscriptionGuard } from '@/components/subscription/SubscriptionGuard';
 
 const ENGAGEMENT_TYPES = [
