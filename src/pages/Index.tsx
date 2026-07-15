@@ -56,10 +56,11 @@ const Index = () => {
                 style={{ border: '1.5px solid white', boxShadow: C.soft }} />
             </div>
             <div className="flex items-center gap-2 leading-none">
-              <span className="text-[15px] sm:text-[16px] font-extrabold tracking-tight" style={{ color: C.ink }}>Boostly Pro</span>
+              <span className="text-[15px] sm:text-[16px] font-extrabold tracking-tight" style={{ color: C.ink }}>Boostly<span style={{ color: C.orangeDeep }}> Pro</span></span>
               <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-[3px] rounded-md"
-                style={{ background: C.peach, color: C.orangeDeep }}>v2.0</span>
+                style={{ background: C.peach, color: C.orangeDeep }}>Labs</span>
             </div>
+
           </Link>
           <div className="hidden md:flex items-center gap-7">
             {['Features', 'How it works', 'Why us'].map((t, i) => (
