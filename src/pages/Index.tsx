@@ -48,9 +48,25 @@ const Index = () => {
         @keyframes bp-float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes bp-drift-x { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes bp-pop     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+        /* Icon package riding the conveyor INTO the shop */
+        @keyframes bp-in {
+          0%   { transform: translate(0,0) scale(.85);         opacity: 0; }
+          10%  { opacity: 1; }
+          55%  { transform: translate(140px,-30px) scale(.95); opacity: 1; }
+          85%  { transform: translate(230px,-52px) scale(.65); opacity: .9; }
+          100% { transform: translate(275px,-66px) scale(.3);  opacity: 0; }
+        }
+        /* Icon puffing OUT of the shop */
+        @keyframes bp-out {
+          0%   { transform: translate(0,0) scale(.4);          opacity: 0; }
+          20%  { opacity: 1; }
+          100% { transform: translate(var(--dx,-70px), var(--dy,-170px)) scale(1); opacity: 0; }
+        }
         .bp-float { animation: bp-float 4s ease-in-out infinite; }
         .bp-pop   { animation: bp-pop 2.4s ease-in-out infinite; }
         .bp-mrq   { animation: bp-drift-x 26s linear infinite; }
+        .bp-in    { animation: bp-in 5.4s cubic-bezier(.55,.05,.35,1) infinite; }
+        .bp-out   { animation: bp-out 4.6s cubic-bezier(.4,.1,.4,1) infinite; }
         .bp-heading { font-family:'Inter', system-ui, sans-serif; font-weight:800; letter-spacing:-0.045em; line-height:0.95; }
         .bp-serif   { font-family:'Instrument Serif', 'Times New Roman', serif; font-style:italic; font-weight:400; letter-spacing:-0.02em; }
       `}</style>
