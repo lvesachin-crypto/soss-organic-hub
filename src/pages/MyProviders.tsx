@@ -92,7 +92,7 @@ export default function MyProviders() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><Server className="w-6 h-6 text-primary" /> My Providers</h1>
-            <p className="text-sm text-muted-foreground mt-1">Apna khud ka SMM panel add karein. Keys encrypted rehti hain — kisi aur user ko nahi dikhti.</p>
+            <p className="text-sm text-muted-foreground mt-1">Add your own SMM panel. Keys are stored encrypted — no other user can see them.</p>
           </div>
           <Button onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Add Provider</Button>
         </div>
