@@ -157,8 +157,10 @@ export default function AdminSubscriptions() {
       if (!profile) throw new Error('User not found with this email. They must sign up first.');
 
       const expiresAt = addPlanType === 'monthly'
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()  // 30 days
-        : null; // lifetime — no expiry
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        : addPlanType === 'yearly'
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+          : null; // lifetime — no expiry
 
       // Upsert subscription
       const { error: subError } = await supabase
