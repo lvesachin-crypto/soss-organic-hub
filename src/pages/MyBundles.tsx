@@ -18,7 +18,7 @@ const ENGAGEMENT_TYPES = [
   { key: 'comments', label: 'Comments', icon: MessageCircle },
   { key: 'saves', label: 'Saves', icon: Bookmark },
   { key: 'shares', label: 'Shares', icon: Share2 },
-  { key: 'reposts', label: 'Reposts', icon: Repeat },
+  { key: 'reposts', label: 'Reposts', icon: Repeat2 },
   { key: 'followers', label: 'Followers', icon: UserPlus },
 ];
 
