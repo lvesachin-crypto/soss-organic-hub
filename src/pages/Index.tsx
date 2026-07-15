@@ -48,13 +48,16 @@ const Index = () => {
         @keyframes bp-float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes bp-drift-x { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes bp-pop     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-        /* Icon package riding the conveyor INTO the shop */
+        /* Icon package riding the conveyor curve INTO the shop */
         @keyframes bp-in {
-          0%   { transform: translate(0,0) scale(.85);         opacity: 0; }
-          10%  { opacity: 1; }
-          55%  { transform: translate(140px,-30px) scale(.95); opacity: 1; }
-          85%  { transform: translate(230px,-52px) scale(.65); opacity: .9; }
-          100% { transform: translate(275px,-66px) scale(.3);  opacity: 0; }
+          0%   { left: 3%;  top: 84%; transform: translate(-50%,-50%) scale(.75); opacity: 0; }
+          8%   { opacity: 1; }
+          22%  { left: 14%; top: 82%; transform: translate(-50%,-50%) scale(.95); }
+          42%  { left: 26%; top: 76%; transform: translate(-50%,-50%) scale(1);   }
+          62%  { left: 38%; top: 70%; transform: translate(-50%,-50%) scale(1);   }
+          80%  { left: 48%; top: 64%; transform: translate(-50%,-50%) scale(.85); opacity: .95; }
+          92%  { left: 55%; top: 60%; transform: translate(-50%,-50%) scale(.55); opacity: .6; }
+          100% { left: 58%; top: 58%; transform: translate(-50%,-50%) scale(.25); opacity: 0; }
         }
         /* Icon puffing OUT of the shop */
         @keyframes bp-out {
