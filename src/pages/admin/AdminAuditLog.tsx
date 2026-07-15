@@ -97,7 +97,7 @@ export default function AdminAuditLog() {
 
             {!isLoading && filtered.length === 0 && (
               <p className="text-center text-sm text-muted-foreground py-12">
-                Koi audit record nahi mila.
+                No audit records found.
               </p>
             )}
 
