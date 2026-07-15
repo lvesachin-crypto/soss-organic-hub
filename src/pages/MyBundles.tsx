@@ -73,7 +73,7 @@ export default function MyBundles() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="w-6 h-6 text-blue-600" /> My Bundles</h1>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="w-6 h-6 text-primary" /> My Bundles</h1>
             <p className="text-sm text-muted-foreground mt-1">Apne services se engagement bundles banayein. Sirf aap ko dikhenge.</p>
           </div>
           <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-1" /> New Bundle</Button>
@@ -87,7 +87,7 @@ export default function MyBundles() {
             </div>
           )}
           {bundles.map((b: any) => (
-            <div key={b.id} className="rounded-xl border bg-white p-4">
+            <div key={b.id} className="rounded-xl border bg-card p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold">{b.name} <span className="text-xs text-muted-foreground">· {b.platform}</span></p>
@@ -95,14 +95,14 @@ export default function MyBundles() {
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setAddItemFor(b.id)}><Plus className="w-3.5 h-3.5 mr-1" /> Add Item</Button>
-                  <Button size="sm" variant="ghost" className="text-red-600" onClick={() => deleteBundle(b.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteBundle(b.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
               <div className="mt-3 grid gap-1.5">
                 {(b.user_bundle_items || []).map((it: any) => (
                   <div key={it.id} className="flex items-center justify-between text-sm rounded-lg bg-muted/50 px-3 py-2">
                     <div><b className="capitalize">{it.engagement_type}</b> · qty {it.quantity} · <span className="text-xs text-muted-foreground">{it.user_services?.name}</span></div>
-                    <Button size="sm" variant="ghost" className="text-red-600 h-7" onClick={() => deleteItem(it.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="text-destructive h-7" onClick={() => deleteItem(it.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
                 ))}
                 {(b.user_bundle_items || []).length === 0 && <p className="text-xs text-muted-foreground italic">No items yet</p>}

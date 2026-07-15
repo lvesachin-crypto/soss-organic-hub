@@ -89,7 +89,7 @@ export default function MyProviders() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Server className="w-6 h-6 text-blue-600" /> My Providers</h1>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Server className="w-6 h-6 text-primary" /> My Providers</h1>
             <p className="text-sm text-muted-foreground mt-1">Apna khud ka SMM panel add karein. Keys encrypted rehti hain — kisi aur user ko nahi dikhti.</p>
           </div>
           <Button onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Add Provider</Button>
@@ -105,7 +105,7 @@ export default function MyProviders() {
               </div>
             )}
             {providers.map((p: any) => (
-              <div key={p.id} className="rounded-xl border bg-white p-4 flex flex-col md:flex-row md:items-center gap-4">
+              <div key={p.id} className="rounded-xl border bg-card p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold truncate">{p.name}</p>
@@ -116,13 +116,13 @@ export default function MyProviders() {
                   <p className="text-xs mt-1">Key: <code className="bg-muted px-1 rounded">••••{p.api_key_hint}</code>
                     {p.balance_cached != null && <> · Balance: <b>{p.balance_cached} {p.balance_currency || ''}</b></>}
                   </p>
-                  {p.last_test_error && <p className="text-[11px] text-red-600 mt-1 truncate">{p.last_test_error}</p>}
+                  {p.last_test_error && <p className="text-[11px] text-destructive mt-1 truncate">{p.last_test_error}</p>}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" disabled={busy === p.id} onClick={() => handleTest(p.id)}><RefreshCw className={`w-3.5 h-3.5 mr-1 ${busy === p.id ? 'animate-spin' : ''}`} /> Test</Button>
                   <Button size="sm" variant="outline" disabled={busy === p.id + ':imp'} onClick={() => handleImport(p.id)}><Download className="w-3.5 h-3.5 mr-1" /> Import Services</Button>
                   <Button size="sm" variant="outline" onClick={() => setRotate({ id: p.id, name: p.name })}><KeyRound className="w-3.5 h-3.5 mr-1" /> Rotate Key</Button>
-                  <Button size="sm" variant="ghost" className="text-red-600" onClick={() => handleDelete(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             ))}

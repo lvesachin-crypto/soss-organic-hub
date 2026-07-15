@@ -55,7 +55,7 @@ export default function MyServices() {
       <PageMeta title="My Services" description="Services imported from your own SMM panels." canonicalPath="/my-services" noIndex />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><ListChecks className="w-6 h-6 text-blue-600" /> My Services</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><ListChecks className="w-6 h-6 text-primary" /> My Services</h1>
           <p className="text-sm text-muted-foreground mt-1">Ye services aapke apne providers se aayi hain. Order aapki key se hi place hoga.</p>
         </div>
         <Input placeholder="Search services…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-md" />
