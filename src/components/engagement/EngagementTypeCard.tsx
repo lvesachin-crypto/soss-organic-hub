@@ -397,9 +397,7 @@ export function EngagementTypeCard({
                 )}
               />
             )}
-            <Badge variant="outline" className="font-black text-[10px] sm:text-xs border-white/10 bg-white/5 text-white/60 px-1.5 sm:px-2 py-0.5 sm:py-1 shrink-0">
-              {formatPrice(config.price)}
-            </Badge>
+            {/* price badge hidden — user should not see pricing */}
             <div className="scale-90 sm:scale-100">
               <Switch
                 checked={config.enabled}
