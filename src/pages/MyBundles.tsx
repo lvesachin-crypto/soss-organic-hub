@@ -31,18 +31,30 @@ export default function MyBundles() {
   const [platform, setPlatform] = useState('instagram');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
-  const { data: bundles = [] } = useQuery({
+  const { data: bundles = [], error: bundlesError } = useQuery({
     queryKey: ['user-bundles', user?.id],
     enabled: !!user?.id,
+    retry: 1,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_bundles')
         .select('*, user_bundle_items(*, user_bundle_item_providers(*))')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('[user-bundles] query error:', error);
+        throw error;
+      }
       return data || [];
     },
   });
+
+  useEffect(() => {
+    if (bundlesError) {
+      const msg = (bundlesError as any)?.message || 'Failed to load bundles';
+      toast.error(msg === 'Failed to fetch' ? 'Network issue loading bundles — please retry' : msg);
+    }
+  }, [bundlesError]);
+
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['user-provider-accounts-min', user?.id],
