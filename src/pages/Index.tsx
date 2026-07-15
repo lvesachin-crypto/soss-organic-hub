@@ -15,8 +15,8 @@ import { PageMeta } from '@/components/seo/PageMeta';
    ═════════════════════════════════════════════════════ */
 
 const C = {
-  cream:   '#F6F1E7',
-  cream2:  '#EFE8DA',
+  cream:   '#FFFFFF',
+  cream2:  '#F7F8FC',
   navy:    '#0E1B4D',
   navy2:   '#1B2A5E',
   ink:     '#0A0F2C',
@@ -33,7 +33,7 @@ const Index = () => {
       style={{
         background: C.cream,
         color: C.ink,
-        fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+        fontFamily: "'Inter', 'Plus Jakarta Sans', system-ui, sans-serif",
       }}
     >
       <PageMeta
@@ -44,15 +44,15 @@ const Index = () => {
       />
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800;900&display=swap');
         @keyframes bp-float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes bp-drift-x { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes bp-pop     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-        @keyframes bp-shine   { 0%{transform:translateX(-120%)} 100%{transform:translateX(220%)} }
         .bp-float { animation: bp-float 4s ease-in-out infinite; }
         .bp-pop   { animation: bp-pop 2.4s ease-in-out infinite; }
         .bp-mrq   { animation: bp-drift-x 26s linear infinite; }
-        .bp-heading { letter-spacing:-0.035em; line-height:0.95; }
+        .bp-heading { font-family:'Inter', system-ui, sans-serif; font-weight:800; letter-spacing:-0.045em; line-height:0.95; }
+        .bp-serif   { font-family:'Instrument Serif', 'Times New Roman', serif; font-style:italic; font-weight:400; letter-spacing:-0.02em; }
       `}</style>
 
       {/* ═══════════ FLOATING PILL NAV ═══════════ */}
@@ -107,10 +107,10 @@ const Index = () => {
                 Live · v2.0
               </div>
 
-              <h1 className="bp-heading font-extrabold text-[3rem] sm:text-[4.4rem] lg:text-[5.2rem]"
+              <h1 className="bp-heading text-[3rem] sm:text-[4.4rem] lg:text-[5.4rem]"
                 style={{ color: C.navy }}>
                 Boost your<br />
-                reach <span style={{ color: C.pink }}>right</span><br />
+                reach <span className="bp-serif" style={{ color: C.pink }}>right</span><br />
                 now<span style={{ color: C.pink }}>!</span>
               </h1>
 
@@ -247,8 +247,8 @@ const Index = () => {
             <div className="text-center max-w-2xl mx-auto mb-12">
               <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
                 style={{ color: C.pink }}>Why boostly</span>
-              <h2 className="bp-heading font-extrabold text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
-                Growth tools that feel<br /><span style={{ color: C.pink }}>painfully human.</span>
+              <h2 className="bp-heading text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
+                Growth tools that feel<br /><span className="bp-serif" style={{ color: C.pink }}>painfully human.</span>
               </h2>
             </div>
 
@@ -281,7 +281,7 @@ const Index = () => {
             <div className="text-center max-w-2xl mx-auto mb-12">
               <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
                 style={{ color: C.pink }}>How it works</span>
-              <h2 className="bp-heading font-extrabold text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
+              <h2 className="bp-heading text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
                 Three steps to<br />your first drop.
               </h2>
             </div>
@@ -307,9 +307,9 @@ const Index = () => {
         <section id="why" className="py-20 px-4 sm:px-6">
           <div className="max-w-4xl mx-auto rounded-[36px] p-10 sm:p-14 text-center relative overflow-hidden"
             style={{ background: C.navy }}>
-            <h2 className="bp-heading font-extrabold text-[2.2rem] sm:text-[3.4rem]" style={{ color: C.white }}>
+            <h2 className="bp-heading text-[2.2rem] sm:text-[3.4rem]" style={{ color: C.white }}>
               Ready to grow<br />
-              <span style={{ color: C.pink2 }}>the honest way?</span>
+              <span className="bp-serif" style={{ color: C.pink2 }}>the honest way?</span>
             </h2>
             <p className="mt-4 text-[15px] font-medium max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.75)' }}>
               Join 2,400+ creators shipping human-pattern engagement through Boostly Pro.
