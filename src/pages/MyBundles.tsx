@@ -318,11 +318,3 @@ function ProvidersPanel({
     </div>
   );
 }
-
-        <DialogFooter>
-          <Button onClick={onClose}>Done</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
