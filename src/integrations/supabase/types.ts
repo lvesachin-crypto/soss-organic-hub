@@ -325,6 +325,8 @@ export type Database = {
           status: string | null
           target_count: number | null
           updated_at: string | null
+          user_provider_account_id: string | null
+          user_service_id: string | null
         }
         Insert: {
           completion_locked_at?: string | null
@@ -352,6 +354,8 @@ export type Database = {
           status?: string | null
           target_count?: number | null
           updated_at?: string | null
+          user_provider_account_id?: string | null
+          user_service_id?: string | null
         }
         Update: {
           completion_locked_at?: string | null
@@ -379,6 +383,8 @@ export type Database = {
           status?: string | null
           target_count?: number | null
           updated_at?: string | null
+          user_provider_account_id?: string | null
+          user_service_id?: string | null
         }
         Relationships: [
           {
@@ -393,6 +399,27 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_service_id_fkey"
+            columns: ["user_service_id"]
+            isOneToOne: false
+            referencedRelation: "user_services"
             referencedColumns: ["id"]
           },
         ]
@@ -412,6 +439,7 @@ export type Database = {
           status: string | null
           total_price: number
           updated_at: string | null
+          user_bundle_id: string | null
           user_id: string
           variance_percent: number | null
         }
@@ -429,6 +457,7 @@ export type Database = {
           status?: string | null
           total_price: number
           updated_at?: string | null
+          user_bundle_id?: string | null
           user_id: string
           variance_percent?: number | null
         }
@@ -446,6 +475,7 @@ export type Database = {
           status?: string | null
           total_price?: number
           updated_at?: string | null
+          user_bundle_id?: string | null
           user_id?: string
           variance_percent?: number | null
         }
@@ -455,6 +485,13 @@ export type Database = {
             columns: ["bundle_id"]
             isOneToOne: false
             referencedRelation: "engagement_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_orders_user_bundle_id_fkey"
+            columns: ["user_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundles"
             referencedColumns: ["id"]
           },
         ]
@@ -490,6 +527,8 @@ export type Database = {
           target_count: number | null
           updated_at: string | null
           user_id: string
+          user_provider_account_id: string | null
+          user_service_id: string | null
           variance_percent: number | null
         }
         Insert: {
@@ -522,6 +561,8 @@ export type Database = {
           target_count?: number | null
           updated_at?: string | null
           user_id: string
+          user_provider_account_id?: string | null
+          user_service_id?: string | null
           variance_percent?: number | null
         }
         Update: {
@@ -554,6 +595,8 @@ export type Database = {
           target_count?: number | null
           updated_at?: string | null
           user_id?: string
+          user_provider_account_id?: string | null
+          user_service_id?: string | null
           variance_percent?: number | null
         }
         Relationships: [
@@ -562,6 +605,27 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_user_service_id_fkey"
+            columns: ["user_service_id"]
+            isOneToOne: false
+            referencedRelation: "user_services"
             referencedColumns: ["id"]
           },
         ]
@@ -1384,6 +1448,138 @@ export type Database = {
           },
         ]
       }
+      user_bundle_items: {
+        Row: {
+          created_at: string
+          engagement_type: string
+          id: string
+          quantity: number
+          updated_at: string
+          user_bundle_id: string
+          user_id: string
+          user_service_id: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_type: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_bundle_id: string
+          user_id: string
+          user_service_id: string
+        }
+        Update: {
+          created_at?: string
+          engagement_type?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_bundle_id?: string
+          user_id?: string
+          user_service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bundle_items_user_bundle_id_fkey"
+            columns: ["user_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bundle_items_user_service_id_fkey"
+            columns: ["user_service_id"]
+            isOneToOne: false
+            referencedRelation: "user_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_bundles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          platform: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          platform?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          platform?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_provider_accounts: {
+        Row: {
+          api_key_ciphertext: string
+          api_key_hint: string | null
+          api_url: string
+          balance_cached: number | null
+          balance_currency: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          last_test_error: string | null
+          last_test_ok: boolean | null
+          last_tested_at: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_ciphertext: string
+          api_key_hint?: string | null
+          api_url: string
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_ciphertext?: string
+          api_key_hint?: string | null
+          api_url?: string
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1404,6 +1600,78 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_services: {
+        Row: {
+          cancel_allowed: boolean
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          max_quantity: number
+          min_quantity: number
+          name: string
+          provider_service_id: string
+          rate: number
+          raw: Json | null
+          refill: boolean
+          type: string | null
+          updated_at: string
+          user_id: string
+          user_provider_account_id: string
+        }
+        Insert: {
+          cancel_allowed?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          min_quantity?: number
+          name: string
+          provider_service_id: string
+          rate?: number
+          raw?: Json | null
+          refill?: boolean
+          type?: string | null
+          updated_at?: string
+          user_id: string
+          user_provider_account_id: string
+        }
+        Update: {
+          cancel_allowed?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          min_quantity?: number
+          name?: string
+          provider_service_id?: string
+          rate?: number
+          raw?: Json | null
+          refill?: boolean
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+          user_provider_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_services_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_services_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wallets: {
         Row: {
@@ -1578,6 +1846,54 @@ export type Database = {
           is_active?: boolean | null
           name?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_provider_accounts_safe: {
+        Row: {
+          api_key_hint: string | null
+          api_url: string | null
+          balance_cached: number | null
+          balance_currency: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          last_test_error: string | null
+          last_test_ok: boolean | null
+          last_tested_at: string | null
+          name: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key_hint?: string | null
+          api_url?: string | null
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key_hint?: string | null
+          api_url?: string | null
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
