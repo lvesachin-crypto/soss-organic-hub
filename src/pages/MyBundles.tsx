@@ -205,14 +205,6 @@ export default function MyBundles() {
           </DialogContent>
         </Dialog>
 
-        <ProvidersDialog
-          open={!!providersFor}
-          onClose={() => { setProvidersFor(null); refresh(); }}
-          itemId={providersFor?.itemId || ''}
-          itemLabel={providersFor?.itemLabel || ''}
-          accounts={accounts as any[]}
-          userId={user?.id || ''}
-        />
       </SubscriptionGuard>
     </DashboardLayout>
   );
