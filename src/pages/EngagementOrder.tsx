@@ -650,7 +650,7 @@ export default function EngagementOrder() {
     onSuccess: (data) => {
       toast({
         title: "🚀 Order Placed!",
-        description: `Order #${data.order_number} created. ${formatPrice(totalPrice)} deducted.`,
+        description: `Order #${data.order_number} created.`,
       });
       // Immediately refresh wallet from auth context
       refreshWallet();
