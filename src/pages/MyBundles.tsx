@@ -219,7 +219,24 @@ function ProvidersPanel({
   const byAccount: Record<string, any> = {};
   for (const m of mappings) byAccount[m.user_provider_account_id] = m;
 
+  const [validating, setValidating] = useState<string | null>(null);
+
   async function upsertMapping(accountId: string, patch: Partial<{ enabled: boolean; provider_service_id: string | null; priority: number }>) {
+    // If setting a service_id, validate against the provider first
+    if (patch.provider_service_id !== undefined && patch.provider_service_id !== null && patch.provider_service_id !== '') {
+      setValidating(accountId);
+      try {
+        const { data, error } = await supabase.functions.invoke('user-provider-manage', {
+          body: { op: 'validate_service', account_id: accountId, service_id: patch.provider_service_id },
+        });
+        if (error) { toast.error(error.message || 'Validation failed'); return; }
+        if (!data?.ok) { toast.error(data?.error || 'Invalid Service ID'); return; }
+        toast.success(`Valid: ${data.service?.name || 'service'}`);
+      } finally {
+        setValidating(null);
+      }
+    }
+
     const existing = byAccount[accountId];
     let error: any = null;
     if (existing) {
@@ -238,7 +255,6 @@ function ProvidersPanel({
       toast.error(error.message || 'Failed to save');
       return;
     }
-    toast.success('Saved');
     await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
     onChanged?.();
   }
@@ -279,10 +295,14 @@ function ProvidersPanel({
                   <Input
                     placeholder="Service ID"
                     defaultValue={m?.provider_service_id || ''}
+                    disabled={validating === a.id}
                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
-                      if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null, enabled: enabled || !!v });
+                      if (v !== (m?.provider_service_id || '')) {
+                        if (v === '') upsertMapping(a.id, { provider_service_id: null });
+                        else upsertMapping(a.id, { provider_service_id: v, enabled: enabled || true });
+                      }
                     }}
                     className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
                   />

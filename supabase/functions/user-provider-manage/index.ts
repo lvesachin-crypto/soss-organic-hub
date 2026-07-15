@@ -153,7 +153,34 @@ Deno.serve(async (req) => {
       return json({ imported: rows.length });
     }
 
-    // ---- PLACE ORDER using user's provider ----
+    // ---- VALIDATE service id against provider ----
+    if (op === 'validate_service') {
+      const account_id = String(body.account_id || '');
+      const service_id = String(body.service_id || '').trim();
+      if (!account_id || !service_id) return json({ error: 'account_id and service_id required' }, 400);
+      if (!/^\d+$/.test(service_id)) return json({ ok: false, error: 'Service ID must be numeric' }, 200);
+
+      const { data: prov } = await admin.from('user_provider_accounts').select('*').eq('id', account_id).eq('user_id', user.id).maybeSingle();
+      if (!prov) return json({ ok: false, error: 'Provider account not found' }, 200);
+
+      // 1. Check cached user_services first (fast path)
+      const { data: cached } = await admin.from('user_services')
+        .select('id, name, rate, min_quantity, max_quantity')
+        .eq('user_provider_account_id', account_id)
+        .eq('provider_service_id', service_id)
+        .maybeSingle();
+      if (cached) return json({ ok: true, service: cached });
+
+      // 2. Live lookup against panel (fallback)
+      const key = await decrypt(prov.api_key_ciphertext);
+      const list = await callPanel(prov.api_url, key, 'services').catch((e) => ({ error: String(e.message || e) }));
+      if (!Array.isArray(list)) return json({ ok: false, error: list?.error || 'Provider did not return services list' }, 200);
+      const match = list.find((s: any) => String(s.service ?? s.id ?? '') === service_id);
+      if (!match) return json({ ok: false, error: `Service ID ${service_id} not found on this provider` }, 200);
+      return json({ ok: true, service: { name: String(match.name || 'Unnamed'), rate: Number(match.rate || 0), min_quantity: Number(match.min || 1), max_quantity: Number(match.max || 1000000) } });
+    }
+
+
     if (op === 'place_order') {
       const service_id = String(body.user_service_id || '');
       const link = String(body.link || '').trim();
