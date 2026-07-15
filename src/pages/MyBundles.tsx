@@ -219,7 +219,24 @@ function ProvidersPanel({
   const byAccount: Record<string, any> = {};
   for (const m of mappings) byAccount[m.user_provider_account_id] = m;
 
+  const [validating, setValidating] = useState<string | null>(null);
+
   async function upsertMapping(accountId: string, patch: Partial<{ enabled: boolean; provider_service_id: string | null; priority: number }>) {
+    // If setting a service_id, validate against the provider first
+    if (patch.provider_service_id !== undefined && patch.provider_service_id !== null && patch.provider_service_id !== '') {
+      setValidating(accountId);
+      try {
+        const { data, error } = await supabase.functions.invoke('user-provider-manage', {
+          body: { op: 'validate_service', account_id: accountId, service_id: patch.provider_service_id },
+        });
+        if (error) { toast.error(error.message || 'Validation failed'); return; }
+        if (!data?.ok) { toast.error(data?.error || 'Invalid Service ID'); return; }
+        toast.success(`Valid: ${data.service?.name || 'service'}`);
+      } finally {
+        setValidating(null);
+      }
+    }
+
     const existing = byAccount[accountId];
     let error: any = null;
     if (existing) {
@@ -238,7 +255,6 @@ function ProvidersPanel({
       toast.error(error.message || 'Failed to save');
       return;
     }
-    toast.success('Saved');
     await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
     onChanged?.();
   }
