@@ -70,9 +70,10 @@ html { font-size: 16px; }
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background:
-      radial-gradient(1200px 600px at 10% -10%, hsl(224 60% 20% / 0.35), transparent 60%),
-      radial-gradient(1000px 500px at 110% 20%, hsl(260 60% 22% / 0.28), transparent 60%),
+      radial-gradient(1200px 600px at 10% -10%, hsl(224 90% 80% / 0.22), transparent 60%),
+      radial-gradient(1000px 500px at 110% 20%, hsl(260 80% 82% / 0.20), transparent 60%),
       hsl(var(--background));
+
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
