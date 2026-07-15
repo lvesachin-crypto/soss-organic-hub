@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './Sidebar';
-import logo from '@/assets/logo.jpg';
+import logo from '@/assets/logo.png';
 
 export function MobileBottomNav() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
