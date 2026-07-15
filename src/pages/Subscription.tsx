@@ -213,29 +213,29 @@ export default function Subscription() {
                   ) : (
                     <div className="space-y-2">
                       <Button
-                        className="w-full"
+                        className="w-full whitespace-normal h-auto min-h-10 py-2 px-3 text-xs sm:text-sm"
                         onClick={() => payWith('oxapay', plan)}
                         disabled={payingPlan !== null}
                       >
                         {payingPlan === plan.plan_type + ':oxapay' ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          <Loader2 className="w-4 h-4 animate-spin mr-2 shrink-0" />
                         ) : (
-                          <CreditCard className="w-4 h-4 mr-2" />
+                          <CreditCard className="w-4 h-4 mr-2 shrink-0" />
                         )}
-                        Pay with Crypto (OxaPay)
+                        <span className="truncate">Pay with Crypto (OxaPay)</span>
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full"
+                        className="w-full whitespace-normal h-auto min-h-10 py-2 px-3 text-xs sm:text-sm"
                         onClick={() => payWith('zapupi', plan)}
                         disabled={payingPlan !== null}
                       >
                         {payingPlan === plan.plan_type + ':zapupi' ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          <Loader2 className="w-4 h-4 animate-spin mr-2 shrink-0" />
                         ) : (
-                          <CreditCard className="w-4 h-4 mr-2" />
+                          <CreditCard className="w-4 h-4 mr-2 shrink-0" />
                         )}
-                        Pay with UPI (ZapUPI)
+                        <span className="truncate">Pay with UPI (ZapUPI)</span>
                       </Button>
                       <a
                         href="https://t.me/Organicsmmcashier"
