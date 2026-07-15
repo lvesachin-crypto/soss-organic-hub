@@ -310,7 +310,7 @@ export default function AdminProviderAccounts() {
                       onChange={(e) => setFormData(prev => ({ ...prev, provider_id: e.target.value }))}
                       required
                     />
-                    <p className="text-xs text-muted-foreground">Koi bhi custom provider ID likh sakte ho</p>
+                    <p className="text-xs text-muted-foreground">You can enter any custom provider ID</p>
                   </div>
                   
                   <div className="space-y-2">
