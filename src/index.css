@@ -147,9 +147,10 @@ html { font-size: 16px; }
   }
   .nav-link-active {
     @apply text-foreground;
-    background: linear-gradient(180deg, hsl(224 60% 20% / 0.4), hsl(224 60% 15% / 0.3));
+    background: linear-gradient(180deg, hsl(224 90% 92%), hsl(224 90% 96%));
     border: 1px solid hsl(var(--primary) / 0.35);
   }
+
 
   .input-3d {
     @apply bg-secondary border-border rounded-xl font-medium transition-all text-foreground;
