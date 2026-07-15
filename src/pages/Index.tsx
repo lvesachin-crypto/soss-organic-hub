@@ -407,6 +407,146 @@ const Index = () => {
           </div>
         </section>
 
+        {/* ═══════════ PRICING ═══════════ */}
+        <section id="pricing" className="py-20 px-4 sm:px-6" style={{ background: C.cream2 }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-14">
+              <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-4"
+                style={{ background: '#FFE3F0', color: C.pink, border: `1px solid ${C.pink}33` }}>
+                Pricing
+              </span>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight" style={{ color: C.navy }}>
+                Simple, honest pricing
+              </h2>
+              <p className="mt-4 text-[15px] max-w-xl mx-auto" style={{ color: C.mute }}>
+                One flat fee. Add your own providers, run unlimited orders, keep 100% of the margin.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  name: 'Monthly',
+                  price: '$39',
+                  period: '/month',
+                  tag: null as string | null,
+                  desc: 'Perfect to test the waters.',
+                  features: [
+                    'Unlimited providers & bundles',
+                    'Full Engagement + Mass Order',
+                    'AI Intelligence assistant',
+                    'Multi-provider rotation',
+                    'Priority email support',
+                  ],
+                  cta: 'Start Monthly',
+                  featured: false,
+                },
+                {
+                  name: 'Yearly',
+                  price: '$99',
+                  period: '/year',
+                  tag: 'Save 78%',
+                  desc: 'Best value for growing resellers.',
+                  features: [
+                    'Everything in Monthly',
+                    'Save $369 vs monthly',
+                    'Early access to new features',
+                    'Advanced order analytics',
+                    'Priority chat support',
+                  ],
+                  cta: 'Start Yearly',
+                  featured: true,
+                },
+                {
+                  name: 'Lifetime',
+                  price: '$199',
+                  period: 'one-time',
+                  tag: 'Best deal',
+                  desc: 'Pay once, own it forever.',
+                  features: [
+                    'Everything in Yearly',
+                    'Lifetime updates included',
+                    'No renewals — ever',
+                    'VIP support channel',
+                    'Founder pricing locked in',
+                  ],
+                  cta: 'Get Lifetime',
+                  featured: false,
+                },
+              ].map((p) => (
+                <div
+                  key={p.name}
+                  className="relative rounded-3xl p-7 flex flex-col transition hover:-translate-y-1"
+                  style={{
+                    background: p.featured ? C.navy : C.white,
+                    color: p.featured ? C.white : C.ink,
+                    border: p.featured ? `1px solid ${C.navy}` : '1px solid rgba(14,27,77,0.08)',
+                    boxShadow: p.featured
+                      ? '0 30px 60px -20px rgba(232,48,138,0.35)'
+                      : '0 10px 30px -15px rgba(14,27,77,0.15)',
+                  }}
+                >
+                  {p.tag && (
+                    <span
+                      className="absolute -top-3 right-6 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase"
+                      style={{ background: C.pink, color: C.white, boxShadow: '0 6px 20px rgba(232,48,138,0.45)' }}
+                    >
+                      {p.tag}
+                    </span>
+                  )}
+
+                  <div className="mb-5">
+                    <div
+                      className="text-[12px] font-bold uppercase tracking-widest mb-2"
+                      style={{ color: p.featured ? C.pink2 : C.pink }}
+                    >
+                      {p.name}
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-5xl font-black tracking-tight">{p.price}</span>
+                      <span className="text-sm font-medium" style={{ color: p.featured ? 'rgba(255,255,255,0.65)' : C.mute }}>
+                        {p.period}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-[13px]" style={{ color: p.featured ? 'rgba(255,255,255,0.75)' : C.mute }}>
+                      {p.desc}
+                    </p>
+                  </div>
+
+                  <ul className="space-y-3 mb-7 flex-1">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-[14px]">
+                        <CheckCircle2
+                          className="w-[18px] h-[18px] flex-shrink-0 mt-0.5"
+                          style={{ color: p.featured ? C.pink2 : C.pink }}
+                        />
+                        <span style={{ color: p.featured ? 'rgba(255,255,255,0.9)' : C.ink }}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link
+                    to="/auth"
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-[14px] font-extrabold transition hover:opacity-90"
+                    style={{
+                      background: p.featured ? C.pink : C.navy,
+                      color: C.white,
+                    }}
+                  >
+                    {p.cta}
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-[13px] mt-10" style={{ color: C.mute }}>
+              Pay with <span className="font-semibold" style={{ color: C.navy }}>UPI (ZapUPI)</span> or{' '}
+              <span className="font-semibold" style={{ color: C.navy }}>Crypto (OxaPay)</span>. Instant activation.
+            </p>
+          </div>
+        </section>
+
         {/* ═══════════ FOOTER ═══════════ */}
         <footer className="mt-8 pt-16 pb-8 px-4 sm:px-6" style={{ background: C.cream2, borderTop: '1px solid rgba(14,27,77,0.08)' }}>
           <div className="max-w-6xl mx-auto">
