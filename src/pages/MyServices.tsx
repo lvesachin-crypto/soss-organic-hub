@@ -91,7 +91,7 @@ export default function MyServices() {
             <div><Label>Link</Label><Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" /></div>
             <div><Label>Quantity</Label><Input type="number" value={qty} min={order?.min} max={order?.max} onChange={(e) => setQty(Number(e.target.value))} /></div>
             <p className="text-xs text-muted-foreground">Range: {order?.min}–{order?.max} · Rate: {order?.rate}/1k</p>
-            <p className="text-[11px] text-blue-700">Order aapki khud ki panel API key se jayega. Wallet se kuch nahi katega.</p>
+            <p className="text-[11px] text-blue-700">The order will be sent using your own panel API key. Nothing is deducted from your wallet.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrder(null)}>Cancel</Button>
