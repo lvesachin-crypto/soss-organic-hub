@@ -1267,6 +1267,90 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          activated: boolean
+          amount_inr: number | null
+          amount_usd: number | null
+          created_at: string
+          id: string
+          order_id: string
+          payment_url: string | null
+          plan_type: string
+          provider: string
+          raw_payload: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated?: boolean
+          amount_inr?: number | null
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          order_id: string
+          payment_url?: string | null
+          plan_type: string
+          provider: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated?: boolean
+          amount_inr?: number | null
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          payment_url?: string | null
+          plan_type?: string
+          provider?: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          duration_days: number | null
+          is_active: boolean
+          label: string
+          plan_type: string
+          price_inr: number
+          price_usd: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_days?: number | null
+          is_active?: boolean
+          label: string
+          plan_type: string
+          price_inr: number
+          price_usd: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_days?: number | null
+          is_active?: boolean
+          label?: string
+          plan_type?: string
+          price_inr?: number
+          price_usd?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscription_requests: {
         Row: {
           admin_notes: string | null
@@ -1910,6 +1994,10 @@ export type Database = {
       }
     }
     Functions: {
+      activate_subscription_from_payment: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       admin_ban_user_and_cancel: {
         Args: { p_reason?: string; p_target_user_id: string }
         Returns: Json
@@ -1983,6 +2071,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      has_active_subscription: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Package, Plus, Trash2 } from 'lucide-react';
+import { SubscriptionGuard } from '@/components/subscription/SubscriptionGuard';
 
 const ENGAGEMENT_TYPES = ['views', 'likes', 'comments', 'shares', 'followers', 'saves'];
 
@@ -70,6 +71,7 @@ export default function MyBundles() {
   return (
     <DashboardLayout>
       <PageMeta title="My Bundles" description="Create engagement bundles from your own services." canonicalPath="/my-bundles" noIndex />
+      <SubscriptionGuard>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
@@ -155,6 +157,7 @@ export default function MyBundles() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </SubscriptionGuard>
     </DashboardLayout>
   );
 }

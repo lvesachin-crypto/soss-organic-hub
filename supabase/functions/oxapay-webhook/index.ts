@@ -79,6 +79,30 @@ Deno.serve(async (req) => {
     return new Response('ok', { status: 200 })
   }
 
+  // ── Subscription payment routing (order_id starts with 'SUB_OXP_') ──
+  if (orderId && orderId.startsWith('SUB_OXP_')) {
+    const { data: subPay } = await admin.from('subscription_payments')
+      .select('id, user_id, plan_type, activated').eq('order_id', orderId).maybeSingle()
+    if (!subPay) {
+      await admin.from('oxapay_webhook_events').update({ processed: true, notes: 'unknown_sub_order' }).eq('event_hash', eventHash)
+      return new Response('ok', { status: 200 })
+    }
+    const isPaidSub = status && ['paid', 'confirmed', 'completed', 'success'].includes(status)
+    await admin.from('subscription_payments').update({
+      raw_payload: payload,
+      status: isPaidSub ? 'paid' : (status || 'pending'),
+    }).eq('order_id', orderId)
+    let subResult: any = null
+    if (isPaidSub && !subPay.activated) {
+      const { data, error } = await admin.rpc('activate_subscription_from_payment', { p_order_id: orderId })
+      subResult = error ? { error: error.message } : data
+    }
+    await admin.from('oxapay_webhook_events').update({
+      processed: true, credit_result: { subscription: subResult, order_id: orderId },
+    }).eq('event_hash', eventHash)
+    return new Response('ok', { status: 200 })
+  }
+
   // ── Ownership check: order_id MUST exist in THIS project's oxapay_deposits ──
   // Prevents cross-project webhook confusion: even if another site's OxaPay merchant
   // (same API key) somehow POSTs here, we only credit orders we ourselves created.
