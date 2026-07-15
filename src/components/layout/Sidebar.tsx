@@ -154,13 +154,6 @@ export function Sidebar({ onClose }: SidebarProps) {
         )}
       </nav>
 
-      {/* Currency (static — provider balance is source of truth now) */}
-      <div className="px-3 pb-2">
-        <div className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-[11px] font-medium bg-secondary/50 border border-border text-muted-foreground">
-          <span className="lux-mono">US :USD</span>
-          <span className="opacity-60">$</span>
-        </div>
-      </div>
 
       {/* Telegram */}
       <div className="px-3 pb-2">
