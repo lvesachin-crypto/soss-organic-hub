@@ -711,12 +711,6 @@ export default function AdminUsers() {
                         <h3 className="font-semibold truncate">
                           {u.full_name || 'Unnamed'}
                         </h3>
-                        {u.role === 'admin' && (
-                          <Badge className="bg-foreground/20 text-foreground text-[10px] h-5">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Admin
-                          </Badge>
-                        )}
                         {u.is_banned && (
                           <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px] h-5">
                             <Ban className="h-3 w-3 mr-1" />
@@ -728,6 +722,12 @@ export default function AdminUsers() {
                         <Mail className="h-3 w-3" />
                         {u.email}
                       </p>
+                      {u.created_at && (
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Clock className="h-3 w-3" />
+                          Signed up {formatDistanceToNow(new Date(u.created_at), { addSuffix: true })}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -745,26 +745,6 @@ export default function AdminUsers() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-3 p-3 rounded-xl bg-muted/50">
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-success">
-                        ₹{((u.wallet?.balance || 0) * 90).toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Balance</p>
-                    </div>
-                    <div className="text-center border-x border-border">
-                      <p className="text-lg font-bold">
-                        ₹{((u.wallet?.total_spent || 0) * 90).toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Spent</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-lg font-bold text-primary">
-                        ₹{((u.wallet?.total_deposited || 0) * 90).toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Deposited</p>
-                    </div>
-                  </div>
 
                   {/* Order Count Badge */}
                   {(hasActiveOrders(u) || hasPausedOrders(u)) && (
