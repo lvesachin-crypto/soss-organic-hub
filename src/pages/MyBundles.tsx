@@ -29,7 +29,7 @@ export default function MyBundles() {
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [platform, setPlatform] = useState('instagram');
-  const [providersFor, setProvidersFor] = useState<{ itemId: string; itemLabel: string } | null>(null);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   const { data: bundles = [] } = useQuery({
     queryKey: ['user-bundles', user?.id],
