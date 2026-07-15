@@ -169,6 +169,7 @@ export default function MassOrder() {
       <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
 
       <div className="max-w-6xl mx-auto space-y-6">
+        {showBundleBanner && <NoBundleBanner message="Bulk order submit karne ke liye pehle apna provider add karke ek bundle banao. Tab tak niche form dikhega but submit block rahega." />}
         {/* Header */}
         <div className="glass-card p-6">
           <div className="flex items-start gap-4">
