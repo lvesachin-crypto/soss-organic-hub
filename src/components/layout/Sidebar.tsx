@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Package, Wallet, ListOrdered, Settings, LifeBuoy, Shield, LogOut, Rocket, Sparkles, X, ChevronDown, Code2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Wallet, ListOrdered, Settings, LifeBuoy, Shield, LogOut, Rocket, Sparkles, X, ChevronDown, Code2, Server, ListChecks } from 'lucide-react';
 import logo from '@/assets/logo.jpg';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrency, CURRENCIES } from '@/hooks/useCurrency';
