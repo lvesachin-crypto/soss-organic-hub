@@ -119,7 +119,7 @@ export default function AIIntelligence() {
       <PageMeta title="Boostly AI Chat" description="Chat with AI for organic engagement strategy" canonicalPath="/ai-intelligence" noIndex />
 
       <div className="max-w-4xl mx-auto space-y-4 flex flex-col h-[calc(100vh-8rem)]">
-        {showBundleBanner && <NoBundleBanner message="AI aap ke bundle ki services aur pricing use karta hai. Bundle ke bina suggestions accurate nahi honge." />}
+        {showBundleBanner && <NoBundleBanner message="The AI uses the services and pricing from your bundle. Without a bundle, its suggestions won't be accurate." />}
 
         {/* Header */}
         <div className="glass-card p-4 flex items-center justify-between shrink-0">
