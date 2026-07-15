@@ -179,7 +179,7 @@ export default function AIIntelligence() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder="Boostly AI se puchho… (Enter bhejne ke liye, Shift+Enter new line)"
+              placeholder="Ask Boostly AI… (Enter to send, Shift+Enter for a new line)"
               className="input-3d flex-1 resize-none min-h-[44px] max-h-40"
               disabled={busy}
             />
