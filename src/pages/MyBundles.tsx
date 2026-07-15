@@ -155,15 +155,6 @@ export default function MyBundles() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <Label className="text-xs text-muted-foreground">Qty</Label>
-                                <Input
-                                  type="number"
-                                  defaultValue={it.quantity}
-                                  onBlur={(e) => updateQuantity(it.id, Number(e.target.value))}
-                                  className="w-24 h-8"
-                                />
-                              </div>
                               <Button size="sm" variant="outline" onClick={() => setProvidersFor({ itemId: it.id, itemLabel: `${b.platform} ${it.engagement_type}` })}>
                                 <Globe className="w-3.5 h-3.5 mr-1" /> Providers
                               </Button>
