@@ -229,10 +229,16 @@ export default function EngagementOrder() {
     if (!bundles || bundles.length === 0) return [];
     const bundle = bundles[0];
     if (!bundle?.items) return [];
-    // Return unique engagement types sorted by preferred order
-    const types = bundle.items
-      .map(item => item.engagement_type as EngagementType);
-    const uniqueTypes = [...new Set(types)];
+    const adminTypes = bundle.items.map(item => item.engagement_type as EngagementType);
+
+    // Intersect with user's own bundle types for the selected platform.
+    // Without a user bundle for this platform → no types visible.
+    const allowed = userPlatformTypes[platform];
+    const filtered = allowed
+      ? adminTypes.filter(t => allowed.has(t))
+      : [];
+
+    const uniqueTypes = [...new Set(filtered)];
 
     const PREFERRED_ORDER: Record<string, number> = {
       views: 1,
@@ -244,7 +250,7 @@ export default function EngagementOrder() {
     };
 
     return uniqueTypes.sort((a, b) => (PREFERRED_ORDER[a] || 99) - (PREFERRED_ORDER[b] || 99));
-  }, [bundles]);
+  }, [bundles, userPlatformTypes, platform]);
 
   // Base per-type quantities (used as "100%" reference for draw-mode scaling)
   // Use debounced value for expensive calculations
