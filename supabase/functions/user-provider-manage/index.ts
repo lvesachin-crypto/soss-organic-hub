@@ -44,6 +44,10 @@ async function callPanel(api_url: string, api_key: string, action: string, extra
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
+    if (!KEY_SECRET) { console.error('PROVIDER_KEY_SECRET missing'); return json({ error: 'server misconfigured: PROVIDER_KEY_SECRET missing' }, 500); }
+    if (!SERVICE_ROLE) { console.error('SERVICE_ROLE missing'); return json({ error: 'server misconfigured: SERVICE_ROLE missing' }, 500); }
+    if (!ANON) { console.error('ANON missing'); return json({ error: 'server misconfigured: ANON key missing' }, 500); }
+
     const authHeader = req.headers.get('Authorization') || '';
     const jwt = authHeader.replace('Bearer ', '');
     if (!jwt) return json({ error: 'unauthorized' }, 401);
@@ -56,6 +60,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
     const body = await req.json().catch(() => ({}));
     const op = String(body?.op || '');
+    console.log(`[user-provider-manage] op=${op} user=${user.id}`);
 
     // ---- CREATE ----
     if (op === 'create') {
@@ -68,7 +73,12 @@ Deno.serve(async (req) => {
       // test first
       const test = await callPanel(api_url, api_key, 'balance').catch((e) => ({ error: String(e.message || e) }));
       const ok = !test?.error && (test?.balance !== undefined);
-      const ciphertext = await encrypt(api_key);
+      console.log(`[user-provider-manage] create test ok=${ok} err=${test?.error ?? ''}`);
+      let ciphertext: string;
+      try { ciphertext = await encrypt(api_key); } catch (e: any) {
+        console.error('encrypt failed', e);
+        return json({ error: 'encryption failed: ' + String(e?.message || e) }, 500);
+      }
       const hint = api_key.slice(-4);
 
       const { data, error } = await admin.from('user_provider_accounts').insert({
@@ -81,7 +91,10 @@ Deno.serve(async (req) => {
         last_test_ok: ok,
         last_test_error: ok ? null : String(test?.error || 'Unknown'),
       }).select('id').single();
-      if (error) return json({ error: error.message }, 400);
+      if (error) {
+        console.error('insert failed', JSON.stringify(error));
+        return json({ error: error.message, details: (error as any).details, hint: (error as any).hint, code: (error as any).code }, 400);
+      }
       return json({ id: data.id, ok, test });
     }
 
