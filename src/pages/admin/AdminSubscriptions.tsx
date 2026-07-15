@@ -257,7 +257,9 @@ export default function AdminSubscriptions() {
       if (action === 'approve') {
         const expiresAt = request.plan_type === 'monthly'
           ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          : null;
+          : request.plan_type === 'yearly'
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+            : null;
 
         const { error: subError } = await supabase
           .from('subscriptions')
