@@ -309,7 +309,7 @@ export default function MassOrder() {
                       {activeTypes.map(t => (
                         <span key={t} className="text-foreground">
                           <span className="capitalize text-muted-foreground">{t}:</span>{' '}
-                          <b>{Math.round(r.base_quantity * (RATIOS[t] || 0)).toLocaleString()}</b>
+                          <b>{(r.qty[t] ?? Math.round(r.base_quantity * (RATIOS[t] || 0))).toLocaleString()}</b>
                         </span>
                       ))}
                     </div>
