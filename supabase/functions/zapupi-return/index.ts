@@ -1,6 +1,6 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
-const FALLBACK_RETURN_URL = 'https://extipspanel.com/wallet'
+const FALLBACK_RETURN_URL = 'https://boostlypro.com/wallet'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -46,7 +46,7 @@ function safeWalletUrl(value: string | null) {
     const url = new URL(value || FALLBACK_RETURN_URL)
     const host = url.hostname.toLowerCase()
     const allowedHost =
-      host === 'extipspanel.com' ||
+      host === 'boostlypro.com' ||
       host === 'sologrow-pro.lovable.app' ||
       (host.startsWith('id-preview--') && host.endsWith('.lovable.app')) ||
       host === 'localhost' ||

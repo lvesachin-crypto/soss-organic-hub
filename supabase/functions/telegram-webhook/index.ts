@@ -125,7 +125,7 @@ async function handleCommand(cmd: string, chatId: number) {
     await tg("sendMessage", {
       chat_id: chatId,
       parse_mode: "HTML",
-      text: `👋 <b>Extips Panel Admin Bot</b>\n\nAvailable commands:\n\n/balance - Check live balance of all providers\n/help - Show this message`,
+      text: `👋 <b>Boostly Pro Admin Bot</b>\n\nAvailable commands:\n\n/balance - Check live balance of all providers\n/help - Show this message`,
     });
   } else {
     await tg("sendMessage", {
