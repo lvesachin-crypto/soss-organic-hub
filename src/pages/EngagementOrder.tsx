@@ -34,7 +34,7 @@ import {
   curveToSchedule,
   calculateQuantitiesFromCurve,
 } from "@/lib/curve-to-schedule";
-import { Loader2, Rocket, Link as LinkIcon, Wallet, RefreshCw, Brain, Percent, HelpCircle, ArrowDown, Sparkles, Clock, Shuffle, Shield, TrendingUp, Eye, Heart, MessageCircle, Bookmark, Share2 } from "lucide-react";
+import { Loader2, Rocket, Link as LinkIcon, Wallet, RefreshCw, Brain, Percent, HelpCircle, ArrowDown, Sparkles, Clock, Shuffle, Shield, TrendingUp, Eye, Heart, MessageCircle, Bookmark, Share2, Package } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -62,7 +62,7 @@ export default function EngagementOrder() {
   const { formatPrice, rates } = useCurrency();
   // Pricing now comes from bundle_items.price_per_k (admin-controlled per type).
 
-  // Realtime: when admin changes bundle/service pricing, refresh user view instantly.
+  // Realtime: refresh view when admin bundles OR user bundles change.
   useEffect(() => {
     const channel = supabase
       .channel('pricing-sync')
@@ -77,6 +77,12 @@ export default function EngagementOrder() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
         queryClient.invalidateQueries({ queryKey: ['bundles'] });
         queryClient.invalidateQueries({ queryKey: ['all-active-services'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['user-bundles-filter'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundle_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['user-bundles-filter'] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -125,7 +131,37 @@ export default function EngagementOrder() {
   }, []);
 
 
-  // Fetch ALL active bundles WITH items to know which platforms are available
+  // Fetch USER's own bundles + items (drives which platforms/types are visible)
+  const { data: userBundles, isLoading: userBundlesLoading } = useQuery({
+    queryKey: ['user-bundles-filter', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('user_bundles')
+        .select('id, platform, is_active, items:user_bundle_items(engagement_type)')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
+
+  // Map: platform -> Set of engagement_types user has in their bundle
+  const userPlatformTypes = useMemo<Record<string, Set<string>>>(() => {
+    const map: Record<string, Set<string>> = {};
+    (userBundles ?? []).forEach((b: any) => {
+      if (!b.items || b.items.length === 0) return;
+      if (!map[b.platform]) map[b.platform] = new Set();
+      b.items.forEach((it: any) => map[b.platform].add(it.engagement_type));
+    });
+    return map;
+  }, [userBundles]);
+
+  const hasAnyUserBundle = Object.keys(userPlatformTypes).length > 0;
+
+  // Fetch ALL active admin bundles WITH items (for pricing + service routing)
   const { data: allBundles } = useQuery({
     queryKey: ['all-bundles-with-items'],
     queryFn: async () => {
@@ -143,18 +179,17 @@ export default function EngagementOrder() {
     placeholderData: keepPreviousData,
   });
 
-  // Get unique platforms that have active bundles with engagement items
+  // Available platforms = platforms user has in their own bundle
+  // (admin bundle must also exist for that platform so pricing/services resolve)
   const availablePlatforms = useMemo(() => {
-    console.log('[EngagementOrder] allBundles:', allBundles);
     if (!allBundles) return [];
-    // Show platforms that have at least one bundle with items configured
-    const platforms = allBundles
-      .filter(b => b.items && b.items.length > 0)
-      .map(b => b.platform);
-    const result = [...new Set(platforms)];
-    console.log('[EngagementOrder] availablePlatforms:', result);
-    return result;
-  }, [allBundles]);
+    const adminPlatforms = new Set(
+      allBundles.filter(b => b.items && b.items.length > 0).map(b => b.platform)
+    );
+    const userPlatforms = Object.keys(userPlatformTypes);
+    // Intersection: only platforms present in BOTH user bundle and admin bundle
+    return userPlatforms.filter(p => adminPlatforms.has(p));
+  }, [allBundles, userPlatformTypes]);
 
   // Auto-select first available platform if current selection has no bundles
   useEffect(() => {
@@ -194,10 +229,16 @@ export default function EngagementOrder() {
     if (!bundles || bundles.length === 0) return [];
     const bundle = bundles[0];
     if (!bundle?.items) return [];
-    // Return unique engagement types sorted by preferred order
-    const types = bundle.items
-      .map(item => item.engagement_type as EngagementType);
-    const uniqueTypes = [...new Set(types)];
+    const adminTypes = bundle.items.map(item => item.engagement_type as EngagementType);
+
+    // Intersect with user's own bundle types for the selected platform.
+    // Without a user bundle for this platform → no types visible.
+    const allowed = userPlatformTypes[platform];
+    const filtered = allowed
+      ? adminTypes.filter(t => allowed.has(t))
+      : [];
+
+    const uniqueTypes = [...new Set(filtered)];
 
     const PREFERRED_ORDER: Record<string, number> = {
       views: 1,
@@ -209,7 +250,7 @@ export default function EngagementOrder() {
     };
 
     return uniqueTypes.sort((a, b) => (PREFERRED_ORDER[a] || 99) - (PREFERRED_ORDER[b] || 99));
-  }, [bundles]);
+  }, [bundles, userPlatformTypes, platform]);
 
   // Base per-type quantities (used as "100%" reference for draw-mode scaling)
   // Use debounced value for expensive calculations
@@ -749,9 +790,38 @@ export default function EngagementOrder() {
     placeOrderMutation.mutate();
   };
 
+  // Empty state: user has no bundles → nothing to show
+  if (!userBundlesLoading && !hasAnyUserBundle) {
+    return (
+      <DashboardLayout>
+        <PageMeta title="New Engagement Order" description="Place a natural, AI-organic engagement order." canonicalPath="/engagement-order" noIndex />
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <div className="glass-card border-2 border-dashed border-border rounded-2xl p-10 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <Package className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground mb-2">No bundles yet</h2>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Engagement types wahi dikhenge jo aap ke bundle mein add hain. Pehle apna provider add karo aur ek bundle banao.
+            </p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Button onClick={() => navigate('/my-bundles')} className="btn-3d">
+                <Package className="h-4 w-4 mr-2" /> Create Bundle
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/my-providers')}>
+                Add Provider
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <PageMeta title="New Engagement Order" description="Place a natural, AI-organic engagement order — Instagram, YouTube, or TikTok views, likes, and comments delivered on a real growth curve." canonicalPath="/engagement-order" noIndex />
+
       <div className="max-w-5xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3 sm:space-y-6 pb-8">
         {/* Header with gradient - Compact on mobile */}
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-4 lg:p-5" style={{ background: 'linear-gradient(135deg, #831843, #166534, #2563eb)', boxShadow: '0 8px 32px rgba(190,24,93,.25)' }}>
