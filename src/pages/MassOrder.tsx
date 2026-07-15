@@ -126,6 +126,18 @@ export default function MassOrder() {
     } finally { setSubmitting(false); }
   }
 
+  if (bundles.length === 0) {
+    return (
+      <DashboardLayout>
+        <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
+        <NoBundleEmptyState
+          title="Mass Order ke liye bundle chahiye"
+          description="Bulk orders place karne ke liye pehle apna provider add karo aur ek bundle banao. Uske baad multiple links ek saath submit kar paoge."
+        />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
