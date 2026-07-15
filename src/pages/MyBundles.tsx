@@ -76,7 +76,7 @@ export default function MyBundles() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><Package className="w-6 h-6 text-primary" /> My Bundles</h1>
-            <p className="text-sm text-muted-foreground mt-1">Apne services se engagement bundles banayein. Sirf aap ko dikhenge.</p>
+            <p className="text-sm text-muted-foreground mt-1">Create engagement bundles from your services. Only visible to you.</p>
           </div>
           <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-1" /> New Bundle</Button>
         </div>

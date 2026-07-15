@@ -56,7 +56,7 @@ export default function MyServices() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><ListChecks className="w-6 h-6 text-primary" /> My Services</h1>
-          <p className="text-sm text-muted-foreground mt-1">Ye services aapke apne providers se aayi hain. Order aapki key se hi place hoga.</p>
+          <p className="text-sm text-muted-foreground mt-1">These services come from your own providers. Orders are placed using your API key.</p>
         </div>
         <Input placeholder="Search services…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-md" />
 
@@ -91,7 +91,7 @@ export default function MyServices() {
             <div><Label>Link</Label><Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" /></div>
             <div><Label>Quantity</Label><Input type="number" value={qty} min={order?.min} max={order?.max} onChange={(e) => setQty(Number(e.target.value))} /></div>
             <p className="text-xs text-muted-foreground">Range: {order?.min}–{order?.max} · Rate: {order?.rate}/1k</p>
-            <p className="text-[11px] text-blue-700">Order aapki khud ki panel API key se jayega. Wallet se kuch nahi katega.</p>
+            <p className="text-[11px] text-blue-700">The order will be sent using your own panel API key. Nothing is deducted from your wallet.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrder(null)}>Cancel</Button>

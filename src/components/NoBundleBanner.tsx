@@ -15,9 +15,9 @@ export function NoBundleBanner({ message }: Props) {
           <Package className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-foreground">Bundle abhi tak nahi bana</div>
+          <div className="text-sm font-semibold text-foreground">No bundle created yet</div>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            {message ?? 'Order place karne se pehle apna provider add karke ek bundle banao. Tabhi services & pricing route hongi.'}
+            {message ?? 'Add your provider and create a bundle before placing an order. Services and pricing will only route through your bundle.'}
           </p>
         </div>
       </div>

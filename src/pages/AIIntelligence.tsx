@@ -15,25 +15,25 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 
 const WELCOME: Msg = {
   role: 'assistant',
-  content: `**Namaste! 👋 Main Boostly AI hoon** — aapka personal SMM strategist.
+  content: `**Hi there! 👋 I'm Boostly AI** — your personal SMM strategist.
 
-Aap mujhse kuch bhi puchh sakte ho, jaise ChatGPT ke saath baat karte ho:
+Ask me anything, just like you would ChatGPT:
 
-- 📈 **"Mera Instagram reel viral kaise karu?"**
-- 🎯 **"Is link ke liye best engagement ratio kya hai?"** — bas link paste karo
-- ⏰ **"Kis time post karna best hai India me?"**
-- 🧩 **"Bundle kaise banau, kya ratio rakhu?"**
-- 🛡️ **"Detection risk kaise kam karu?"**
-- 💡 **"Content ideas do trending topics pe"**
+- 📈 **"How can I make my Instagram reel go viral?"**
+- 🎯 **"What's the best engagement ratio for this link?"** — just paste the link
+- ⏰ **"What's the best time to post in India?"**
+- 🧩 **"How should I build a bundle and what ratio should I use?"**
+- 🛡️ **"How can I reduce detection risk?"**
+- 💡 **"Give me content ideas on trending topics"**
 
-**Panel use karne ka simple flow:**
-1. **My Providers** → apna SMM provider add karo (API key)
-2. **Import Services** → provider ki services import karo
-3. **My Bundles** → apna bundle banao (jo types chahiye)
-4. **Full Engagement** ya **Mass Order** → order place karo
-5. **Engagement Orders** → live tracking
+**How to use the panel:**
+1. **My Providers** → add your SMM provider (API key)
+2. **Import Services** → import the provider's services
+3. **My Bundles** → build your bundle with the types you want
+4. **Full Engagement** or **Mass Order** → place the order
+5. **Engagement Orders** → track it live
 
-Chalo shuru karte hain — kya puchhna hai? 🚀`,
+Let's get started — what would you like to ask? 🚀`,
 };
 
 const STORAGE_KEY = 'boostly.ai.chat.v1';
@@ -90,8 +90,8 @@ export default function AIIntelligence() {
       const reply = (data as any)?.reply || (data as any)?.suggestion || 'No response';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (e: any) {
-      if (e.message?.includes('429')) toast.error('Rate limit — thodi der baad try karo');
-      else if (e.message?.includes('402')) toast.error('AI credits khatam — admin ko batayein');
+      if (e.message?.includes('429')) toast.error('Rate limit — please try again in a moment');
+      else if (e.message?.includes('402')) toast.error('AI credits exhausted — please contact admin');
       else toast.error(e.message || 'Failed');
       setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${e.message || 'Failed to respond'}` }]);
     } finally {
@@ -119,7 +119,7 @@ export default function AIIntelligence() {
       <PageMeta title="Boostly AI Chat" description="Chat with AI for organic engagement strategy" canonicalPath="/ai-intelligence" noIndex />
 
       <div className="max-w-4xl mx-auto space-y-4 flex flex-col h-[calc(100vh-8rem)]">
-        {showBundleBanner && <NoBundleBanner message="AI aap ke bundle ki services aur pricing use karta hai. Bundle ke bina suggestions accurate nahi honge." />}
+        {showBundleBanner && <NoBundleBanner message="The AI uses the services and pricing from your bundle. Without a bundle, its suggestions won't be accurate." />}
 
         {/* Header */}
         <div className="glass-card p-4 flex items-center justify-between shrink-0">
@@ -131,7 +131,7 @@ export default function AIIntelligence() {
               <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
                 Boostly AI <Sparkles className="w-4 h-4 text-primary" />
               </h1>
-              <p className="text-xs text-muted-foreground">Aapka personal SMM strategist — kuch bhi puchho</p>
+              <p className="text-xs text-muted-foreground">Your personal SMM strategist — ask me anything</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={reset} className="text-muted-foreground">
@@ -163,7 +163,7 @@ export default function AIIntelligence() {
           {busy && (
             <div className="flex justify-start">
               <div className="bg-muted/40 border border-border/40 rounded-2xl rounded-bl-md px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Boostly AI soch raha hai…
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Boostly AI is thinking…
               </div>
             </div>
           )}
@@ -179,7 +179,7 @@ export default function AIIntelligence() {
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder="Boostly AI se puchho… (Enter bhejne ke liye, Shift+Enter new line)"
+              placeholder="Ask Boostly AI… (Enter to send, Shift+Enter for a new line)"
               className="input-3d flex-1 resize-none min-h-[44px] max-h-40"
               disabled={busy}
             />

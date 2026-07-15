@@ -87,7 +87,7 @@ export default function ApiAccess() {
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">API Access</h1>
                             <p className="text-sm text-zinc-400 mt-1 max-w-xl">
-                                Apna API key generate karein aur ise apne panel mein use karein — same services, same rates.
+                                Generate your API key and use it in your own panel — same services, same rates.
                             </p>
                         </div>
                     </div>
@@ -125,7 +125,7 @@ export default function ApiAccess() {
 
                             <div className="flex items-center gap-2 text-xs text-zinc-500 px-1">
                                 <Shield className="h-3.5 w-3.5 text-amber-500/80" />
-                                <span>Yeh key secret rakhein. Kisi ke saath share mat karein.</span>
+                                <span>Keep this key secret. Do not share it with anyone.</span>
                             </div>
 
                             <Button
@@ -149,8 +149,8 @@ export default function ApiAccess() {
                                 <Key className="h-7 w-7 text-zinc-600" />
                             </div>
                             <div>
-                                <p className="text-white font-medium">Abhi tak koi API Key nahi hai</p>
-                                <p className="text-sm text-zinc-500 mt-1">Neeche button se generate karein</p>
+                                <p className="text-white font-medium">No API key yet</p>
+                                <p className="text-sm text-zinc-500 mt-1">Generate one using the button below</p>
                             </div>
                             <Button
                                 onClick={handleGenerateKey}
@@ -196,7 +196,7 @@ export default function ApiAccess() {
                     <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
                         <AlertCircle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                         <p className="text-xs text-amber-200/70">
-                            Saare requests ko <code className="bg-amber-500/10 px-1 py-0.5 rounded text-amber-300">POST</code> method se bhejein aur body mein <code className="bg-amber-500/10 px-1 py-0.5 rounded text-amber-300">key</code> field zaroori hai.
+                            Send all requests using the <code className="bg-amber-500/10 px-1 py-0.5 rounded text-amber-300">POST</code> method and include the <code className="bg-amber-500/10 px-1 py-0.5 rounded text-amber-300">key</code> field in the body.
                         </p>
                     </div>
 
@@ -207,7 +207,7 @@ export default function ApiAccess() {
                             method="POST"
                             action="services"
                             label="Services List"
-                            description="Sare available services aur unke rates dekkhein"
+                            description="View all available services and their rates"
                             request={`{\n  "key": "YOUR_API_KEY",\n  "action": "services"\n}`}
                             response={`{\n  "status": "ok",\n  "services": [\n    {\n      "service": 1001,\n      "name": "Instagram Followers",\n      "category": "Instagram",\n      "rate": "0.50",\n      "min": 100,\n      "max": 50000\n    }\n  ]\n}`}
                             onCopyRequest={() =>
@@ -221,7 +221,7 @@ export default function ApiAccess() {
                             method="POST"
                             action="add"
                             label="Place Order"
-                            description="Naya order place karein (wallet se amount deduct hoga)"
+                            description="Place a new order (amount will be deducted from your wallet)"
                             request={`{\n  "key": "YOUR_API_KEY",\n  "action": "add",\n  "service": 1001,\n  "link": "https://instagram.com/p/...",\n  "quantity": 1000\n}`}
                             response={`{\n  "status": "ok",\n  "order": 78432\n}`}
                             onCopyRequest={() =>
@@ -237,7 +237,7 @@ export default function ApiAccess() {
                             method="POST"
                             action="status"
                             label="Order Status"
-                            description="Kisi bhi order ka status check karein"
+                            description="Check the status of any order"
                             request={`{\n  "key": "YOUR_API_KEY",\n  "action": "status",\n  "order": 78432\n}`}
                             response={`{\n  "status": "ok",\n  "order": {\n    "order_number": 78432,\n    "status": "processing",\n    "quantity": 1000,\n    "remains": 250,\n    "service": "Instagram Followers"\n  }\n}`}
                             onCopyRequest={() =>
@@ -253,7 +253,7 @@ export default function ApiAccess() {
                             method="POST"
                             action="balance"
                             label="Check Balance"
-                            description="Apna wallet balance check karein"
+                            description="Check your wallet balance"
                             request={`{\n  "key": "YOUR_API_KEY",\n  "action": "balance"\n}`}
                             response={`{\n  "status": "ok",\n  "balance": "2120.90",\n  "currency": "INR"\n}`}
                             onCopyRequest={() =>

@@ -483,7 +483,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                           {providerStatus === 'pending' && hasProviderOrder && run.provider_remains !== 0 && (
                             <span className="flex items-center gap-2">
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              🔄 Provider ne order receive kar liya, delivery processing hai
+                              🔄 Provider received the order — delivery in progress
                               {run.provider_remains !== null && run.provider_remains !== undefined && (
                                 <span className="text-xs opacity-80">({run.provider_remains} remaining)</span>
                               )}

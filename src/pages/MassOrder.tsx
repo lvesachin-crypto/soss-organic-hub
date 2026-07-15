@@ -113,9 +113,9 @@ export default function MassOrder() {
 
   function preview() {
     const links = parseLinks(raw);
-    if (!links.length) return toast.error('Koi valid link nahi mila');
+    if (!links.length) return toast.error('No valid links found');
     setRows(links.map(l => newRow(l, baseQty, timeframe, allowedTypes)));
-    toast.success(`${links.length} link(s) tayaar`);
+    toast.success(`${links.length} link(s) ready`);
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -142,7 +142,7 @@ export default function MassOrder() {
   }
 
   async function submit() {
-    if (!bundleId) return toast.error('Pehle apna bundle select karo');
+    if (!bundleId) return toast.error('Please select a bundle first');
     if (!rows.length) return toast.error('No rows to submit');
     const items = selectedBundle?.user_bundle_items || [];
     const serviceMap: Record<string, { service_id: string | null; price: number }> = {};
@@ -205,7 +205,7 @@ export default function MassOrder() {
       <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
 
       <div className="max-w-6xl mx-auto space-y-6">
-        {showBundleBanner && <NoBundleBanner message="Bulk order submit karne ke liye pehle apna provider add karke ek bundle banao. Tab tak niche form dikhega but submit block rahega." />}
+        {showBundleBanner && <NoBundleBanner message="To submit bulk orders, first add your provider and create a bundle. The form will remain visible below, but submissions will be blocked until then." />}
         {/* Header */}
         <div className="glass-card p-6">
           <div className="flex items-start gap-4">
@@ -215,7 +215,7 @@ export default function MassOrder() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Mass Order <span className="text-muted-foreground font-normal">— Bulk Engagement</span></h1>
               <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Multiple links ek saath order karo. Paste karo ya CSV/TXT file upload karo, har link customize karo, batch me submit karo aur history me track karo.
+                Order multiple links at once. Paste them or upload a CSV/TXT file, customize each link, submit in a batch, and track everything in history.
               </p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function MassOrder() {
         <div className="glass-card p-6 space-y-5">
           <div className="flex items-center gap-3">
             <Package className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Apna Bundle</h2>
+            <h2 className="text-lg font-semibold">Your Bundle</h2>
           </div>
           <select
             className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-foreground"
@@ -240,7 +240,7 @@ export default function MassOrder() {
             ))}
           </select>
           {bundles.length === 0 && (
-            <p className="text-xs text-warning">Pehle <a href="/my-bundles" className="underline">My Bundles</a> me ek bundle banao.</p>
+            <p className="text-xs text-warning">First create a bundle in <a href="/my-bundles" className="underline">My Bundles</a>.</p>
           )}
 
           <div>
@@ -282,7 +282,7 @@ export default function MassOrder() {
               </div>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">Defaults sirf naye links par apply hote hain. Existing rows ko edit karke per-link override karo.</p>
+          <p className="text-[11px] text-muted-foreground">Defaults apply only to new links. Edit existing rows to override per-link values.</p>
         </div>
 
         {/* Links input */}
@@ -297,7 +297,7 @@ export default function MassOrder() {
           <Textarea
             rows={7}
             className="input-3d font-mono text-[13px]"
-            placeholder={`Ek line par ek link.\nhttps://instagram.com/p/abc\nhttps://instagram.com/p/xyz\n\nYa CSV upload karo (first column = link).`}
+            placeholder={`One link per line.\nhttps://instagram.com/p/abc\nhttps://instagram.com/p/xyz\n\nOr upload a CSV (first column = link).`}
             value={raw}
             onChange={e => setRaw(e.target.value)}
           />
@@ -383,7 +383,7 @@ export default function MassOrder() {
                       setEditing({ ...editing, base_quantity: b, qty: defaultQty(b) });
                     }}
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1">Base badloge to har type ka default qty auto-adjust hoga.</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Changing the base will auto-adjust the default quantity for every type.</p>
                 </div>
                 <div>
                   <Label>Timeframe</Label>
@@ -411,7 +411,7 @@ export default function MassOrder() {
               </div>
               <div>
                 <Label>Engagement Types & Quantities</Label>
-                <p className="text-[11px] text-muted-foreground mt-1">Har type ke liye alag quantity set karo. Sirf enable kiye hue types submit honge.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Set a separate quantity for each type. Only enabled types will be submitted.</p>
                 <div className="mt-2 space-y-2">
                   {(allowedTypes.length ? allowedTypes : ALL_TYPES).map(t => {
                     const on = !!editing.types[t];

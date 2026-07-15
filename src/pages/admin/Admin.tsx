@@ -183,7 +183,7 @@ export default function Admin() {
                     <Badge className="bg-accent text-accent-foreground text-[10px]">MANUAL GRANT</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Kisi bhi user ke Gmail pe manual subscription enable karo — Monthly / Yearly / Lifetime. OxaPay + ZapUPI auto-payments bhi yahi se track hote hain.
+                    Manually enable a subscription on any user's Gmail — Monthly / Yearly / Lifetime. OxaPay and ZapUPI auto-payments are also tracked here.
                   </p>
                 </div>
                 <ArrowUpRight className="h-6 w-6 text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />

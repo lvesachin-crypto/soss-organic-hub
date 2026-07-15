@@ -60,7 +60,7 @@ export default function AdminAuditLog() {
           <div>
             <h1 className="text-2xl font-bold">Admin Audit Log</h1>
             <p className="text-sm text-muted-foreground">
-              Har admin deposit/withdrawal yahaan record hota hai — IP, time, actor sab visible.
+              Every admin deposit/withdrawal is recorded here — IP, time, and actor are all visible.
             </p>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function AdminAuditLog() {
               <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Email, IP, ya action se search karo…"
+                placeholder="Search by email, IP, or action…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -97,7 +97,7 @@ export default function AdminAuditLog() {
 
             {!isLoading && filtered.length === 0 && (
               <p className="text-center text-sm text-muted-foreground py-12">
-                Koi audit record nahi mila.
+                No audit records found.
               </p>
             )}
 

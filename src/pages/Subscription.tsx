@@ -141,7 +141,7 @@ export default function Subscription() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl sm:text-4xl font-bold">Unlock Boostly Pro</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Ek active subscription ke bina provider add / bundle create nahi hoga. Apna plan choose karein.
+            You need an active subscription to add providers or create bundles. Choose your plan below.
           </p>
         </div>
 
@@ -255,8 +255,8 @@ export default function Subscription() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground max-w-xl mx-auto">
-          Payment successful hone ke turant baad subscription auto-activate ho jayegi. Koi issue ho to
-          admin se contact karein — manual activation bhi possible hai.
+          Your subscription auto-activates immediately after a successful payment. If you run into any issue,
+          contact admin — manual activation is also possible.
         </p>
       </div>
 
@@ -266,7 +266,7 @@ export default function Subscription() {
           <DialogHeader>
             <DialogTitle>Request Manual Activation</DialogTitle>
             <DialogDescription>
-              Admin ko contact request bhejein — vo aap se pay ka detail leke manually activate karenge.
+              Send a contact request to admin — they will collect your payment details and activate manually.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
