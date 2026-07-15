@@ -798,7 +798,7 @@ export default function EngagementOrder() {
       <div className="max-w-5xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3 sm:space-y-6 pb-8">
         {showBundleBanner && <NoBundleBanner message="Engagement types will appear once you add services to your bundle. Please create a bundle first." />}
         {/* Header with gradient - Compact on mobile */}
-        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-4 lg:p-5" style={{ background: 'linear-gradient(135deg, #831843, #166534, #2563eb)', boxShadow: '0 8px 32px rgba(190,24,93,.25)' }}>
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-4 lg:p-5" style={{ background: 'linear-gradient(135deg, #0E1B4D 0%, #1E2A6A 50%, #E8308A 100%)', boxShadow: '0 8px 32px rgba(14,27,77,.30)' }}>
           <div className="relative z-10 text-center">
             <div className="inline-flex items-center gap-2 mb-1.5">
               <div className="w-7 h-7 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,.2)', backdropFilter: 'blur(8px)' }}>
