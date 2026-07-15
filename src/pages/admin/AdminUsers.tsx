@@ -722,12 +722,6 @@ export default function AdminUsers() {
                         <Mail className="h-3 w-3" />
                         {u.email}
                       </p>
-                      {u.created_at && (
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(u.created_at), 'MMM d, yyyy')}
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -766,7 +760,13 @@ export default function AdminUsers() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-end mt-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                    {u.created_at ? (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(u.created_at), 'MMM d, yyyy')}
+                      </p>
+                    ) : <span />}
                     <div className="flex gap-1">
 
                       {/* Pause/Resume Button */}
