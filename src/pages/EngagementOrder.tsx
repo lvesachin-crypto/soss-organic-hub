@@ -790,33 +790,7 @@ export default function EngagementOrder() {
     placeOrderMutation.mutate();
   };
 
-  // Empty state: user has no bundles → nothing to show
-  if (!userBundlesLoading && !hasAnyUserBundle) {
-    return (
-      <DashboardLayout>
-        <PageMeta title="New Engagement Order" description="Place a natural, AI-organic engagement order." canonicalPath="/engagement-order" noIndex />
-        <div className="max-w-2xl mx-auto px-4 py-16">
-          <div className="glass-card border-2 border-dashed border-border rounded-2xl p-10 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-              <Package className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">No bundles yet</h2>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Engagement types wahi dikhenge jo aap ke bundle mein add hain. Pehle apna provider add karo aur ek bundle banao.
-            </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <Button onClick={() => navigate('/my-bundles')} className="btn-3d">
-                <Package className="h-4 w-4 mr-2" /> Create Bundle
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/my-providers')}>
-                Add Provider
-              </Button>
-            </div>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const showBundleBanner = !userBundlesLoading && !hasAnyUserBundle;
 
   return (
     <DashboardLayout>
