@@ -9,12 +9,28 @@ import { Brain, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { NoBundleEmptyState } from '@/components/NoBundleEmptyState';
 
 export default function AIIntelligence() {
+  const { user } = useAuth();
   const [link, setLink] = useState('');
   const [goal, setGoal] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string>('');
+
+  const { data: bundles = [], isLoading: bundlesLoading } = useQuery({
+    queryKey: ['ai-intel-bundles', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_bundles')
+        .select('id, user_bundle_items(id)')
+        .eq('is_active', true);
+      return (data || []).filter((b: any) => (b.user_bundle_items?.length || 0) > 0);
+    },
+  });
 
   async function analyze() {
     if (!link) return toast.error('Post/Video link daalo');
@@ -31,6 +47,18 @@ export default function AIIntelligence() {
       else if (e.message?.includes('402')) toast.error('AI credits khatam — admin ko batayein');
       else toast.error(e.message || 'Failed');
     } finally { setBusy(false); }
+  }
+
+  if (!bundlesLoading && bundles.length === 0) {
+    return (
+      <DashboardLayout>
+        <PageMeta title="AI Intelligence" description="AI-powered engagement strategy" canonicalPath="/ai-intelligence" noIndex />
+        <NoBundleEmptyState
+          title="AI Intelligence ke liye bundle chahiye"
+          description="AI aap ke bundle ke services aur pricing ke basis par strategy banata hai. Pehle apna provider add karo aur ek bundle banao."
+        />
+      </DashboardLayout>
+    );
   }
 
   return (
