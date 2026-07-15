@@ -295,10 +295,14 @@ function ProvidersPanel({
                   <Input
                     placeholder="Service ID"
                     defaultValue={m?.provider_service_id || ''}
+                    disabled={validating === a.id}
                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
-                      if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null, enabled: enabled || !!v });
+                      if (v !== (m?.provider_service_id || '')) {
+                        if (v === '') upsertMapping(a.id, { provider_service_id: null });
+                        else upsertMapping(a.id, { provider_service_id: v, enabled: enabled || true });
+                      }
                     }}
                     className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
                   />
