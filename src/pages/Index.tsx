@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, TrendingUp, Zap, Shield, BarChart3, CheckCircle2, Shuffle, Clock, Moon, Timer, Eye, ChevronRight, FileText, Lock, HelpCircle, Mail, Code2, Activity, Sparkles, Star, Link2, Heart, MessageCircle, Bookmark, Share2, Brain, ArrowDown, KeyRound, Download, Package, Rocket, UserPlus } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { PageMeta } from '@/components/seo/PageMeta';
+import { EngagementFloat } from '@/components/landing/EngagementFloat';
 
 // Brand palette — clean light + soft orange
 const C = {
@@ -140,6 +141,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* ═══ ANIMATED ENGAGEMENT TYPES ═══ */}
+      <EngagementFloat />
 
       {/* ═══ FEATURES ROW ═══ */}
       <section id="features" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8">
