@@ -13,6 +13,14 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
+/* A11y: ensure placeholder text meets 4.5:1 contrast on light inputs */
+input::placeholder,
+textarea::placeholder {
+  color: hsl(228 15% 40%) !important;
+  opacity: 1;
+}
+
+
 @layer base {
   :root {
     /* ════ BOOSTLY PRO — LIGHT EDITION ════ */
