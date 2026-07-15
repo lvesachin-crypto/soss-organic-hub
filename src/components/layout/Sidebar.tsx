@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ListOrdered, Settings, LifeBuoy, Shield, LogOut,
-  Rocket, Sparkles, X, Server, ListChecks, Boxes, Brain, Send, Crown
+  Rocket, Sparkles, X, Server, Boxes, Brain, Send, Crown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps { onClose?: () => void; }
+
+// Landing-page palette
+const C = {
+  navy:  '#0E1B4D',
+  pink:  '#E8308A',
+  pink2: '#F94E9C',
+  white: '#FFFFFF',
+  cream: '#FFF6EC',
+  ink:   '#5A5F7A',
+  line:  'rgba(14,27,77,0.10)',
+};
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -32,7 +43,6 @@ export function Sidebar({ onClose }: SidebarProps) {
   const location = useLocation();
   const { isAdmin, signOut, profile, user } = useAuth();
 
-  // Live provider balance (sum across user's panels)
   const { data: providerStats } = useQuery({
     queryKey: ['sidebar-provider-balance', user?.id],
     enabled: !!user?.id,
@@ -51,7 +61,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     },
   });
 
-  const renderItem = (item: any, colorAccent?: string) => {
+  const renderItem = (item: any) => {
     const isActive = location.pathname === item.path
       || (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'));
     return (
@@ -59,80 +69,106 @@ export function Sidebar({ onClose }: SidebarProps) {
         key={item.path}
         to={item.path}
         onClick={onClose}
-        className={cn(
-          'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium mb-1 transition-all',
-          isActive ? 'nav-link-active text-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-        )}
+        className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-semibold mb-1 transition-all"
+        style={
+          isActive
+            ? { background: 'rgba(232,48,138,0.10)', color: C.navy, boxShadow: `inset 0 0 0 1px rgba(232,48,138,0.35)` }
+            : { color: C.ink }
+        }
       >
-        <item.icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
-        <span className="flex-1 truncate">{item.label}</span>
+        <item.icon
+          className="w-[18px] h-[18px] shrink-0"
+          style={{ color: isActive ? C.pink : C.navy, opacity: isActive ? 1 : 0.75 }}
+          strokeWidth={2.2}
+        />
+        <span className="flex-1 truncate" style={{ color: isActive ? C.navy : undefined }}>{item.label}</span>
         {item.tag && (
-          <span className={cn(
-            'lux-mono text-[9px] px-1.5 py-0.5 rounded border',
-            item.tag === 'NEW'
-              ? 'border-primary/40 text-primary bg-primary/10'
-              : 'border-warning/40 text-warning bg-warning/10'
-          )}>{item.tag}</span>
+          <span
+            className="text-[9.5px] font-black px-1.5 py-0.5 rounded tracking-wider"
+            style={
+              item.tag === 'NEW'
+                ? { background: 'rgba(232,48,138,0.10)', color: C.pink, border: `1px solid ${C.pink}55` }
+                : { background: C.cream, color: '#B4741A', border: `1px solid #E9BE7A` }
+            }
+          >{item.tag}</span>
         )}
       </Link>
     );
   };
 
   return (
-    <div className="h-full w-full overflow-hidden flex flex-col bg-card">
+    <div className="h-full w-full overflow-hidden flex flex-col" style={{ background: C.white }}>
       {/* Brand */}
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-primary/30" style={{ background: 'var(--gradient-luxury)' }}>
-            <span className="text-white font-black text-lg font-mono">υ</span>
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center"
+            style={{ background: C.navy, boxShadow: '0 8px 20px -8px rgba(14,27,77,0.45)' }}
+          >
+            <span className="text-white font-black text-[18px]">B</span>
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-[15px] font-bold tracking-tight text-foreground">BOOSTLY PRO</span>
-            <span className="lux-mono text-[9px] text-muted-foreground">:LUXURY EDITION</span>
+            <span className="text-[15px] font-black tracking-tight" style={{ color: C.navy }}>
+              boostly<span style={{ color: C.pink }}>.</span>pro
+            </span>
+            <span className="text-[9.5px] font-bold tracking-[0.16em]" style={{ color: C.pink }}>LUXURY EDITION</span>
           </div>
         </Link>
-        <button onClick={onClose} aria-label="Close sidebar" className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary">
+        <button
+          onClick={onClose}
+          aria-label="Close sidebar"
+          className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg"
+          style={{ color: C.navy, background: 'rgba(14,27,77,0.06)' }}
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* User row */}
       {profile && (
-        <div className="mx-4 mb-4 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/60 border border-border">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-bold text-white shrink-0" style={{ background: 'var(--gradient-luxury)' }}>
+        <div
+          className="mx-4 mb-4 flex items-center gap-3 px-3 py-2.5 rounded-2xl"
+          style={{ background: C.cream, border: `1px solid ${C.line}` }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-black text-white shrink-0"
+            style={{ background: `linear-gradient(135deg, ${C.pink}, ${C.pink2})` }}
+          >
             {profile.full_name?.[0]?.toUpperCase() || profile.email?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate text-foreground">{profile.full_name || 'User'}</p>
-            <p className="text-[10px] truncate text-muted-foreground">{profile.email}</p>
+            <p className="text-[13px] font-bold truncate" style={{ color: C.navy }}>{profile.full_name || 'User'}</p>
+            <p className="text-[10.5px] truncate" style={{ color: C.ink }}>{profile.email}</p>
           </div>
         </div>
       )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 pb-3 scrollbar-thin">
-        <p className="lux-section-label px-3 mb-2">:MENU</p>
+        <p className="px-3 mb-2 text-[9.5px] font-black tracking-[0.18em]" style={{ color: C.pink }}>:MENU</p>
         {menuItems.map(i => renderItem(i))}
 
-        <div className="my-4 border-t border-border" />
-        <p className="lux-section-label px-3 mb-2">:MY PROVIDER</p>
+        <div className="my-4 h-px" style={{ background: C.line }} />
+        <p className="px-3 mb-2 text-[9.5px] font-black tracking-[0.18em]" style={{ color: C.pink }}>:MY PROVIDER</p>
         {providerItems.map(i => renderItem(i))}
 
-        {/* Live provider balance summary */}
         {providerStats && providerStats.count > 0 && (
-          <div className="mx-1 mt-3 mb-1 p-3 rounded-xl border border-border bg-secondary/40">
-            <p className="lux-mono text-[9px] text-muted-foreground mb-1">:PROVIDER BALANCE (LIVE)</p>
-            <p className="text-[16px] font-bold text-foreground tracking-tight">
-              {providerStats.total.toFixed(2)} <span className="text-[10px] text-muted-foreground font-mono">{providerStats.currency}</span>
+          <div
+            className="mx-1 mt-3 mb-1 p-3 rounded-2xl"
+            style={{ background: C.cream, border: `1px solid ${C.line}` }}
+          >
+            <p className="text-[9px] font-black tracking-[0.18em] mb-1" style={{ color: C.pink }}>:PROVIDER BALANCE</p>
+            <p className="text-[17px] font-black tracking-tight" style={{ color: C.navy }}>
+              {providerStats.total.toFixed(2)} <span className="text-[10px] font-bold" style={{ color: C.ink }}>{providerStats.currency}</span>
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{providerStats.active}/{providerStats.count} panels active</p>
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: C.ink }}>{providerStats.active}/{providerStats.count} panels active</p>
           </div>
         )}
 
         {isAdmin && (
           <>
-            <div className="my-4 border-t border-border" />
-            <p className="lux-section-label px-3 mb-2">:ADMIN</p>
+            <div className="my-4 h-px" style={{ background: C.line }} />
+            <p className="px-3 mb-2 text-[9.5px] font-black tracking-[0.18em]" style={{ color: C.pink }}>:ADMIN</p>
             {adminNavItems.map(item => {
               const isActive = location.pathname.startsWith(item.path);
               return (
@@ -140,12 +176,14 @@ export function Sidebar({ onClose }: SidebarProps) {
                   key={item.path}
                   to={item.path}
                   onClick={onClose}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium mb-1 transition-all',
-                    isActive ? 'bg-destructive/15 text-destructive border border-destructive/30' : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                  )}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-semibold mb-1"
+                  style={
+                    isActive
+                      ? { background: 'rgba(232,48,138,0.10)', color: C.navy, boxShadow: `inset 0 0 0 1px rgba(232,48,138,0.35)` }
+                      : { color: C.ink }
+                  }
                 >
-                  <item.icon className="w-4 h-4" />
+                  <item.icon className="w-[18px] h-[18px]" style={{ color: isActive ? C.pink : C.navy }} strokeWidth={2.2} />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -154,25 +192,28 @@ export function Sidebar({ onClose }: SidebarProps) {
         )}
       </nav>
 
-
       {/* Telegram */}
       <div className="px-3 pb-2">
         <a
           href="https://t.me/whopcampaign"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12px] font-medium bg-primary/10 border border-primary/25 text-primary hover:bg-primary/15 transition-colors"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-[12.5px] font-bold transition-transform hover:-translate-y-[1px]"
+          style={{ background: C.navy, color: C.white, boxShadow: '0 10px 24px -12px rgba(14,27,77,0.55)' }}
         >
-          <Send className="w-4 h-4" />
-          <span className="lux-mono text-[10px]">:JOIN TELEGRAM</span>
+          <Send className="w-4 h-4" style={{ color: C.pink2 }} />
+          <span className="tracking-[0.14em]">:JOIN TELEGRAM</span>
         </a>
       </div>
 
       {/* Sign out */}
-      <div className="p-3 border-t border-border">
+      <div className="p-3" style={{ borderTop: `1px solid ${C.line}` }}>
         <button
           onClick={() => signOut()}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-semibold transition-colors"
+          style={{ color: C.ink }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = C.pink; e.currentTarget.style.background = 'rgba(232,48,138,0.08)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = C.ink; e.currentTarget.style.background = 'transparent'; }}
         >
           <LogOut className="w-4 h-4" />
           <span>Sign out</span>
