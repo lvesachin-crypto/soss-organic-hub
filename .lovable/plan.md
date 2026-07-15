@@ -1,87 +1,42 @@
-# Per-User Provider System (Multi-Tenant SMM)
+## Problem
 
-Abhi system single admin-managed hai: `provider_accounts` aur `engagement_bundles` sirf admin bana sakta hai, saare users usi shared pool se orders place karte hain. Iske baad har user apne **khud ke providers aur bundles** bana payega, orders sirf uski hi keys se jayenge, aur kisi doosre user ko uska data nahi dikhega.
+Full Engagement page (`/full-engagement`) abhi bhi purane **admin bundles** (`engagement_bundles` + `bundle_items` + `services`) se data pull kar raha hai. Isliye jab user ki apni "My Bundles" empty hai, tab bhi Views/Likes/Shares/Reposts wagerah cards dikh jaate hain (admin ke create kiye bundles ki wajah se).
 
-## Kya banega
+Aap chahte ho: **jo items user ke apne bundle mein honge, sirf wahi dikhein**. Empty bundle = empty breakdown.
 
-1. **User Provider Accounts** — user apna SMM panel URL + API key add kare (JAP-style `/api/v2`)
-2. **User Service Import** — us panel se services fetch/import ho user ke scope me
-3. **User Bundles** — admin ki tarah user bhi apne services se bundles bana sake
-4. **User Orders** — jab user order de, uski hi provider key use ho (admin fallback nahi jab user ki key ho)
-5. **Full data isolation** — RLS strict, keys encrypted (pgcrypto), sirf owner ko dikhe
+## Fix
 
-## Database changes
+`src/pages/EngagementOrder.tsx` ko `user_bundles` + `user_bundle_items` + `user_services` par shift karna hai.
 
-New / modified tables (sab RLS enabled, `auth.uid() = user_id`):
+### Changes
 
-```text
-user_provider_accounts
-  user_id, name, api_url, api_key_encrypted, is_active, balance_cached
-user_services
-  user_id, user_provider_account_id, provider_service_id, name,
-  category, price, min_qty, max_qty, is_active
-user_bundles
-  user_id, name, description, price, is_active
-user_bundle_items
-  user_bundle_id, user_service_id, engagement_type, quantity
-```
+1. **Bundle fetch** — `engagement_bundles` ki jagah:
+   ```
+   user_bundles (where user_id = auth.uid, is_active = true)
+   └── user_bundle_items (engagement_type, quantity, user_service_id)
+       └── user_services (rate, min_quantity, max_quantity)
+   ```
 
-Existing tables ko extend:
-- `orders`, `engagement_orders`: nullable `user_provider_account_id`, `user_bundle_id`
-- Jab ye set ho, order pipeline admin provider ke bajaye user ka provider use kare
+2. **Available platforms** — sirf wahi platforms selector mein dikhein jinke liye user ne bundle banaya ho (aur usme kam se kam 1 item ho). Agar zero bundles → empty state: "Aap ne abhi tak koi bundle nahi banaya. `My Bundles` mein jaake create karo."
 
-Encryption:
-- `pgcrypto` extension enable
-- `api_key_encrypted` bytea; encrypt/decrypt SECURITY DEFINER functions with a key stored in `PROVIDER_KEY_SECRET` (edge secret)
-- Client kabhi raw key nahi padhta — sirf edge functions decrypt kar sakte hain
+3. **Active engagement types** — user ke selected bundle ke `user_bundle_items[].engagement_type` se derive honge. Bundle empty → koi card render nahi hoga.
 
-## RLS matrix
+4. **Pricing** — har type ka rate `user_services.rate` (USD per 1000) se aayega, `bundle_items.price_per_k` fallback nahi. Min/max bhi `user_services` se.
 
-| Table | SELECT | INSERT/UPDATE/DELETE |
-|---|---|---|
-| user_provider_accounts | `user_id = auth.uid()` | same |
-| user_services | `user_id = auth.uid()` | same |
-| user_bundles | `user_id = auth.uid()` OR `is_public = true` | owner only |
-| user_bundle_items | via parent bundle owner | owner only |
-| orders (existing) | already user-scoped | unchanged |
+5. **Realtime sync** — realtime subscription channels ko `user_bundles`, `user_bundle_items`, `user_services` par point karo (purane `bundle_items` / `engagement_bundles` / `services` channels hata do).
 
-Admin ko bhi raw key nahi milegi (encrypted column pe koi SELECT policy jo plain text expose kare).
+6. **Order submit path** — submit flow already `user-provider-manage` edge function use karta hai (My Bundles ke through), toh submission ko us edge function ke through hi route karna hai user's `user_service_id` ke saath. Purane admin-provider path ka reliance hata do.
 
-## Edge Functions
+7. **Empty state UI** — jab user ke paas koi active bundle nahi:
+   - Platform selector chhupao
+   - Big empty card: box icon + "No bundles yet" + CTA button → `/my-bundles`
 
-1. `user-provider-test` — user ki key validate kare (balance call), cache balance
-2. `user-import-services` — user ke panel se services import kare `user_services` me
-3. `place-order` (modify) — agar order me `user_provider_account_id` hai to us user ki decrypted key use kare, order us panel pe bheje; warna current admin flow
-4. `process-engagement-order` (modify) — bundle agar `user_bundles` se hai to har item user ke provider pe route ho
+### Files touched
 
-## UI
+- `src/pages/EngagementOrder.tsx` (main refactor — queries, memos, submit)
+- Koi DB migration nahi chahiye; tables already exist.
 
-Nayi pages (`src/pages/`):
-- `MyProviders.tsx` — list/add/edit/delete user providers, test connection, sync services
-- `MyServices.tsx` — imported services with per-service pricing view
-- `MyBundles.tsx` — create bundle (admin `AdminBundles` jaisa UI par user scope)
-- Existing order flows me toggle: "Use my provider" (selector jab user ke pass active provider ho)
-- Sidebar me new section "My Panel" ke andar ye 3 links
+## Out of scope
 
-## Pricing behavior
-
-User apni key se order kare to **wallet se kuch nahi katega** — user apne SMM panel pe khud paisa rakhta hai. Platform sirf orchestration/analytics dega. (Admin flow me markup wallet debit continue rahega.)
-
-## Security guarantees
-
-- Encrypted at rest (pgcrypto AES)
-- Never sent to browser — decryption only inside edge functions
-- RLS enforces `user_id = auth.uid()` on every row
-- `SECURITY DEFINER` decrypt function checks calling context is service_role
-- Audit log entry on provider add / key rotate
-
-## Rollout order
-
-1. Migration: new tables + RLS + GRANTs + pgcrypto helpers
-2. Edge functions: test connection + import services
-3. Frontend: MyProviders page
-4. Frontend: MyServices + MyBundles pages
-5. Order pipeline routing (place-order + process-engagement-order)
-6. Wire selector into existing order UI
-
-Approve karein to migration se start karta hu.
+- Admin bundles (`engagement_bundles`) DB se delete nahi kar rahe (data preserve, sirf UI unhook).
+- Mass Order / AI Intelligence pages already user-scoped bundles use karti hain.
