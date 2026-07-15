@@ -1,432 +1,332 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, ArrowUpRight, Zap, Shield, Sparkles, Star, KeyRound, Package, Rocket,
-  Eye, Heart, MessageCircle, Bookmark, Share2, UserPlus, Download, Shuffle, Clock,
-  Moon, Timer, TrendingUp, Activity, Lock, Brain, CheckCircle2,
+  ArrowRight, Store, Sparkles, Shield, Zap, Users, Eye, Heart, MessageCircle,
+  Bookmark, Share2, UserPlus, CheckCircle2, Star,
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import heroIso from '@/assets/hero-isometric.jpg';
 import { PageMeta } from '@/components/seo/PageMeta';
 
-/* ═══════════════════════════════════════════════════════════════════
-   BOOSTLY PRO — NEO-BRUTALIST BENTO EDITION
-   Palette: Brutalist Pop   •   Fonts: Syne + Plus Jakarta Sans
-   ═══════════════════════════════════════════════════════════════════ */
+/* ═════════════════════════════════════════════════════
+   BOOSTLY PRO — SOFT ISOMETRIC LANDING (etail.me style)
+   Palette: cream paper + deep navy + magenta pink accent
+   Fonts:   Plus Jakarta Sans (display + body)
+   ═════════════════════════════════════════════════════ */
 
 const C = {
-  paper: '#F5F2EA',
-  ink:   '#0A0A0A',
-  ink2:  '#1a1a1a',
-  mute:  '#525252',
-  orange:'#FF5722',
-  yellow:'#FFEB3B',
-  white: '#FFFFFF',
+  cream:   '#F6F1E7',
+  cream2:  '#EFE8DA',
+  navy:    '#0E1B4D',
+  navy2:   '#1B2A5E',
+  ink:     '#0A0F2C',
+  mute:    '#5B6588',
+  pink:    '#E8308A',
+  pink2:   '#F94E9C',
+  white:   '#FFFFFF',
 };
-
-const HARD = `4px 4px 0 0 ${C.ink}`;
-const HARD_LG = `8px 8px 0 0 ${C.ink}`;
-
-/* Chip */
-const Chip: React.FC<{ children: React.ReactNode; tone?: 'yellow'|'orange'|'white' }> = ({ children, tone='yellow' }) => (
-  <span className="inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em]"
-    style={{
-      background: tone==='yellow'? C.yellow : tone==='orange'? C.orange : C.white,
-      color: tone==='orange'? C.white : C.ink,
-      border: `2px solid ${C.ink}`,
-      boxShadow: HARD,
-      fontFamily: "'Plus Jakarta Sans', system-ui",
-    }}>
-    {children}
-  </span>
-);
-
-/* Bento tile base */
-const Tile: React.FC<React.HTMLAttributes<HTMLDivElement> & { bg?: string; hover?: boolean }> =
-  ({ bg = C.white, hover = true, className='', style, children, ...rest }) => (
-  <div
-    className={`relative ${hover ? 'transition-transform duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5' : ''} ${className}`}
-    style={{ background: bg, border: `2.5px solid ${C.ink}`, boxShadow: HARD_LG, ...style }}
-    {...rest}
-  >
-    {children}
-  </div>
-);
 
 const Index = () => {
   return (
     <div
       className="min-h-screen w-full overflow-x-hidden"
       style={{
-        background: C.paper,
+        background: C.cream,
         color: C.ink,
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-        backgroundImage:
-          'radial-gradient(rgba(10,10,10,0.09) 1.2px, transparent 1.2px)',
-        backgroundSize: '22px 22px',
       }}
     >
       <PageMeta
-        title="Boostly Pro — Bring-your-own-provider growth OS"
-        description="Plug in any SMM provider, build a bundle once, and drop human-pattern orders — with encrypted vaults and live rotation baked in."
+        title="Boostly Pro — Grow your reach right now"
+        description="Register once, plug in any SMM provider, and ship human-pattern engagement to any link. Views, likes, comments, followers — all through one soft, honest flow."
         canonicalPath="/"
         breadcrumbs={[{ name: 'Home', path: '/' }]}
       />
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .syne { font-family: 'Syne', system-ui, sans-serif; letter-spacing: -0.03em; }
-        @keyframes bp-marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-        @keyframes bp-float { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-10px) rotate(2deg)} }
-        @keyframes bp-pulse-hard { 0%,100%{box-shadow:6px 6px 0 0 ${C.ink}} 50%{box-shadow:2px 2px 0 0 ${C.ink}} }
-        @keyframes bp-blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-        .bp-marquee { animation: bp-marquee 22s linear infinite; }
-        .bp-float { animation: bp-float 4.5s ease-in-out infinite; }
-        .bp-pulse { animation: bp-pulse-hard 1.4s ease-in-out infinite; }
-        .bp-blink { animation: bp-blink 1s step-end infinite; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @keyframes bp-float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes bp-drift-x { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        @keyframes bp-pop     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+        @keyframes bp-shine   { 0%{transform:translateX(-120%)} 100%{transform:translateX(220%)} }
+        .bp-float { animation: bp-float 4s ease-in-out infinite; }
+        .bp-pop   { animation: bp-pop 2.4s ease-in-out infinite; }
+        .bp-mrq   { animation: bp-drift-x 26s linear infinite; }
+        .bp-heading { letter-spacing:-0.035em; line-height:0.95; }
       `}</style>
 
-      {/* ═══════════ NAV ═══════════ */}
+      {/* ═══════════ FLOATING PILL NAV ═══════════ */}
       <nav className="sticky top-4 z-50 px-4 sm:px-6">
         <div
-          className="max-w-6xl mx-auto flex items-center justify-between h-14 px-4"
-          style={{ background: C.white, border: `2.5px solid ${C.ink}`, boxShadow: HARD }}
+          className="max-w-6xl mx-auto flex items-center justify-between h-16 px-3 sm:px-5"
+          style={{
+            background: C.white,
+            borderRadius: 999,
+            boxShadow: '0 10px 30px -12px rgba(14,27,77,0.18), 0 2px 6px rgba(14,27,77,0.05)',
+          }}
         >
-          <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="Boostly Pro logo" width={32} height={32}
-              className="w-8 h-8 object-cover" style={{ border: `2px solid ${C.ink}` }} />
-            <span className="syne text-[18px] font-extrabold">Boostly<span style={{ color: C.orange }}>/</span>Pro</span>
+          <Link to="/" className="flex items-center gap-2.5 pl-1">
+            <img src={logo} alt="Boostly Pro logo" width={34} height={34}
+              className="w-9 h-9 rounded-full object-cover" />
+            <span className="text-[19px] font-extrabold" style={{ color: C.navy }}>
+              boostly<span style={{ color: C.pink }}>.</span>pro
+            </span>
           </Link>
-          <div className="hidden md:flex items-center gap-6 text-[13px] font-semibold">
-            {[['Features','#features'],['How it works','#how'],['Why us','#why']].map(([t,h])=>(
-              <a key={t} href={h} className="hover:text-[color:var(--o)] transition-colors" style={{ ['--o' as any]: C.orange, color: C.ink }}>{t}</a>
-            ))}
+
+          <div className="hidden md:flex items-center gap-8 text-[14px] font-semibold" style={{ color: C.navy }}>
+            <a href="#features" className="hover:opacity-70 transition">Features</a>
+            <a href="#how" className="hover:opacity-70 transition">How it works</a>
+            <a href="#why" className="hover:opacity-70 transition">Pricing</a>
           </div>
+
           <div className="flex items-center gap-2">
-            <Link to="/auth" className="hidden sm:inline-flex h-9 px-3 items-center text-[13px] font-bold" style={{ color: C.ink }}>Sign in</Link>
             <Link to="/auth"
-              className="h-10 px-4 inline-flex items-center gap-1.5 text-[13px] font-black uppercase tracking-wider transition-transform hover:-translate-y-0.5"
-              style={{ background: C.orange, color: C.white, border: `2.5px solid ${C.ink}`, boxShadow: HARD }}>
-              Get started <ArrowRight className="w-4 h-4" />
+              className="hidden sm:inline-flex h-10 px-4 rounded-full items-center text-[13.5px] font-bold"
+              style={{ color: C.navy, background: C.cream }}>
+              Login
+            </Link>
+            <Link to="/auth"
+              className="h-11 px-5 rounded-full inline-flex items-center gap-1.5 text-[13.5px] font-bold transition-transform hover:-translate-y-0.5"
+              style={{ background: C.navy, color: C.white }}>
+              Start boosting
             </Link>
           </div>
         </div>
       </nav>
 
-      {/* ═══════════ HERO — BENTO ═══════════ */}
+      {/* ═══════════ HERO ═══════════ */}
       <main>
-      <section className="pt-10 sm:pt-14 pb-10 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-12 gap-4 sm:gap-5">
+        <section className="relative pt-10 sm:pt-14 pb-10 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-4 items-center">
 
-            {/* Massive headline tile */}
-            <Tile hover={false} className="col-span-12 lg:col-span-8 p-6 sm:p-9" bg={C.white}>
-              <div className="flex items-center gap-2 mb-5 flex-wrap">
-                <Chip tone="yellow"><span className="w-2 h-2 rounded-full bp-blink" style={{ background: C.orange }} />Live · v2.0</Chip>
-                <Chip tone="white">Bring-your-own-provider</Chip>
+            {/* LEFT — copy + input */}
+            <div className="lg:col-span-6 relative z-10">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11.5px] font-bold uppercase tracking-[0.14em] mb-6"
+                style={{ background: C.white, color: C.navy, boxShadow: '0 2px 8px rgba(14,27,77,0.08)' }}>
+                <span className="w-1.5 h-1.5 rounded-full bp-pop" style={{ background: C.pink }} />
+                Live · v2.0
               </div>
-              <h1 className="syne text-[2.6rem] sm:text-[4rem] lg:text-[5.4rem] font-extrabold leading-[0.92]">
-                Your keys.<br />
-                Your bundles.<br />
-                <span className="relative inline-block">
-                  <span style={{ color: C.orange }}>Zero rules.</span>
-                  <span className="absolute -bottom-1 left-0 right-0 h-[10px]" style={{ background: C.yellow, zIndex: -1 }} />
-                </span>
+
+              <h1 className="bp-heading font-extrabold text-[3rem] sm:text-[4.4rem] lg:text-[5.2rem]"
+                style={{ color: C.navy }}>
+                Boost your<br />
+                reach <span style={{ color: C.pink }}>right</span><br />
+                now<span style={{ color: C.pink }}>!</span>
               </h1>
-              <p className="mt-5 text-[15px] sm:text-[17px] leading-[1.55] max-w-xl font-medium" style={{ color: C.mute }}>
-                Plug in any SMM provider API, build a bundle once, and drop human-pattern
-                orders on any link. Encrypted vaults, live rotation, zero babysitting.
+
+              <p className="mt-6 text-[15.5px] sm:text-[17px] leading-[1.55] max-w-lg font-medium"
+                style={{ color: C.mute }}>
+                With Boostly Pro, anyone can grow their audience today. Plug in any SMM provider,
+                pick a bundle, and drop human-pattern engagement on any link. It's that easy.
               </p>
 
-              <div className="mt-7 flex flex-wrap items-center gap-3">
-                <Link to="/auth"
-                  className="h-12 px-5 inline-flex items-center gap-2 text-[14px] font-black uppercase tracking-wider transition-all hover:-translate-x-0.5 hover:-translate-y-0.5"
-                  style={{ background: C.ink, color: C.white, border: `2.5px solid ${C.ink}`, boxShadow: `6px 6px 0 0 ${C.orange}` }}>
-                  <Sparkles className="w-4 h-4" /> Launch free
-                </Link>
-                <Link to="/auth"
-                  className="h-12 px-5 inline-flex items-center gap-2 text-[14px] font-black uppercase tracking-wider transition-transform hover:-translate-y-0.5"
-                  style={{ background: C.white, color: C.ink, border: `2.5px solid ${C.ink}`, boxShadow: HARD }}>
-                  Explore catalog <ArrowUpRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </Tile>
+              {/* Pill input */}
+              <form
+                onSubmit={(e)=>{e.preventDefault(); window.location.href='/auth';}}
+                className="mt-8 flex items-center gap-2 pl-2 pr-2 py-2 max-w-md"
+                style={{
+                  background: C.white,
+                  borderRadius: 999,
+                  boxShadow: '0 12px 28px -14px rgba(14,27,77,0.22), 0 2px 6px rgba(14,27,77,0.06)',
+                }}
+              >
+                <span className="flex items-center gap-2 pl-3 pr-3 border-r" style={{ borderColor: 'rgba(14,27,77,0.12)' }}>
+                  <Store className="w-4.5 h-4.5" style={{ color: C.pink }} />
+                  <span className="text-[13.5px] font-bold" style={{ color: C.navy }}>My link</span>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Paste your post URL"
+                  className="flex-1 bg-transparent outline-none text-[14px] font-medium py-2"
+                  style={{ color: C.navy }}
+                />
+                <button
+                  type="submit"
+                  aria-label="Start boosting"
+                  className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-105"
+                  style={{ background: C.pink, color: C.white, boxShadow: '0 8px 18px -6px rgba(232,48,138,0.55)' }}
+                >
+                  <ArrowRight className="w-5 h-5" strokeWidth={2.6} />
+                </button>
+              </form>
 
-            {/* Big number tile */}
-            <Tile className="col-span-6 lg:col-span-4 p-6" bg={C.orange}>
-              <span className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: C.white, opacity: .9 }}>Delivered</span>
-              <div className="syne mt-2 text-[3.2rem] sm:text-[4.4rem] font-extrabold leading-none" style={{ color: C.white }}>50K+</div>
-              <p className="mt-1 text-[13.5px] font-semibold" style={{ color: C.white }}>Campaigns shipped human-style. Zero bans across the ledger.</p>
-              <div className="mt-4 flex items-center gap-1">
-                {[1,2,3,4,5].map(i=><Star key={i} className="w-4 h-4 fill-current" style={{ color: C.yellow }} />)}
-                <span className="ml-1 text-[12px] font-black" style={{ color: C.white }}>4.9 · 2.4K creators</span>
-              </div>
-            </Tile>
-
-            {/* Engagement grid tile */}
-            <Tile className="col-span-12 lg:col-span-7 p-5 sm:p-6" bg={C.paper}>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-black uppercase tracking-[0.18em]">Every engagement · one flow</span>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5" style={{ background: C.ink, color: C.yellow }}>ORGANIC</span>
-              </div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 sm:gap-3">
-                {[
-                  { Icon: Eye,           label: 'Views',     bg: C.yellow },
-                  { Icon: Heart,         label: 'Likes',     bg: C.white  },
-                  { Icon: MessageCircle, label: 'Comments',  bg: C.orange, fg: C.white },
-                  { Icon: Bookmark,      label: 'Saves',     bg: C.white  },
-                  { Icon: Share2,        label: 'Shares',    bg: C.yellow },
-                  { Icon: UserPlus,      label: 'Followers', bg: C.ink,    fg: C.yellow },
-                ].map(({ Icon, label, bg, fg }, i) => (
-                  <div key={label} className="bp-float relative flex flex-col items-center justify-center aspect-square"
-                    style={{
-                      background: bg,
-                      color: fg || C.ink,
-                      border: `2px solid ${C.ink}`,
-                      boxShadow: `4px 4px 0 0 ${C.ink}`,
-                      animationDelay: `${i * 0.25}s`,
-                    }}>
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
-                    <span className="mt-1 text-[10px] sm:text-[11px] font-black uppercase tracking-wider">{label}</span>
-                  </div>
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] font-semibold" style={{ color: C.navy }}>
+                {['No card required','Encrypted vaults','Ready in 60s'].map(t=>(
+                  <span key={t} className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" style={{ color: C.pink }} />{t}
+                  </span>
                 ))}
               </div>
-            </Tile>
+            </div>
 
-            {/* Encrypted tile */}
-            <Tile className="col-span-6 lg:col-span-5 p-6" bg={C.ink}>
-              <div className="flex items-center gap-2 mb-3">
-                <Lock className="w-4 h-4" style={{ color: C.yellow }} />
-                <span className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: C.yellow }}>Vault · AES-GCM</span>
+            {/* RIGHT — illustration */}
+            <div className="lg:col-span-6 relative">
+              <div className="relative">
+                <img
+                  src={heroIso}
+                  alt="Isometric factory delivering engagement boxes to a stylized store"
+                  width={1408}
+                  height={1200}
+                  className="w-full h-auto select-none"
+                  style={{ filter: 'drop-shadow(0 30px 40px rgba(14,27,77,0.10))' }}
+                />
+                {/* Floating engagement chips */}
+                <div className="absolute top-[6%] left-[4%] hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bp-float"
+                  style={{ background: C.white, boxShadow: '0 10px 24px -10px rgba(14,27,77,0.25)', animationDelay:'0s' }}>
+                  <Eye className="w-4 h-4" style={{ color: C.pink }} />
+                  <span className="text-[12px] font-bold" style={{ color: C.navy }}>+12,480 views</span>
+                </div>
+                <div className="absolute top-[38%] left-[-2%] hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bp-float"
+                  style={{ background: C.white, boxShadow: '0 10px 24px -10px rgba(14,27,77,0.25)', animationDelay:'1s' }}>
+                  <Heart className="w-4 h-4" style={{ color: C.pink }} />
+                  <span className="text-[12px] font-bold" style={{ color: C.navy }}>+2,140 likes</span>
+                </div>
+                <div className="absolute bottom-[10%] right-[6%] hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bp-float"
+                  style={{ background: C.navy, boxShadow: '0 10px 24px -10px rgba(14,27,77,0.35)', animationDelay:'2s' }}>
+                  <UserPlus className="w-4 h-4" style={{ color: C.pink2 }} />
+                  <span className="text-[12px] font-bold" style={{ color: C.white }}>+860 followers</span>
+                </div>
               </div>
-              <h3 className="syne text-[1.5rem] sm:text-[2rem] font-extrabold leading-[1.02]" style={{ color: C.white }}>
-                Your API keys.<br /><span style={{ color: C.orange }}>Never our problem.</span>
-              </h3>
-              <p className="mt-2 text-[13px] font-medium" style={{ color: '#c7c7c7' }}>
-                Every provider credential encrypted at rest with a per-user key. Even we can't read them.
-              </p>
-              <div className="mt-4 flex items-center gap-1.5 text-[11px] font-mono" style={{ color: C.yellow }}>
-                <span className="w-2 h-2 rounded-full bp-blink" style={{ background: '#4ade80' }} />
-                sk_live_••••••••••••••••••3f21
-              </div>
-            </Tile>
-
-            {/* Feature strip */}
-            <Tile className="col-span-6 lg:col-span-3 p-5" bg={C.yellow}>
-              <Shuffle className="w-6 h-6 mb-2" strokeWidth={2.6} />
-              <div className="syne text-[1.6rem] font-extrabold leading-none">±50%</div>
-              <p className="mt-1 text-[12px] font-bold uppercase tracking-wide">Batch variance</p>
-            </Tile>
-            <Tile className="col-span-6 lg:col-span-3 p-5" bg={C.white}>
-              <Clock className="w-6 h-6 mb-2" strokeWidth={2.6} style={{ color: C.orange }} />
-              <div className="syne text-[1.6rem] font-extrabold leading-none">1.5×</div>
-              <p className="mt-1 text-[12px] font-bold uppercase tracking-wide">Peak-hour lift</p>
-            </Tile>
-            <Tile className="col-span-6 lg:col-span-3 p-5" bg={C.white}>
-              <Timer className="w-6 h-6 mb-2" strokeWidth={2.6} />
-              <div className="syne text-[1.6rem] font-extrabold leading-none">±5m</div>
-              <p className="mt-1 text-[12px] font-bold uppercase tracking-wide">Jitter timing</p>
-            </Tile>
-            <Tile className="col-span-6 lg:col-span-3 p-5" bg={C.orange}>
-              <Moon className="w-6 h-6 mb-2" strokeWidth={2.6} style={{ color: C.white }} />
-              <div className="syne text-[1.6rem] font-extrabold leading-none" style={{ color: C.white }}>Zzz</div>
-              <p className="mt-1 text-[12px] font-bold uppercase tracking-wide" style={{ color: C.white }}>Sleep cycles</p>
-            </Tile>
+            </div>
           </div>
+        </section>
 
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] font-bold">
-            {['No card needed','Every tool unlocked','Ready in 60 seconds'].map(t => (
-              <span key={t} className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" style={{ color: C.orange }} />{t}</span>
-            ))}
+        {/* ═══════════ ENGAGEMENT ROW ═══════════ */}
+        <section className="px-4 sm:px-6 pb-14">
+          <div className="max-w-6xl mx-auto rounded-[32px] px-6 py-8"
+            style={{ background: C.white, boxShadow: '0 20px 50px -30px rgba(14,27,77,0.18)' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <h3 className="text-[18px] font-extrabold" style={{ color: C.navy }}>Every engagement, one flow</h3>
+              <span className="text-[12px] font-bold uppercase tracking-[0.16em]" style={{ color: C.pink }}>Organic delivery</span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
+              {[
+                { Icon: Eye,           label: 'Views' },
+                { Icon: Heart,         label: 'Likes' },
+                { Icon: MessageCircle, label: 'Comments' },
+                { Icon: Bookmark,      label: 'Saves' },
+                { Icon: Share2,        label: 'Shares' },
+                { Icon: UserPlus,      label: 'Followers' },
+              ].map(({Icon, label}, i) => (
+                <div key={label}
+                  className="bp-float flex flex-col items-center justify-center aspect-square rounded-2xl"
+                  style={{
+                    background: C.cream,
+                    animationDelay: `${i*0.2}s`,
+                  }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
+                    style={{ background: C.white, boxShadow: '0 6px 16px -8px rgba(14,27,77,0.25)' }}>
+                    <Icon className="w-5 h-5" style={{ color: C.pink }} strokeWidth={2.4}/>
+                  </div>
+                  <span className="text-[12px] font-bold" style={{ color: C.navy }}>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ═══════════ MARQUEE ═══════════ */}
-      <section className="py-4 border-y-[2.5px]" style={{ borderColor: C.ink, background: C.ink }}>
-        <div className="overflow-hidden">
-          <div className="bp-marquee flex gap-10 whitespace-nowrap syne text-[1.6rem] sm:text-[2.2rem] font-extrabold" style={{ color: C.yellow }}>
+        {/* ═══════════ MARQUEE ═══════════ */}
+        <section className="py-4 overflow-hidden" style={{ background: C.navy }}>
+          <div className="bp-mrq flex gap-12 whitespace-nowrap text-[1.4rem] sm:text-[1.9rem] font-extrabold"
+            style={{ color: C.cream }}>
             {Array.from({length:2}).map((_,r)=>(
-              <div key={r} className="flex gap-10">
-                {['INSTAGRAM ★','YOUTUBE ★','TIKTOK ★','TWITTER ★','FACEBOOK ★','TELEGRAM ★','SPOTIFY ★','THREADS ★'].map(t=>(
-                  <span key={t+r} className="flex items-center gap-10">
-                    <span>{t}</span>
-                    <span style={{ color: C.orange }}>/</span>
+              <div key={r} className="flex gap-12 pr-12">
+                {['Instagram','YouTube','TikTok','Twitter','Facebook','Telegram','Spotify','Threads'].map(t=>(
+                  <span key={t+r} className="flex items-center gap-12">
+                    {t}<span style={{ color: C.pink2 }}>✦</span>
                   </span>
                 ))}
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ═══════════ FEATURES ═══════════ */}
-      <section id="features" className="py-16 sm:py-24 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
-            <div>
-              <Chip tone="orange"><Zap className="w-3 h-3" />Tools you won't find elsewhere</Chip>
-              <h2 className="syne mt-4 text-[2rem] sm:text-[3.2rem] font-extrabold leading-[0.95] max-w-2xl">
-                Behaviour tuned to look <span style={{ color: C.orange }}>painfully human.</span>
+        {/* ═══════════ FEATURES ═══════════ */}
+        <section id="features" className="py-20 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
+                style={{ color: C.pink }}>Why boostly</span>
+              <h2 className="bp-heading font-extrabold text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
+                Growth tools that feel<br /><span style={{ color: C.pink }}>painfully human.</span>
               </h2>
             </div>
-            <p className="text-[14px] font-medium max-w-sm" style={{ color: C.mute }}>
-              Six delivery weapons. One flow. Each drop reads like fans discovered your post — not a bot farm.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {[
-              { icon: TrendingUp, title: 'S-Curve Rollout',    desc: 'Momentum ramps like a real trend — slow, then unstoppable.', bg: C.white },
-              { icon: Shuffle,    title: '±50% Variance',      desc: 'Batch sizes shift every drop. No fingerprint left behind.',  bg: C.yellow },
-              { icon: Clock,      title: 'Peak-Hour Push',     desc: '1.5× lift during 6–10 PM IST. Follows human attention.',     bg: C.white },
-              { icon: Moon,       title: 'Overnight Ease-Off', desc: 'Mimics sleep cycles. Your account looks alive, not automated.', bg: C.orange, fg: C.white },
-              { icon: Timer,      title: '±5min Jitter',       desc: 'Timing so uneven no bot detector can pattern-match it.',      bg: C.white },
-              { icon: Eye,        title: 'Live Preview',       desc: 'Watch the exact delivery curve before spending a rupee.',     bg: C.yellow },
-            ].map((f) => (
-              <Tile key={f.title} bg={f.bg} className="p-6">
-                <div className="w-11 h-11 flex items-center justify-center mb-4"
-                  style={{ background: f.bg===C.orange? C.yellow : C.ink, color: f.bg===C.orange? C.ink : C.yellow, border: `2px solid ${C.ink}` }}>
-                  <f.icon className="w-5 h-5" strokeWidth={2.6} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                { Icon: Zap,      title: 'S-Curve Rollout',   desc: 'Momentum ramps like a real trend — slow, then unstoppable.' },
+                { Icon: Shield,   title: 'Encrypted Vaults',  desc: 'Every provider key AES-GCM encrypted at rest, per user.' },
+                { Icon: Sparkles, title: '±50% Variance',     desc: 'Batch sizes shift every drop. No fingerprint left behind.' },
+                { Icon: Users,    title: 'Bring your provider', desc: 'Any SMM API URL + key. Sync services in one click.' },
+                { Icon: Eye,      title: 'Live Preview',      desc: 'Watch the exact delivery curve before spending a rupee.' },
+                { Icon: Star,     title: '4.9 · 2.4K creators', desc: 'Loved by solo creators, agencies and growth teams.' },
+              ].map(({Icon, title, desc}) => (
+                <div key={title} className="p-6 rounded-3xl"
+                  style={{ background: C.white, boxShadow: '0 20px 40px -30px rgba(14,27,77,0.25)' }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: C.cream, color: C.pink }}>
+                    <Icon className="w-6 h-6" strokeWidth={2.4}/>
+                  </div>
+                  <h3 className="text-[18px] font-extrabold" style={{ color: C.navy }}>{title}</h3>
+                  <p className="mt-1.5 text-[14px] font-medium leading-relaxed" style={{ color: C.mute }}>{desc}</p>
                 </div>
-                <h3 className="syne text-[1.25rem] font-extrabold" style={{ color: f.fg || C.ink }}>{f.title}</h3>
-                <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed" style={{ color: f.fg? f.fg : C.mute }}>{f.desc}</p>
-              </Tile>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ═══════════ HOW IT WORKS ═══════════ */}
-      <section id="how" className="py-16 sm:py-24 px-4 sm:px-6" style={{ background: C.ink }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <Chip tone="yellow"><Sparkles className="w-3 h-3" />Full setup — start to first order</Chip>
-            <h2 className="syne mt-5 text-[2rem] sm:text-[3.4rem] font-extrabold leading-[0.95]" style={{ color: C.white }}>
-              Five steps.<br />
-              <span style={{ color: C.orange }}>One human-shaped drop.</span>
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
-            {[
-              { step:'01', icon: UserPlus,  title:'Create account',   desc:'Email + password. Wallet and provider vault live in 60 seconds.' },
-              { step:'02', icon: KeyRound,  title:'Add provider',     desc:'Paste any SMM API URL + your key. Encrypted before it hits disk.' },
-              { step:'03', icon: Download,  title:'Import services',  desc:'One click syncs every service — views, likes, comments, followers.' },
-              { step:'04', icon: Package,   title:'Build bundle',     desc:'Map one service per engagement type. Save it as a reusable preset.' },
-              { step:'05', icon: Rocket,    title:'Ship the order',   desc:'Paste link → pick bundle → set qty. Human-pattern engine handles the rest.' },
-            ].map((s,i)=>(
-              <Tile key={s.step} bg={i===2? C.orange : C.white} className="p-5 relative">
-                <span className="syne absolute -top-4 -right-3 px-2.5 py-1 text-[12px] font-black"
-                  style={{ background: C.yellow, color: C.ink, border: `2px solid ${C.ink}`, boxShadow: `3px 3px 0 0 ${C.ink}` }}>
-                  {s.step}
-                </span>
-                <div className="w-11 h-11 flex items-center justify-center mb-3"
-                  style={{ background: i===2? C.yellow : C.ink, color: i===2? C.ink : C.yellow, border: `2px solid ${C.ink}` }}>
-                  <s.icon className="w-5 h-5" strokeWidth={2.6} />
+        {/* ═══════════ HOW IT WORKS ═══════════ */}
+        <section id="how" className="py-20 px-4 sm:px-6" style={{ background: C.cream2 }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
+                style={{ color: C.pink }}>How it works</span>
+              <h2 className="bp-heading font-extrabold text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
+                Three steps to<br />your first drop.
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {[
+                { n:'01', t:'Register',        d:'Sign up in 60 seconds. Your wallet and provider vault appear instantly.' },
+                { n:'02', t:'Add your provider', d:'Paste any SMM API URL + key. Import services in one click.' },
+                { n:'03', t:'Ship the boost',  d:'Paste link → pick bundle → set qty. Human-pattern engine handles the rest.' },
+              ].map((s)=>(
+                <div key={s.n} className="p-7 rounded-3xl relative"
+                  style={{ background: C.white, boxShadow: '0 20px 40px -30px rgba(14,27,77,0.25)' }}>
+                  <span className="absolute -top-4 left-6 px-3 py-1 rounded-full text-[12px] font-extrabold"
+                    style={{ background: C.pink, color: C.white }}>{s.n}</span>
+                  <h3 className="mt-3 text-[20px] font-extrabold" style={{ color: C.navy }}>{s.t}</h3>
+                  <p className="mt-2 text-[14px] font-medium leading-relaxed" style={{ color: C.mute }}>{s.d}</p>
                 </div>
-                <h3 className="syne text-[1.1rem] font-extrabold" style={{ color: i===2? C.white : C.ink }}>{s.title}</h3>
-                <p className="mt-1 text-[12.5px] font-medium leading-relaxed" style={{ color: i===2? '#ffe5da' : C.mute }}>{s.desc}</p>
-              </Tile>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ═══════════ WHY US — comparison bento ═══════════ */}
-      <section id="why" className="py-16 sm:py-24 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <Chip tone="orange"><Shield className="w-3 h-3" />Why creators switch</Chip>
-            <h2 className="syne mt-4 text-[2rem] sm:text-[3.2rem] font-extrabold leading-[0.95]">
-              Typical panels leave <span style={{ color: C.orange }}>bot fingerprints.</span><br />
-              We don't.
+        {/* ═══════════ CTA ═══════════ */}
+        <section id="why" className="py-20 px-4 sm:px-6">
+          <div className="max-w-4xl mx-auto rounded-[36px] p-10 sm:p-14 text-center relative overflow-hidden"
+            style={{ background: C.navy }}>
+            <h2 className="bp-heading font-extrabold text-[2.2rem] sm:text-[3.4rem]" style={{ color: C.white }}>
+              Ready to grow<br />
+              <span style={{ color: C.pink2 }}>the honest way?</span>
             </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-5">
-            <Tile bg={C.white} className="p-7">
-              <div className="flex items-center gap-2 mb-5">
-                <span className="w-8 h-8 flex items-center justify-center text-[16px] font-black" style={{ background: '#EEE', border: `2px solid ${C.ink}` }}>×</span>
-                <span className="syne text-[1.15rem] font-extrabold">Typical SMM Panels</span>
-              </div>
-              <ul className="space-y-3">
-                {[
-                  'Identical batches every run — instant giveaway',
-                  'Clockwork intervals — bots stamp a fingerprint',
-                  'Non-stop dumping — nothing about it feels alive',
-                  'Handles get shadow-flagged or wiped',
-                ].map(t=>(
-                  <li key={t} className="flex items-start gap-2.5 text-[13.5px] font-medium" style={{ color: C.mute }}>
-                    <span className="mt-1.5 w-2 h-2" style={{ background: C.ink }} />{t}
-                  </li>
-                ))}
-              </ul>
-            </Tile>
-
-            <Tile bg={C.yellow} className="p-7 relative">
-              <span className="absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest px-2 py-1"
-                style={{ background: C.orange, color: C.white, border: `2px solid ${C.ink}` }}>Our way</span>
-              <div className="flex items-center gap-2 mb-5">
-                <span className="w-8 h-8 flex items-center justify-center" style={{ background: C.ink, border: `2px solid ${C.ink}` }}>
-                  <CheckCircle2 className="w-4 h-4" style={{ color: C.yellow }} />
-                </span>
-                <span className="syne text-[1.15rem] font-extrabold">Boostly Pro</span>
-              </div>
-              <ul className="space-y-3">
-                {[
-                  'Every drop is a fresh shape — reads like real fans',
-                  'Micro-jittered timing — no repeating cadence',
-                  'Prime-time lift, quiet nights — matches habits',
-                  'Zero bans logged across 50k+ deliveries',
-                ].map(t=>(
-                  <li key={t} className="flex items-start gap-2.5 text-[13.5px] font-semibold" style={{ color: C.ink }}>
-                    <span className="mt-1.5 w-2 h-2" style={{ background: C.orange }} />{t}
-                  </li>
-                ))}
-              </ul>
-            </Tile>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ CTA ═══════════ */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <Tile bg={C.orange} className="p-8 sm:p-14 text-center" hover={false}>
-            <Chip tone="yellow"><Rocket className="w-3 h-3" />Free to launch · No card</Chip>
-            <h2 className="syne mt-5 text-[2.2rem] sm:text-[3.6rem] font-extrabold leading-[0.95]" style={{ color: C.white }}>
-              Stop renting delivery.<br />
-              <span style={{ color: C.yellow }}>Own the whole stack.</span>
-            </h2>
-            <p className="mt-4 text-[14.5px] sm:text-[16px] font-semibold max-w-lg mx-auto" style={{ color: '#ffe5da' }}>
-              60 seconds to a live account. Your keys, your bundles, your margin.
+            <p className="mt-4 text-[15px] font-medium max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              Join 2,400+ creators shipping human-pattern engagement through Boostly Pro.
             </p>
             <Link to="/auth"
-              className="mt-7 inline-flex h-14 px-8 items-center gap-2 text-[15px] font-black uppercase tracking-widest transition-all hover:-translate-x-1 hover:-translate-y-1"
-              style={{ background: C.ink, color: C.yellow, border: `2.5px solid ${C.ink}`, boxShadow: `8px 8px 0 0 ${C.yellow}` }}>
-              Launch my account <ArrowRight className="w-5 h-5" />
+              className="mt-8 inline-flex items-center gap-2 h-14 px-8 rounded-full text-[15px] font-extrabold transition-transform hover:-translate-y-0.5"
+              style={{ background: C.pink, color: C.white, boxShadow: '0 20px 40px -14px rgba(232,48,138,0.6)' }}>
+              Start boosting <ArrowRight className="w-5 h-5" />
             </Link>
-          </Tile>
-        </div>
-      </section>
-      </main>
+          </div>
+        </section>
 
-      {/* ═══════════ FOOTER ═══════════ */}
-      <footer className="px-4 sm:px-6 pb-10">
-        <div className="max-w-6xl mx-auto pt-8 border-t-[2.5px] flex flex-col sm:flex-row items-center justify-between gap-4"
-          style={{ borderColor: C.ink }}>
-          <div className="flex items-center gap-2.5">
-            <img src={logo} alt="" width={28} height={28} className="w-7 h-7" style={{ border: `2px solid ${C.ink}` }} />
-            <span className="syne text-[15px] font-extrabold">Boostly<span style={{ color: C.orange }}>/</span>Pro</span>
-          </div>
-          <div className="flex items-center gap-5 text-[12px] font-bold">
-            <Link to="/legal/terms-of-service">Terms</Link>
-            <Link to="/legal/privacy-policy">Privacy</Link>
-            <Link to="/legal/contact-us">Contact</Link>
-          </div>
-          <span className="text-[11.5px] font-semibold" style={{ color: C.mute }}>© 2026 Boostly Pro · Built loud</span>
-        </div>
-      </footer>
+        {/* ═══════════ FOOTER ═══════════ */}
+        <footer className="py-10 px-4 sm:px-6 text-center text-[13px] font-medium" style={{ color: C.mute }}>
+          © {new Date().getFullYear()} Boostly Pro. Bring your own provider, own your growth.
+        </footer>
+      </main>
     </div>
   );
 };
