@@ -56,6 +56,7 @@ export default function AIIntelligence() {
       <PageMeta title="AI Intelligence" description="AI-powered engagement strategy" canonicalPath="/ai-intelligence" noIndex />
 
       <div className="max-w-4xl mx-auto space-y-6">
+        {showBundleBanner && <NoBundleBanner message="AI strategy aap ke bundle ki services aur pricing use karta hai. Bundle ke bina suggestions accurate nahi honge." />}
         <div className="glass-card p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-luxury)' }}>
