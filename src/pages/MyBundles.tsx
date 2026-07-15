@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageMeta } from '@/components/seo/PageMeta';
 import { useAuth } from '@/hooks/useAuth';
