@@ -48,9 +48,25 @@ const Index = () => {
         @keyframes bp-float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes bp-drift-x { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         @keyframes bp-pop     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+        /* Icon package riding the conveyor INTO the shop */
+        @keyframes bp-in {
+          0%   { transform: translate(0,0) scale(.85);         opacity: 0; }
+          10%  { opacity: 1; }
+          55%  { transform: translate(140px,-30px) scale(.95); opacity: 1; }
+          85%  { transform: translate(230px,-52px) scale(.65); opacity: .9; }
+          100% { transform: translate(275px,-66px) scale(.3);  opacity: 0; }
+        }
+        /* Icon puffing OUT of the shop */
+        @keyframes bp-out {
+          0%   { transform: translate(0,0) scale(.4);          opacity: 0; }
+          20%  { opacity: 1; }
+          100% { transform: translate(var(--dx,-70px), var(--dy,-170px)) scale(1); opacity: 0; }
+        }
         .bp-float { animation: bp-float 4s ease-in-out infinite; }
         .bp-pop   { animation: bp-pop 2.4s ease-in-out infinite; }
         .bp-mrq   { animation: bp-drift-x 26s linear infinite; }
+        .bp-in    { animation: bp-in 5.4s cubic-bezier(.55,.05,.35,1) infinite; }
+        .bp-out   { animation: bp-out 4.6s cubic-bezier(.4,.1,.4,1) infinite; }
         .bp-heading { font-family:'Inter', system-ui, sans-serif; font-weight:800; letter-spacing:-0.045em; line-height:0.95; }
         .bp-serif   { font-family:'Instrument Serif', 'Times New Roman', serif; font-style:italic; font-weight:400; letter-spacing:-0.02em; }
       `}</style>
@@ -185,6 +201,56 @@ const Index = () => {
                   style={{ background: C.navy, boxShadow: '0 10px 24px -10px rgba(14,27,77,0.35)', animationDelay:'2s' }}>
                   <UserPlus className="w-4 h-4" style={{ color: C.pink2 }} />
                   <span className="text-[12px] font-bold" style={{ color: C.white }}>+860 followers</span>
+                </div>
+
+                {/* ── Conveyor-belt engagement icons flowing INTO the shop ── */}
+                <div className="pointer-events-none absolute inset-0 hidden sm:block">
+                  {[
+                    { Icon: Eye,           label: 'Views',    delay: '0s'   },
+                    { Icon: Heart,         label: 'Likes',    delay: '0.9s' },
+                    { Icon: MessageCircle, label: 'Comments', delay: '1.8s' },
+                    { Icon: Bookmark,      label: 'Saves',    delay: '2.7s' },
+                    { Icon: Share2,        label: 'Shares',   delay: '3.6s' },
+                    { Icon: UserPlus,      label: 'Follows',  delay: '4.5s' },
+                  ].map(({Icon, label, delay}) => (
+                    <div key={label}
+                      className="absolute bp-in flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+                      style={{
+                        left: '6%', bottom: '18%',
+                        background: C.white,
+                        boxShadow: '0 10px 20px -8px rgba(14,27,77,0.35), 0 0 0 2px rgba(232,48,138,0.08)',
+                        animationDelay: delay,
+                      }}
+                    >
+                      <span className="w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(232,48,138,0.12)' }}>
+                        <Icon className="w-3.5 h-3.5" style={{ color: C.pink }} strokeWidth={2.6} />
+                      </span>
+                      <span className="text-[11px] font-extrabold pr-1" style={{ color: C.navy }}>{label}</span>
+                    </div>
+                  ))}
+
+                  {/* ── Engagement puffing OUT of the shop ── */}
+                  {[
+                    { Icon: Heart,         dx: '-90px',  dy: '-180px', delay: '0.4s' },
+                    { Icon: Eye,           dx: '40px',   dy: '-200px', delay: '1.6s' },
+                    { Icon: Share2,        dx: '-140px', dy: '-120px', delay: '2.8s' },
+                    { Icon: MessageCircle, dx: '80px',   dy: '-150px', delay: '3.7s' },
+                  ].map(({Icon, dx, dy, delay}, i) => (
+                    <div key={i}
+                      className="absolute bp-out w-9 h-9 rounded-full flex items-center justify-center"
+                      style={{
+                        right: '22%', top: '38%',
+                        background: C.white,
+                        boxShadow: '0 12px 22px -8px rgba(232,48,138,0.5)',
+                        // @ts-ignore CSS vars
+                        '--dx': dx, '--dy': dy,
+                        animationDelay: delay,
+                      } as React.CSSProperties}
+                    >
+                      <Icon className="w-4 h-4" style={{ color: C.pink }} strokeWidth={2.6} />
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
