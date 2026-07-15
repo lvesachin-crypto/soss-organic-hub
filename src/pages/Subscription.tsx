@@ -255,8 +255,8 @@ export default function Subscription() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground max-w-xl mx-auto">
-          Payment successful hone ke turant baad subscription auto-activate ho jayegi. Koi issue ho to
-          admin se contact karein — manual activation bhi possible hai.
+          Your subscription auto-activates immediately after a successful payment. If you run into any issue,
+          contact admin — manual activation is also possible.
         </p>
       </div>
 
