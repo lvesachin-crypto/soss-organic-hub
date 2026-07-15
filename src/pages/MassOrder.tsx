@@ -411,7 +411,7 @@ export default function MassOrder() {
               </div>
               <div>
                 <Label>Engagement Types & Quantities</Label>
-                <p className="text-[11px] text-muted-foreground mt-1">Har type ke liye alag quantity set karo. Sirf enable kiye hue types submit honge.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Set a separate quantity for each type. Only enabled types will be submitted.</p>
                 <div className="mt-2 space-y-2">
                   {(allowedTypes.length ? allowedTypes : ALL_TYPES).map(t => {
                     const on = !!editing.types[t];
