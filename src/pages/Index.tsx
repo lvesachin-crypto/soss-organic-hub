@@ -107,10 +107,10 @@ const Index = () => {
                 Live · v2.0
               </div>
 
-              <h1 className="bp-heading font-extrabold text-[3rem] sm:text-[4.4rem] lg:text-[5.2rem]"
+              <h1 className="bp-heading text-[3rem] sm:text-[4.4rem] lg:text-[5.4rem]"
                 style={{ color: C.navy }}>
                 Boost your<br />
-                reach <span style={{ color: C.pink }}>right</span><br />
+                reach <span className="bp-serif" style={{ color: C.pink }}>right</span><br />
                 now<span style={{ color: C.pink }}>!</span>
               </h1>
 
