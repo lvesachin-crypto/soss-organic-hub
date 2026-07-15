@@ -22,6 +22,8 @@ interface Row {
 
 const DEFAULT_TYPES = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
 const TIMEFRAMES = ['Under 6 hours', 'Under 12 hours', 'Under 24 hours', 'Under 48 hours', 'Under 72 hours'];
+const CUSTOM = 'Custom';
+const isCustom = (v: string) => !TIMEFRAMES.includes(v);
 const RATIOS: Record<string, number> = { views: 1, likes: 0.031, shares: 0.013, comments: 0.008, saves: 0.012, followers: 0.02 };
 
 function parseLinks(raw: string): string[] {
@@ -180,9 +182,28 @@ export default function MassOrder() {
             </div>
             <div>
               <Label>Default Timeframe</Label>
-              <select className="w-full h-12 mt-2 px-4 rounded-xl bg-secondary border border-border text-foreground" value={timeframe} onChange={e => setTimeframe(e.target.value)}>
-                {TIMEFRAMES.map(t => <option key={t}>{t}</option>)}
-              </select>
+              <div className="flex gap-2 mt-2">
+                <select
+                  className="flex-1 h-12 px-4 rounded-xl bg-secondary border border-border text-foreground"
+                  value={isCustom(timeframe) ? CUSTOM : timeframe}
+                  onChange={e => setTimeframe(e.target.value === CUSTOM ? 'Under 1 hours' : e.target.value)}
+                >
+                  {TIMEFRAMES.map(t => <option key={t}>{t}</option>)}
+                  <option value={CUSTOM}>Custom…</option>
+                </select>
+                {isCustom(timeframe) && (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      className="input-3d h-12 w-24"
+                      value={parseInt(timeframe.replace(/\D/g, '')) || 1}
+                      onChange={e => setTimeframe(`Under ${Math.max(1, Number(e.target.value) || 1)} hours`)}
+                    />
+                    <span className="text-xs text-muted-foreground">hours</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground">Defaults sirf naye links par apply hote hain. Existing rows ko edit karke per-link override karo.</p>
@@ -281,9 +302,26 @@ export default function MassOrder() {
                 </div>
                 <div>
                   <Label>Timeframe</Label>
-                  <select className="w-full h-10 mt-2 px-3 rounded-xl bg-secondary border border-border text-foreground" value={editing.timeframe} onChange={e => setEditing({ ...editing, timeframe: e.target.value })}>
+                  <select
+                    className="w-full h-10 mt-2 px-3 rounded-xl bg-secondary border border-border text-foreground"
+                    value={isCustom(editing.timeframe) ? CUSTOM : editing.timeframe}
+                    onChange={e => setEditing({ ...editing, timeframe: e.target.value === CUSTOM ? 'Under 1 hours' : e.target.value })}
+                  >
                     {TIMEFRAMES.map(t => <option key={t}>{t}</option>)}
+                    <option value={CUSTOM}>Custom…</option>
                   </select>
+                  {isCustom(editing.timeframe) && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        className="input-3d h-10 w-24"
+                        value={parseInt(editing.timeframe.replace(/\D/g, '')) || 1}
+                        onChange={e => setEditing({ ...editing, timeframe: `Under ${Math.max(1, Number(e.target.value) || 1)} hours` })}
+                      />
+                      <span className="text-xs text-muted-foreground">hours</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
