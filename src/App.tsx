@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { AdminGuard } from "@/components/admin/AdminGuard";
@@ -10,63 +10,61 @@ import { CurrencyProvider } from "@/hooks/useCurrency";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { toast } from "sonner";
 import { AppErrorBoundary } from "@/components/app/AppErrorBoundary";
+import { Loader2 } from "lucide-react";
 
-
-// ALL pages eager-loaded for instantaneous navigation
+// Landing eager (LCP) — everything else lazy for smaller initial bundle
 import Index from "./pages/Index";
-import SmmPanelUsa from "./pages/SmmPanelUsa";
-import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Orders from "./pages/Orders";
-import Wallet from "./pages/Wallet";
-import Settings from "./pages/Settings";
-import Support from "./pages/Support";
-import ApiAccess from "./pages/ApiAccess";
-import MyProviders from "./pages/MyProviders";
-import MyServices from "./pages/MyServices";
-import MyBundles from "./pages/MyBundles";
-import MassOrder from "./pages/MassOrder";
-import AIIntelligence from "./pages/AIIntelligence";
-import Subscription from "./pages/Subscription";
-import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
 
-// Engagement pages
-import EngagementOrder from "./pages/EngagementOrder";
-import EngagementOrders from "./pages/EngagementOrders";
-import EngagementOrderDetail from "./pages/EngagementOrderDetail";
+const SmmPanelUsa = lazy(() => import("./pages/SmmPanelUsa"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Wallet = lazy(() => import("./pages/Wallet"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Support = lazy(() => import("./pages/Support"));
+const ApiAccess = lazy(() => import("./pages/ApiAccess"));
+const MyProviders = lazy(() => import("./pages/MyProviders"));
+const MyServices = lazy(() => import("./pages/MyServices"));
+const MyBundles = lazy(() => import("./pages/MyBundles"));
+const MassOrder = lazy(() => import("./pages/MassOrder"));
+const AIIntelligence = lazy(() => import("./pages/AIIntelligence"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 
-// Admin pages
-import Admin from "./pages/admin/Admin";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminBundles from "./pages/admin/AdminBundles";
-import AdminCronMonitor from "./pages/admin/AdminCronMonitor";
+const EngagementOrder = lazy(() => import("./pages/EngagementOrder"));
+const EngagementOrders = lazy(() => import("./pages/EngagementOrders"));
+const EngagementOrderDetail = lazy(() => import("./pages/EngagementOrderDetail"));
 
-import AdminDeposits from "./pages/admin/AdminDeposits";
-import AdminProviderAccounts from "./pages/admin/AdminProviderAccounts";
-import AdminServiceProviderMapping from "./pages/admin/AdminServiceProviderMapping";
-import AdminAuditLog from "./pages/admin/AdminAuditLog";
-import AdminOxaPayEvents from "./pages/admin/AdminOxaPayEvents";
-import AdminPopupAd from "./pages/admin/AdminPopupAd";
-import AdminTopupPlan from "./pages/admin/AdminTopupPlan";
+// Admin — heavy, lazy
+const Admin = lazy(() => import("./pages/admin/Admin"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminBundles = lazy(() => import("./pages/admin/AdminBundles"));
+const AdminCronMonitor = lazy(() => import("./pages/admin/AdminCronMonitor"));
+const AdminDeposits = lazy(() => import("./pages/admin/AdminDeposits"));
+const AdminProviderAccounts = lazy(() => import("./pages/admin/AdminProviderAccounts"));
+const AdminServiceProviderMapping = lazy(() => import("./pages/admin/AdminServiceProviderMapping"));
+const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog"));
+const AdminOxaPayEvents = lazy(() => import("./pages/admin/AdminOxaPayEvents"));
+const AdminPopupAd = lazy(() => import("./pages/admin/AdminPopupAd"));
+const AdminTopupPlan = lazy(() => import("./pages/admin/AdminTopupPlan"));
+const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
 
-// Legal pages
-import TermsOfService from "./pages/legal/TermsOfService";
-import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
-import RefundPolicy from "./pages/legal/RefundPolicy";
-import CookiePolicy from "./pages/legal/CookiePolicy";
-import ContactUs from "./pages/legal/ContactUs";
-import AboutUs from "./pages/legal/AboutUs";
-import ShippingPolicy from "./pages/legal/ShippingPolicy";
+const TermsOfService = lazy(() => import("./pages/legal/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/legal/PrivacyPolicy"));
+const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy"));
+const CookiePolicy = lazy(() => import("./pages/legal/CookiePolicy"));
+const ContactUs = lazy(() => import("./pages/legal/ContactUs"));
+const AboutUs = lazy(() => import("./pages/legal/AboutUs"));
+const ShippingPolicy = lazy(() => import("./pages/legal/ShippingPolicy"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,       // 5 min — use cache, don't refetch
-      gcTime: 15 * 60 * 1000,          // 15 min cache retention
-      refetchOnWindowFocus: false,      // Don't refetch on tab switch
-      refetchOnReconnect: false,        // Don't refetch on reconnect
-      refetchOnMount: false,            // Use cached data on navigation
+      staleTime: 5 * 60 * 1000,
+      gcTime: 15 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
       retry: 2,
       retryDelay: (i) => Math.min(1000 * 2 ** i, 10000),
     },
@@ -76,6 +74,12 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const PageFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
 
 const App = () => {
   useEffect(() => {
@@ -105,7 +109,7 @@ const App = () => {
             <AppErrorBoundary>
               <BrowserRouter>
                 <ScrollToTop />
-                
+                <Suspense fallback={<PageFallback />}>
                   <Routes>
                     {/* User pages */}
                     <Route path="/" element={<Index />} />
@@ -125,7 +129,6 @@ const App = () => {
                     <Route path="/ai-intelligence" element={<AIIntelligence />} />
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/admin/subscriptions" element={<AdminGuard><AdminSubscriptions /></AdminGuard>} />
-
 
                     {/* Engagement */}
                     <Route path="/engagement-order" element={<EngagementOrder />} />
@@ -156,7 +159,7 @@ const App = () => {
                     <Route path="/about" element={<AboutUs />} />
                     <Route path="/shipping" element={<ShippingPolicy />} />
                   </Routes>
-                
+                </Suspense>
               </BrowserRouter>
             </AppErrorBoundary>
           </TooltipProvider>
