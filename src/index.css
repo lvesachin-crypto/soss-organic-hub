@@ -47,7 +47,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
     --destructive-foreground: 0 0% 100%;
 
     --border: 230 30% 88%;
-    --input: 35 60% 96%;
+    --input: 0 0% 100%;
     --ring: 329 79% 55%;
 
     --radius: 0.9rem;
