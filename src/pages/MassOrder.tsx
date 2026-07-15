@@ -19,9 +19,11 @@ interface Row {
   base_quantity: number;
   timeframe: string;
   types: Record<string, boolean>;
+  qty: Record<string, number>; // per-type quantity (custom override)
 }
 
-const DEFAULT_TYPES = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
+const ALL_TYPES = ['views', 'likes', 'shares', 'comments', 'saves', 'followers'] as const;
+const DEFAULT_TYPES: Record<string, boolean> = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
 const TIMEFRAMES = ['Under 6 hours', 'Under 12 hours', 'Under 24 hours', 'Under 48 hours', 'Under 72 hours'];
 const CUSTOM = 'Custom';
 const isCustom = (v: string) => !TIMEFRAMES.includes(v);
@@ -34,13 +36,25 @@ function parseLinks(raw: string): string[] {
     .filter(l => /^https?:\/\/\S+/i.test(l));
 }
 
-function newRow(link: string, base: number, tf: string): Row {
+function defaultQty(base: number): Record<string, number> {
+  const q: Record<string, number> = {};
+  ALL_TYPES.forEach(t => { q[t] = Math.round(base * (RATIOS[t] || 0)); });
+  return q;
+}
+
+function newRow(link: string, base: number, tf: string, allowedTypes?: string[]): Row {
+  const types: Record<string, boolean> = { ...DEFAULT_TYPES };
+  if (allowedTypes && allowedTypes.length) {
+    ALL_TYPES.forEach(t => { types[t] = false; });
+    allowedTypes.forEach(t => { if (t in types) types[t] = true; });
+  }
   return {
     id: crypto.randomUUID(),
     link,
     base_quantity: base,
     timeframe: tf,
-    types: { ...DEFAULT_TYPES },
+    types,
+    qty: defaultQty(base),
   };
 }
 
@@ -61,16 +75,38 @@ export default function MassOrder() {
     queryFn: async () => {
       const { data } = await supabase
         .from('user_bundles')
-        .select('id, name, platform, user_bundle_items(id)')
+        .select('id, name, platform, user_bundle_items(id, engagement_type, price_per_k)')
         .order('created_at', { ascending: false });
       return data || [];
     },
   });
 
+  const selectedBundle: any = useMemo(
+    () => bundles.find((b: any) => b.id === bundleId),
+    [bundles, bundleId]
+  );
+  const allowedTypes: string[] = useMemo(() => {
+    const items = selectedBundle?.user_bundle_items || [];
+    const set = new Set<string>(items.map((i: any) => i.engagement_type).filter(Boolean));
+    return ALL_TYPES.filter(t => set.has(t));
+  }, [selectedBundle]);
+  const priceMap: Record<string, number> = useMemo(() => {
+    const m: Record<string, number> = {};
+    (selectedBundle?.user_bundle_items || []).forEach((i: any) => {
+      if (i.engagement_type) m[i.engagement_type] = Number(i.price_per_k) || 0;
+    });
+    return m;
+  }, [selectedBundle]);
+
   const totalValid = useMemo(() => rows.length, [rows]);
   const perRowCost = (r: Row) => {
     let cost = 0;
-    for (const k of Object.keys(r.types)) if (r.types[k]) cost += (r.base_quantity * (RATIOS[k] || 0)) / 1000 * 0.1;
+    for (const k of Object.keys(r.types)) {
+      if (!r.types[k]) continue;
+      const q = r.qty[k] ?? Math.round(r.base_quantity * (RATIOS[k] || 0));
+      const priceK = priceMap[k] ?? 0.1;
+      cost += (q / 1000) * priceK;
+    }
     return cost;
   };
   const grandTotal = useMemo(() => rows.reduce((s, r) => s + perRowCost(r), 0), [rows]);
@@ -78,7 +114,7 @@ export default function MassOrder() {
   function preview() {
     const links = parseLinks(raw);
     if (!links.length) return toast.error('Koi valid link nahi mila');
-    setRows(links.map(l => newRow(l, baseQty, timeframe)));
+    setRows(links.map(l => newRow(l, baseQty, timeframe, allowedTypes)));
     toast.success(`${links.length} link(s) tayaar`);
   }
 
@@ -273,7 +309,7 @@ export default function MassOrder() {
                       {activeTypes.map(t => (
                         <span key={t} className="text-foreground">
                           <span className="capitalize text-muted-foreground">{t}:</span>{' '}
-                          <b>{Math.round(r.base_quantity * (RATIOS[t] || 0)).toLocaleString()}</b>
+                          <b>{(r.qty[t] ?? Math.round(r.base_quantity * (RATIOS[t] || 0))).toLocaleString()}</b>
                         </span>
                       ))}
                     </div>
@@ -310,8 +346,17 @@ export default function MassOrder() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Base Quantity</Label>
-                  <Input type="number" className="input-3d mt-2" value={editing.base_quantity} onChange={e => setEditing({ ...editing, base_quantity: Number(e.target.value) || 0 })} />
+                  <Label>Base Quantity (Views)</Label>
+                  <Input
+                    type="number"
+                    className="input-3d mt-2"
+                    value={editing.base_quantity}
+                    onChange={e => {
+                      const b = Number(e.target.value) || 0;
+                      setEditing({ ...editing, base_quantity: b, qty: defaultQty(b) });
+                    }}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Base badloge to har type ka default qty auto-adjust hoga.</p>
                 </div>
                 <div>
                   <Label>Timeframe</Label>
@@ -338,14 +383,41 @@ export default function MassOrder() {
                 </div>
               </div>
               <div>
-                <Label>Engagement Types</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {Object.keys(DEFAULT_TYPES).map(t => (
-                    <label key={t} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-secondary/40 cursor-pointer">
-                      <input type="checkbox" checked={editing.types[t] || false} onChange={e => setEditing({ ...editing, types: { ...editing.types, [t]: e.target.checked } })} />
-                      <span className="capitalize text-sm">{t}</span>
-                    </label>
-                  ))}
+                <Label>Engagement Types & Quantities</Label>
+                <p className="text-[11px] text-muted-foreground mt-1">Har type ke liye alag quantity set karo. Sirf enable kiye hue types submit honge.</p>
+                <div className="mt-2 space-y-2">
+                  {(allowedTypes.length ? allowedTypes : ALL_TYPES).map(t => {
+                    const on = !!editing.types[t];
+                    const q = editing.qty[t] ?? Math.round(editing.base_quantity * (RATIOS[t] || 0));
+                    const lineCost = on ? (q / 1000) * (priceMap[t] ?? 0.1) : 0;
+                    return (
+                      <div key={t} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-secondary/40">
+                        <label className="flex items-center gap-2 min-w-[110px] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={e => setEditing({ ...editing, types: { ...editing.types, [t]: e.target.checked } })}
+                          />
+                          <span className="capitalize text-sm font-medium">{t}</span>
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          disabled={!on}
+                          className="input-3d h-9 flex-1"
+                          value={q}
+                          onChange={e => setEditing({ ...editing, qty: { ...editing.qty, [t]: Math.max(0, Number(e.target.value) || 0) } })}
+                        />
+                        <span className="text-[11px] text-muted-foreground w-16 text-right font-mono">
+                          ₹{lineCost.toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 border border-primary/20">
+                  <span className="text-sm font-semibold">Total</span>
+                  <span className="text-sm font-bold text-primary font-mono">${perRowCost(editing).toFixed(2)}</span>
                 </div>
               </div>
             </div>
