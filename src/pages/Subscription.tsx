@@ -141,7 +141,7 @@ export default function Subscription() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl sm:text-4xl font-bold">Unlock Boostly Pro</h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Ek active subscription ke bina provider add / bundle create nahi hoga. Apna plan choose karein.
+            You need an active subscription to add providers or create bundles. Choose your plan below.
           </p>
         </div>
 
