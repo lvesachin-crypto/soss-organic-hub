@@ -436,9 +436,3 @@ const Index = () => {
 };
 
 export default Index;
-      </main>
-    </div>
-  );
-};
-
-export default Index;
