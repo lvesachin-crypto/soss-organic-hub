@@ -136,23 +136,59 @@ export default function MassOrder() {
     setEditing(null);
   }
 
+  function timeframeToHours(tf: string): number {
+    const m = String(tf).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 24;
+  }
+
   async function submit() {
     if (!bundleId) return toast.error('Pehle apna bundle select karo');
     if (!rows.length) return toast.error('No rows to submit');
+    const items = selectedBundle?.user_bundle_items || [];
+    const serviceMap: Record<string, { service_id: string | null; price: number }> = {};
+    items.forEach((i: any) => {
+      if (i.engagement_type) serviceMap[i.engagement_type] = {
+        service_id: i.service_id ?? null,
+        price: Number(i.price_per_k) || 0,
+      };
+    });
+
     setSubmitting(true);
     try {
       let ok = 0, fail = 0;
       for (const r of rows) {
-        const { error } = await supabase.from('engagement_orders').insert({
-          user_id: user!.id,
-          bundle_id: null,
-          link: r.link,
-          total_price: perRowCost(r),
-          base_quantity: r.base_quantity,
-          is_organic_mode: true,
-          status: 'pending',
-          notes: campaign ? `Mass Order: ${campaign}` : 'Mass Order',
-        } as any);
+        const hours = timeframeToHours(r.timeframe);
+        const engagements = Object.keys(r.types)
+          .filter((t) => r.types[t])
+          .map((t) => {
+            const q = r.qty[t] ?? Math.round(r.base_quantity * (RATIOS[t] || 0));
+            const priceK = serviceMap[t]?.price ?? 0;
+            return {
+              type: t,
+              quantity: q,
+              price: (q / 1000) * priceK,
+              service_id: serviceMap[t]?.service_id ?? null,
+              time_limit_hours: hours,
+              variance_percent: 15,
+              peak_hours_enabled: false,
+            };
+          })
+          .filter((e) => e.quantity > 0);
+
+        if (!engagements.length) { fail++; continue; }
+
+        const { error } = await supabase.functions.invoke('process-engagement-order', {
+          body: {
+            user_id: user!.id,
+            bundle_id: bundleId,
+            link: r.link,
+            base_quantity: r.base_quantity,
+            total_price: perRowCost(r),
+            is_organic_mode: true,
+            notes: campaign ? `Mass Order: ${campaign}` : 'Mass Order',
+            engagements,
+          },
+        });
         if (error) fail++; else ok++;
       }
       toast[ok ? 'success' : 'error'](`Submitted ${ok}/${rows.length} orders${fail ? ` (${fail} failed)` : ''}`);
