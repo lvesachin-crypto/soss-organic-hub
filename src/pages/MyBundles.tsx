@@ -347,8 +347,11 @@ function ProvidersPanel({
         }
         const prevSid = c.existing?.provider_service_id || '';
         if (sid === prevSid) continue;
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess?.session?.access_token;
         const { data, error } = await supabase.functions.invoke('user-provider-manage', {
           body: { op: 'validate_service', account_id: c.accountId, service_id: sid },
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         });
         if (error) { toast.error(error.message || 'Validation failed'); return; }
         if (!data?.ok) { toast.error(`${accounts.find(x=>x.id===c.accountId)?.name}: ${data?.error || 'Invalid Service ID'}`); return; }
