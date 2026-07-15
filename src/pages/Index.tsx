@@ -256,10 +256,6 @@ const Index = () => {
             </div>
           </div>
         </section>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* ═══════════ ENGAGEMENT ROW ═══════════ */}
         <section className="px-4 sm:px-6 pb-14">
