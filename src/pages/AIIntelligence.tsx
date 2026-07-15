@@ -9,12 +9,28 @@ import { Brain, Sparkles, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { NoBundleEmptyState } from '@/components/NoBundleEmptyState';
 
 export default function AIIntelligence() {
+  const { user } = useAuth();
   const [link, setLink] = useState('');
   const [goal, setGoal] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string>('');
+
+  const { data: bundles = [], isLoading: bundlesLoading } = useQuery({
+    queryKey: ['ai-intel-bundles', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_bundles')
+        .select('id, user_bundle_items(id)')
+        .eq('is_active', true);
+      return (data || []).filter((b: any) => (b.user_bundle_items?.length || 0) > 0);
+    },
+  });
 
   async function analyze() {
     if (!link) return toast.error('Post/Video link daalo');
