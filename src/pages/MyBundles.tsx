@@ -31,18 +31,30 @@ export default function MyBundles() {
   const [platform, setPlatform] = useState('instagram');
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
-  const { data: bundles = [] } = useQuery({
+  const { data: bundles = [], error: bundlesError } = useQuery({
     queryKey: ['user-bundles', user?.id],
     enabled: !!user?.id,
+    retry: 1,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_bundles')
         .select('*, user_bundle_items(*, user_bundle_item_providers(*))')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error('[user-bundles] query error:', error);
+        throw error;
+      }
       return data || [];
     },
   });
+
+  useEffect(() => {
+    if (bundlesError) {
+      const msg = (bundlesError as any)?.message || 'Failed to load bundles';
+      toast.error(msg === 'Failed to fetch' ? 'Network issue loading bundles — please retry' : msg);
+    }
+  }, [bundlesError]);
+
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['user-provider-accounts-min', user?.id],
@@ -56,32 +68,80 @@ export default function MyBundles() {
   const refresh = () => qc.invalidateQueries({ queryKey: ['user-bundles'] });
 
   async function createBundle() {
-    if (!name) return toast.error('Name required');
-    const { error } = await supabase.from('user_bundles').insert({ user_id: user!.id, name, description: desc, platform });
-    if (error) toast.error(error.message);
-    else { toast.success('Bundle created'); setCreateOpen(false); setName(''); setDesc(''); refresh(); }
+    if (!name.trim()) return toast.error('Name required');
+    if (!user?.id) return toast.error('Not signed in');
+    try {
+      const { data, error } = await supabase
+        .from('user_bundles')
+        .insert({ user_id: user.id, name: name.trim(), description: desc || null, platform })
+        .select('id')
+        .single();
+      if (error) {
+        console.error('[createBundle] insert error:', error);
+        const msg = error.message?.includes('SUBSCRIPTION_REQUIRED')
+          ? 'Active subscription required to create bundles'
+          : error.message || 'Failed to create bundle';
+        return toast.error(msg);
+      }
+      toast.success('Bundle created');
+      setCreateOpen(false);
+      setName('');
+      setDesc('');
+      await qc.invalidateQueries({ queryKey: ['user-bundles'] });
+    } catch (e: any) {
+      console.error('[createBundle] threw:', e);
+      toast.error(e?.message === 'Failed to fetch' ? 'Network issue — please retry' : (e?.message || 'Failed to create bundle'));
+    }
   }
   async function deleteBundle(id: string) {
     if (!confirm('Delete this bundle?')) return;
-    const { error } = await supabase.from('user_bundles').delete().eq('id', id);
-    if (error) toast.error(error.message); else { toast.success('Deleted'); refresh(); }
+    try {
+      const { error } = await supabase.from('user_bundles').delete().eq('id', id);
+      if (error) return toast.error(error.message);
+      toast.success('Deleted');
+      await qc.invalidateQueries({ queryKey: ['user-bundles'] });
+    } catch (e: any) {
+      console.error('[deleteBundle]', e);
+      toast.error(e?.message === 'Failed to fetch' ? 'Network issue — please retry' : (e?.message || 'Failed'));
+    }
   }
   async function addEngagementItem(bundleId: string, engagementType: string) {
     const exists = bundles.find((b: any) => b.id === bundleId)?.user_bundle_items?.some((i: any) => i.engagement_type === engagementType);
     if (exists) return toast.error(`${engagementType} already added`);
-    const { error } = await supabase.from('user_bundle_items').insert({
-      user_id: user!.id, user_bundle_id: bundleId, engagement_type: engagementType, quantity: 100,
-    });
-    if (error) toast.error(error.message); else refresh();
+    if (!user?.id) return toast.error('Not signed in');
+    try {
+      const { error } = await supabase.from('user_bundle_items').insert({
+        user_id: user.id, user_bundle_id: bundleId, engagement_type: engagementType, quantity: 100,
+      });
+      if (error) {
+        console.error('[addEngagementItem]', error);
+        return toast.error(error.message || 'Failed to add');
+      }
+      await qc.invalidateQueries({ queryKey: ['user-bundles'] });
+    } catch (e: any) {
+      console.error('[addEngagementItem] threw:', e);
+      toast.error(e?.message === 'Failed to fetch' ? 'Network issue — please retry' : (e?.message || 'Failed'));
+    }
   }
   async function deleteItem(id: string) {
-    const { error } = await supabase.from('user_bundle_items').delete().eq('id', id);
-    if (error) toast.error(error.message); else refresh();
+    try {
+      const { error } = await supabase.from('user_bundle_items').delete().eq('id', id);
+      if (error) return toast.error(error.message);
+      await qc.invalidateQueries({ queryKey: ['user-bundles'] });
+    } catch (e: any) {
+      console.error('[deleteItem]', e);
+      toast.error(e?.message === 'Failed to fetch' ? 'Network issue — please retry' : (e?.message || 'Failed'));
+    }
   }
   async function updateQuantity(id: string, quantity: number) {
-    await supabase.from('user_bundle_items').update({ quantity }).eq('id', id);
-    refresh();
+    try {
+      await supabase.from('user_bundle_items').update({ quantity }).eq('id', id);
+      await qc.invalidateQueries({ queryKey: ['user-bundles'] });
+    } catch (e: any) {
+      console.error('[updateQuantity]', e);
+    }
   }
+
 
   return (
     <DashboardLayout>
