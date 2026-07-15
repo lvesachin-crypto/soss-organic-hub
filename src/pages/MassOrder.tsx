@@ -240,7 +240,7 @@ export default function MassOrder() {
             ))}
           </select>
           {bundles.length === 0 && (
-            <p className="text-xs text-warning">Pehle <a href="/my-bundles" className="underline">My Bundles</a> me ek bundle banao.</p>
+            <p className="text-xs text-warning">First create a bundle in <a href="/my-bundles" className="underline">My Bundles</a>.</p>
           )}
 
           <div>
