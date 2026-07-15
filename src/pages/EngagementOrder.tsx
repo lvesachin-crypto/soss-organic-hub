@@ -62,7 +62,7 @@ export default function EngagementOrder() {
   const { formatPrice, rates } = useCurrency();
   // Pricing now comes from bundle_items.price_per_k (admin-controlled per type).
 
-  // Realtime: when admin changes bundle/service pricing, refresh user view instantly.
+  // Realtime: refresh view when admin bundles OR user bundles change.
   useEffect(() => {
     const channel = supabase
       .channel('pricing-sync')
@@ -77,6 +77,12 @@ export default function EngagementOrder() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
         queryClient.invalidateQueries({ queryKey: ['bundles'] });
         queryClient.invalidateQueries({ queryKey: ['all-active-services'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundles' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['user-bundles-filter'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundle_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['user-bundles-filter'] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
