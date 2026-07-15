@@ -131,7 +131,7 @@ export default function AIIntelligence() {
               <h1 className="text-lg font-bold tracking-tight flex items-center gap-2">
                 Boostly AI <Sparkles className="w-4 h-4 text-primary" />
               </h1>
-              <p className="text-xs text-muted-foreground">Aapka personal SMM strategist — kuch bhi puchho</p>
+              <p className="text-xs text-muted-foreground">Your personal SMM strategist — ask me anything</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={reset} className="text-muted-foreground">
