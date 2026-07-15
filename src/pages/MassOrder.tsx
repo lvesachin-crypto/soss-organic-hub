@@ -75,16 +75,38 @@ export default function MassOrder() {
     queryFn: async () => {
       const { data } = await supabase
         .from('user_bundles')
-        .select('id, name, platform, user_bundle_items(id)')
+        .select('id, name, platform, user_bundle_items(id, engagement_type, price_per_k)')
         .order('created_at', { ascending: false });
       return data || [];
     },
   });
 
+  const selectedBundle: any = useMemo(
+    () => bundles.find((b: any) => b.id === bundleId),
+    [bundles, bundleId]
+  );
+  const allowedTypes: string[] = useMemo(() => {
+    const items = selectedBundle?.user_bundle_items || [];
+    const set = new Set<string>(items.map((i: any) => i.engagement_type).filter(Boolean));
+    return ALL_TYPES.filter(t => set.has(t));
+  }, [selectedBundle]);
+  const priceMap: Record<string, number> = useMemo(() => {
+    const m: Record<string, number> = {};
+    (selectedBundle?.user_bundle_items || []).forEach((i: any) => {
+      if (i.engagement_type) m[i.engagement_type] = Number(i.price_per_k) || 0;
+    });
+    return m;
+  }, [selectedBundle]);
+
   const totalValid = useMemo(() => rows.length, [rows]);
   const perRowCost = (r: Row) => {
     let cost = 0;
-    for (const k of Object.keys(r.types)) if (r.types[k]) cost += (r.base_quantity * (RATIOS[k] || 0)) / 1000 * 0.1;
+    for (const k of Object.keys(r.types)) {
+      if (!r.types[k]) continue;
+      const q = r.qty[k] ?? Math.round(r.base_quantity * (RATIOS[k] || 0));
+      const priceK = priceMap[k] ?? 0.1;
+      cost += (q / 1000) * priceK;
+    }
     return cost;
   };
   const grandTotal = useMemo(() => rows.reduce((s, r) => s + perRowCost(r), 0), [rows]);
@@ -92,7 +114,7 @@ export default function MassOrder() {
   function preview() {
     const links = parseLinks(raw);
     if (!links.length) return toast.error('Koi valid link nahi mila');
-    setRows(links.map(l => newRow(l, baseQty, timeframe)));
+    setRows(links.map(l => newRow(l, baseQty, timeframe, allowedTypes)));
     toast.success(`${links.length} link(s) tayaar`);
   }
 
