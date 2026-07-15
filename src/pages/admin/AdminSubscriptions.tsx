@@ -54,7 +54,7 @@ interface SubscriptionRequest {
   full_name: string;
   email: string;
   phone: string;
-  plan_type: 'monthly' | 'lifetime';
+  plan_type: 'monthly' | 'yearly' | 'lifetime';
   message: string | null;
   status: 'pending' | 'approved' | 'rejected';
   reviewed_at: string | null;
@@ -65,7 +65,7 @@ interface SubscriptionRequest {
 interface Subscription {
   id: string;
   user_id: string;
-  plan_type: 'none' | 'monthly' | 'lifetime';
+  plan_type: 'none' | 'monthly' | 'yearly' | 'lifetime';
   status: 'inactive' | 'active' | 'expired' | 'cancelled';
   activated_at: string | null;
   expires_at: string | null;
@@ -90,7 +90,7 @@ export default function AdminSubscriptions() {
 
   // Add subscriber state
   const [addEmail, setAddEmail] = useState('');
-  const [addPlanType, setAddPlanType] = useState<'monthly' | 'lifetime'>('monthly');
+  const [addPlanType, setAddPlanType] = useState<'monthly' | 'yearly' | 'lifetime'>('monthly');
   const [removeDialog, setRemoveDialog] = useState<{ userId: string; email: string } | null>(null);
 
   // Fetch active subscribers with profile info
@@ -448,7 +448,7 @@ export default function AdminSubscriptions() {
                       type="email"
                     />
                   </div>
-                  <Select value={addPlanType} onValueChange={(v: 'monthly' | 'lifetime') => setAddPlanType(v)}>
+                  <Select value={addPlanType} onValueChange={(v: 'monthly' | 'yearly' | 'lifetime') => setAddPlanType(v)}>
                     <SelectTrigger className="w-full sm:w-44 h-11 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
