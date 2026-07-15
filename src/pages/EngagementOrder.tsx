@@ -779,7 +779,7 @@ export default function EngagementOrder() {
     if (!canAfford) {
       toast({
         title: "💰 Insufficient Balance",
-        description: `Your wallet has ${formatPrice(wallet?.balance || 0)}. This order requires ${formatPrice(totalPrice)}. Please add funds!`,
+        description: `Wallet balance kam hai. Please add funds to continue.`,
         variant: "destructive",
       });
       navigate('/wallet');
