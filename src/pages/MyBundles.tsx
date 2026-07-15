@@ -373,7 +373,7 @@ function ProvidersPanel({
     <div className="space-y-3">
       <div className="text-xs text-muted-foreground">Which provider accounts can fulfill "{itemLabel}"</div>
       <div className="rounded-lg border overflow-hidden bg-card">
-        <div className="grid grid-cols-[64px_1fr_1fr_100px] text-xs font-semibold px-4 py-2 bg-muted/50 border-b">
+        <div className="hidden sm:grid grid-cols-[56px_1.2fr_1.4fr_90px] text-xs font-semibold px-3 sm:px-4 py-2 bg-muted/50 border-b gap-2">
           <div>Use</div>
           <div>Account</div>
           <div>Service ID</div>
@@ -386,8 +386,11 @@ function ProvidersPanel({
           {accounts.map((a: any) => {
             const d = drafts[a.id] || { enabled: false, provider_service_id: '', priority: 1 };
             return (
-              <div key={a.id} className={`grid grid-cols-[64px_1fr_1fr_100px] items-center px-4 py-3 gap-2 ${d.enabled ? 'bg-primary/5' : ''}`}>
-                <div>
+              <div
+                key={a.id}
+                className={`px-3 sm:px-4 py-3 gap-2 sm:gap-3 sm:grid sm:grid-cols-[56px_1.2fr_1.4fr_90px] sm:items-center flex flex-wrap items-center ${d.enabled ? 'bg-primary/5' : ''}`}
+              >
+                <div className="order-1">
                   <button
                     onClick={() => updateDraft(a.id, { enabled: !d.enabled })}
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${d.enabled ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}
@@ -396,25 +399,27 @@ function ProvidersPanel({
                     {d.enabled && <div className="w-2 h-2 rounded-full bg-white" />}
                   </button>
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1 order-2">
                   <div className="font-medium truncate">{a.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{a.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate sm:hidden">Account</div>
                 </div>
-                <div>
+                <div className="order-4 sm:order-3 w-full sm:w-auto">
+                  <label className="text-[11px] text-muted-foreground sm:hidden mb-1 block">Service ID</label>
                   <Input
                     placeholder="Service ID"
                     value={d.provider_service_id}
                     onChange={(e) => updateDraft(a.id, { provider_service_id: e.target.value })}
-                    className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
+                    className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm w-full"
                   />
                 </div>
-                <div className="text-right">
+                <div className="order-3 sm:order-4 sm:text-right">
+                  <label className="text-[11px] text-muted-foreground sm:hidden mb-1 block">Priority</label>
                   <Input
                     type="number"
                     min={1}
                     value={d.priority}
                     onChange={(e) => updateDraft(a.id, { priority: Math.max(1, Number(e.target.value) || 1) })}
-                    className="h-9 w-20 ml-auto text-right"
+                    className="h-9 w-20 sm:ml-auto text-right"
                   />
                 </div>
               </div>
@@ -422,6 +427,7 @@ function ProvidersPanel({
           })}
         </div>
       </div>
+
       <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground">
         <b className="text-foreground">Priority Order:</b> Lower number = tried first (1 = highest priority).<br />
         If account #1 has an active order on the same link, system tries #2, then #3, and so on.
