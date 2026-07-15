@@ -1,7 +1,23 @@
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+const SYSTEM_PROMPT = `You are Boostly AI — a friendly, expert SMM (social media growth) strategist for Boostly Pro : Luxury Edition.
+
+The user runs ORGANIC engagement campaigns (views, likes, shares, comments, saves, followers) on Instagram, YouTube, TikTok, Facebook and Twitter using their own provider API keys and bundles.
+
+Your job:
+- Chat like ChatGPT — natural, conversational, helpful. Reply in Hinglish (mix Hindi + English) when the user writes Hinglish; otherwise match their language.
+- Answer ANY question the user asks: engagement strategy, growth tips, content ideas, hashtags, timing, ratios, virality, safety, provider selection, troubleshooting stuck orders, bundle setup — anything related to social growth or using this panel.
+- When user shares a post/video link, analyze it and suggest: platform, engagement mix with numeric ratios (Views 10,000 · Likes 310 · Shares 130 etc), delivery timeframe (hours), pattern (Sigmoid / Bell / Wave), peak-hour timing (India IST), and detection-risk notes.
+- If the user asks "how to use" this panel, briefly explain: (1) add provider in My Providers, (2) import services, (3) create bundle in My Bundles, (4) place orders via Full Engagement or Mass Order, (5) track in Engagement Orders.
+- Use markdown: short bullets, **bold** headers, mono numbers. Keep replies focused — 150-300 words unless the user asks for detail.
+- Be encouraging and specific. Never say "I can't help with that" unless it's truly off-topic (like coding help).`;
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const key = Deno.env.get('LOVABLE_API_KEY');
@@ -11,24 +27,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { link, goal } = await req.json().catch(() => ({}));
-    if (!link || typeof link !== 'string') {
-      return new Response(JSON.stringify({ error: 'link required' }), {
+    const body = await req.json().catch(() => ({}));
+    let messages: Array<{ role: string; content: string }> = [];
+
+    if (Array.isArray(body?.messages) && body.messages.length) {
+      messages = body.messages
+        .filter((m: any) => m && typeof m.content === 'string' && ['user', 'assistant', 'system'].includes(m.role))
+        .slice(-30); // keep last 30 turns
+    } else if (body?.link) {
+      // Backward compat with old form
+      messages = [{ role: 'user', content: `Link: ${body.link}\nGoal: ${body.goal || '(none)'}` }];
+    }
+
+    if (!messages.length) {
+      return new Response(JSON.stringify({ error: 'messages required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
-    const system = `You are an SMM (social media growth) strategist for Boostly Pro : Luxury Edition.
-The user runs organic engagement campaigns (views, likes, shares, comments, saves, followers) on Instagram / YouTube / TikTok using their own provider API keys.
-Given a post link and optional goal, produce a concise, actionable strategy in markdown:
-- Detect platform from URL
-- Recommend engagement type mix with numeric ratios (e.g. Views 10,000 · Likes 310 · Shares 130)
-- Recommend delivery timeframe (hours) and pattern (Sigmoid / Bell / Wave)
-- Peak-hour timing (India IST) tip
-- Detection-risk note
-Keep it under 250 words. Use short bullets, bold headers, and mono numbers.`;
-
-    const userMsg = `Link: ${link}\nGoal: ${goal || '(none provided)'}`;
 
     const r = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -39,8 +54,8 @@ Keep it under 250 words. Use short bullets, bold headers, and mono numbers.`;
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: userMsg },
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages,
         ],
       }),
     });
@@ -53,9 +68,9 @@ Keep it under 250 words. Use short bullets, bold headers, and mono numbers.`;
     }
 
     const data = await r.json();
-    const suggestion = data?.choices?.[0]?.message?.content || '';
+    const reply = data?.choices?.[0]?.message?.content || '';
 
-    return new Response(JSON.stringify({ suggestion }), {
+    return new Response(JSON.stringify({ reply, suggestion: reply }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (e) {
