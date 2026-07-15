@@ -207,13 +207,10 @@ const Index = () => {
                 { Icon: Bookmark,      label: 'Saves' },
                 { Icon: Share2,        label: 'Shares' },
                 { Icon: UserPlus,      label: 'Followers' },
-              ].map(({Icon, label}, i) => (
+              ].map(({Icon, label}) => (
                 <div key={label}
-                  className="bp-float flex flex-col items-center justify-center aspect-square rounded-2xl"
-                  style={{
-                    background: C.cream,
-                    animationDelay: `${i*0.2}s`,
-                  }}>
+                  className="flex flex-col items-center justify-center aspect-square rounded-2xl"
+                  style={{ background: C.cream }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
                     style={{ background: C.white, boxShadow: '0 6px 16px -8px rgba(14,27,77,0.25)' }}>
                     <Icon className="w-5 h-5" style={{ color: C.pink }} strokeWidth={2.4}/>
