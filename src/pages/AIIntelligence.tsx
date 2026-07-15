@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { NoBundleEmptyState } from '@/components/NoBundleEmptyState';
+import { NoBundleBanner } from '@/components/NoBundleBanner';
 
 export default function AIIntelligence() {
   const { user } = useAuth();
