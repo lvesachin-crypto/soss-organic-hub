@@ -240,81 +240,52 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ═══ HOW IT WORKS — step-by-step explainer ═══ */}
+      {/* ═══ HOW IT WORKS — full onboarding walkthrough ═══ */}
       <section id="how-it-works" className="py-14 sm:py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 sm:mb-14">
-            <Pill><Sparkles className="w-3 h-3" /> How it works</Pill>
+            <Pill><Sparkles className="w-3 h-3" /> Full setup — start to first order</Pill>
             <h2 className="mt-4 text-[1.85rem] sm:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight"
               style={{ color: C.ink, fontFamily: "'Outfit', system-ui" }}>
-              Drop one link. <span style={{ color: C.orange }}>Everything else</span><br className="hidden sm:block" /> runs on its own.
+              From sign-up to <span style={{ color: C.orange }}>first delivery</span><br className="hidden sm:block" /> in 5 clear steps.
             </h2>
             <p className="mt-4 text-[14px] sm:text-[16px] leading-[1.65] max-w-2xl mx-auto" style={{ color: C.ink2 }}>
-              One URL is all it takes. Views, likes, comments, saves and shares roll out automatically — pacing themselves like the fans you actually want.
+              Bring your own providers, wire them once, build a reusable bundle and drop orders on any link — the panel handles pricing, rotation and pacing behind the scenes.
             </p>
           </div>
 
-          {/* Visual: one link → 5 engagement types */}
-          <div className="mb-10 sm:mb-14 rounded-3xl p-5 sm:p-8"
-            style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: C.softLg }}>
-            <div className="flex items-center gap-3 mb-5 px-3 py-2.5 rounded-xl" style={{ background: '#F7F8F5', border: `1px dashed ${C.line}` }}>
-              <Link2 className="w-4 h-4 shrink-0" style={{ color: C.orangeDeep }} />
-              <span className="text-[12.5px] font-mono truncate" style={{ color: C.ink2 }}>https://instagram.com/p/your-post...</span>
-              <span className="ml-auto text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md shrink-0"
-                style={{ background: C.peach, color: C.orangeDeep }}>1 link</span>
-            </div>
-            <div className="flex justify-center my-3">
-              <ArrowDown className="w-5 h-5 animate-bounce" style={{ color: C.orange }} />
-            </div>
-            <div className="grid grid-cols-5 gap-2 sm:gap-3">
-              {[
-                { icon: Eye, label: 'Views', color: '#3B82F6' },
-                { icon: Heart, label: 'Likes', color: '#EF4444' },
-                { icon: MessageCircle, label: 'Comments', color: '#8B5CF6' },
-                { icon: Bookmark, label: 'Saves', color: '#F59E0B' },
-                { icon: Share2, label: 'Shares', color: '#3B82F6' },
-              ].map((e) => (
-                <div key={e.label} className="flex flex-col items-center gap-1.5 p-2.5 sm:p-3 rounded-xl"
-                  style={{ background: '#FAFAF7', border: `1px solid ${C.line}` }}>
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center"
-                    style={{ background: `${e.color}14` }}>
-                    <e.icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: e.color }} />
-                  </div>
-                  <span className="text-[10.5px] sm:text-[12px] font-bold" style={{ color: C.ink }}>{e.label}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-4 text-center text-[11.5px] sm:text-[12.5px]" style={{ color: C.muted }}>
-              Bundle whatever you like into a single order — mix, match, done.
-            </p>
-          </div>
-
-          {/* 4 steps */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {/* 5 steps — full journey */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
             {[
               {
                 step: '01',
-                icon: Link2,
-                title: 'Drop the URL',
-                desc: 'Paste any Instagram, YouTube or TikTok link — that single input is all we need to plan the rest.',
+                icon: UserPlus,
+                title: 'Create your account',
+                desc: 'Sign up free with email — your dashboard, wallet and provider vault are ready in under a minute.',
               },
               {
                 step: '02',
-                icon: Sparkles,
-                title: 'Choose the mix',
-                desc: 'Flip on Views, Likes, Comments, Saves or Shares and dial in the numbers that fit your goal.',
+                icon: KeyRound,
+                title: 'Add a provider',
+                desc: 'Go to My Providers → Add Provider. Paste any SMM provider API URL + your personal API key. Fully encrypted — only you can see it.',
               },
               {
                 step: '03',
-                icon: Brain,
-                title: 'Smart engine plans it',
-                desc: 'S-curve pacing, ±50% batch variance, peak-hour lifts and calm nights — every step laid out for you.',
+                icon: Download,
+                title: 'Import services',
+                desc: 'Open the provider card → Import Services. All views, likes, comments, saves and shares services sync in one click.',
               },
               {
                 step: '04',
-                icon: TrendingUp,
-                title: 'Watch it unfold',
-                desc: 'Everything rolls in gradually, tracked live on your dashboard, with your handles staying totally safe.',
+                icon: Package,
+                title: 'Build a bundle',
+                desc: 'My Bundles → New Bundle. Map one service per engagement type (Views/Likes/Comments/Saves/Shares) — this becomes your reusable delivery preset.',
+              },
+              {
+                step: '05',
+                icon: Rocket,
+                title: 'Place your order',
+                desc: 'Full Engagement or Mass Order → paste link(s), pick bundle, set quantities. Human-pattern engine takes over and delivers with live tracking.',
               },
             ].map((s) => (
               <div key={s.step} className="relative rounded-2xl p-5 sm:p-6"
@@ -331,6 +302,59 @@ const Index = () => {
             ))}
           </div>
 
+          {/* Provider setup — deep dive */}
+          <div className="mt-10 sm:mt-14 rounded-3xl overflow-hidden"
+            style={{ background: C.card, border: `1px solid ${C.line}`, boxShadow: C.softLg }}>
+            <div className="grid md:grid-cols-2">
+              <div className="p-6 sm:p-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <KeyRound className="w-4 h-4" style={{ color: C.orangeDeep }} />
+                  <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>Step 2 · deep dive</span>
+                </div>
+                <h3 className="text-[20px] sm:text-[24px] font-extrabold tracking-tight mb-3" style={{ color: C.ink, fontFamily: "'Outfit', system-ui" }}>
+                  How to add a provider
+                </h3>
+                <ol className="space-y-3">
+                  {[
+                    'Open My Providers from the sidebar and click Add Provider.',
+                    'Give it a nickname (e.g. "Main SMM"), paste the provider API URL and your API key.',
+                    'Save — your key is encrypted with AES-GCM before it ever hits our database.',
+                    'Hit Refresh Balance to confirm the connection is live.',
+                  ].map((t, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
+                        style={{ background: C.peach, color: C.orangeDeep }}>{i + 1}</span>
+                      <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              <div className="p-6 sm:p-8" style={{ background: 'linear-gradient(180deg, #EFF6FF, #FFFFFF)', borderLeft: `1px solid ${C.line}` }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4" style={{ color: C.orangeDeep }} />
+                  <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: C.orangeDeep }}>Step 4 · deep dive</span>
+                </div>
+                <h3 className="text-[20px] sm:text-[24px] font-extrabold tracking-tight mb-3" style={{ color: C.ink, fontFamily: "'Outfit', system-ui" }}>
+                  How to build a bundle
+                </h3>
+                <ol className="space-y-3">
+                  {[
+                    'Go to My Bundles → New Bundle. Name it (e.g. "Instagram Reel Boost").',
+                    'Click Add Item and pick one imported service per engagement type.',
+                    'Set your per-1k rate for each — this is what you charge yourself internally.',
+                    'Save. Now every Full Engagement / Mass Order uses this bundle instantly.',
+                  ].map((t, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
+                        style={{ background: 'white', color: C.orangeDeep, border: `1px solid rgba(59,130,246,.25)` }}>{i + 1}</span>
+                      <span className="text-[13px] leading-relaxed" style={{ color: C.ink2 }}>{t}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </div>
+
           {/* What "organic" actually means */}
           <div className="mt-10 sm:mt-14 rounded-2xl p-5 sm:p-7"
             style={{ background: 'linear-gradient(135deg, #EFF6FF, #FFFFFF)', border: `1px solid rgba(59,130,246,.20)` }}>
@@ -345,7 +369,7 @@ const Index = () => {
                 'Batch sizes are shuffled by up to ±50%, so no two drops ever look the same.',
                 'Prime hours (6–10 PM IST) push 1.5× harder, night hours ease down — matching real audience rhythm.',
                 'A ±5 min jitter sits on every run, erasing any repeating cadence a platform could flag.',
-                'Traffic is rotated across multiple providers, so quality holds even if one source dips.',
+                'Traffic is rotated across your providers, so quality holds even if one source dips.',
               ].map((t) => (
                 <div key={t} className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#3B82F6' }} />
@@ -356,6 +380,7 @@ const Index = () => {
           </div>
         </div>
       </section>
+
 
       {/* ═══ CTA ═══ */}
       <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8">
