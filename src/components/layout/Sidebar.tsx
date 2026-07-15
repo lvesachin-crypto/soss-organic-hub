@@ -22,7 +22,6 @@ const menuItems = [
 
 const providerItems = [
   { icon: Server, label: 'My Providers', path: '/my-providers', tag: 'PRO' },
-  { icon: ListChecks, label: 'My Services', path: '/my-services', tag: 'PRO' },
   { icon: Package, label: 'My Bundles', path: '/my-bundles', tag: 'PRO' },
 ];
 
