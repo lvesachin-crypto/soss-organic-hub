@@ -22,6 +22,9 @@ import Wallet from "./pages/Wallet";
 import Settings from "./pages/Settings";
 import Support from "./pages/Support";
 import ApiAccess from "./pages/ApiAccess";
+import MyProviders from "./pages/MyProviders";
+import MyServices from "./pages/MyServices";
+import MyBundles from "./pages/MyBundles";
 
 // Engagement pages
 import EngagementOrder from "./pages/EngagementOrder";
