@@ -247,8 +247,8 @@ const Index = () => {
             <div className="text-center max-w-2xl mx-auto mb-12">
               <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
                 style={{ color: C.pink }}>Why boostly</span>
-              <h2 className="bp-heading font-extrabold text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
-                Growth tools that feel<br /><span style={{ color: C.pink }}>painfully human.</span>
+              <h2 className="bp-heading text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
+                Growth tools that feel<br /><span className="bp-serif" style={{ color: C.pink }}>painfully human.</span>
               </h2>
             </div>
 
@@ -281,7 +281,7 @@ const Index = () => {
             <div className="text-center max-w-2xl mx-auto mb-12">
               <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
                 style={{ color: C.pink }}>How it works</span>
-              <h2 className="bp-heading font-extrabold text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
+              <h2 className="bp-heading text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
                 Three steps to<br />your first drop.
               </h2>
             </div>
@@ -307,9 +307,9 @@ const Index = () => {
         <section id="why" className="py-20 px-4 sm:px-6">
           <div className="max-w-4xl mx-auto rounded-[36px] p-10 sm:p-14 text-center relative overflow-hidden"
             style={{ background: C.navy }}>
-            <h2 className="bp-heading font-extrabold text-[2.2rem] sm:text-[3.4rem]" style={{ color: C.white }}>
+            <h2 className="bp-heading text-[2.2rem] sm:text-[3.4rem]" style={{ color: C.white }}>
               Ready to grow<br />
-              <span style={{ color: C.pink2 }}>the honest way?</span>
+              <span className="bp-serif" style={{ color: C.pink2 }}>the honest way?</span>
             </h2>
             <p className="mt-4 text-[15px] font-medium max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.75)' }}>
               Join 2,400+ creators shipping human-pattern engagement through Boostly Pro.
