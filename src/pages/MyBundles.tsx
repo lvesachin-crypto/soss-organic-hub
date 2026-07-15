@@ -210,13 +210,13 @@ export default function MyBundles() {
   );
 }
 
-function ProvidersDialog({
-  open, onClose, itemId, itemLabel, accounts, userId,
-}: { open: boolean; onClose: () => void; itemId: string; itemLabel: string; accounts: any[]; userId: string }) {
+function ProvidersPanel({
+  itemId, itemLabel, accounts, userId, onChanged,
+}: { itemId: string; itemLabel: string; accounts: any[]; userId: string; onChanged?: () => void }) {
   const qc = useQueryClient();
   const { data: mappings = [] } = useQuery({
     queryKey: ['ubi-providers', itemId],
-    enabled: !!itemId && open,
+    enabled: !!itemId,
     queryFn: async () => {
       const { data } = await supabase.from('user_bundle_item_providers').select('*').eq('user_bundle_item_id', itemId);
       return data || [];
@@ -247,80 +247,77 @@ function ProvidersDialog({
     }
     toast.success('Saved');
     await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
+    onChanged?.();
   }
 
-
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure Providers</DialogTitle>
-          <DialogDescription>Which provider accounts can fulfill "{itemLabel}"</DialogDescription>
-        </DialogHeader>
-
-        <div className="rounded-lg border overflow-hidden">
-          <div className="grid grid-cols-[64px_1fr_1fr_100px] text-xs font-semibold px-4 py-2 bg-muted/50 border-b">
-            <div>Use</div>
-            <div>Account</div>
-            <div>Service ID</div>
-            <div className="text-right">Priority</div>
-          </div>
-          <div className="max-h-96 overflow-y-auto divide-y">
-            {accounts.length === 0 && (
-              <div className="p-6 text-center text-sm text-muted-foreground">No provider accounts. Add one from My Providers first.</div>
-            )}
-            {accounts.map((a: any) => {
-              const m = byAccount[a.id];
-              const enabled = !!m?.enabled;
-              return (
-                <div key={a.id} className={`grid grid-cols-[64px_1fr_1fr_100px] items-center px-4 py-3 gap-2 ${enabled ? 'bg-primary/5' : ''}`}>
-                  <div>
-                    <button
-                      onClick={() => upsertMapping(a.id, { enabled: !enabled })}
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${enabled ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}
-                      aria-label="toggle use"
-                    >
-                      {enabled && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </button>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{a.name}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{a.name}</div>
-                  </div>
-                  <div>
-                    <Input
-                      placeholder="Service ID"
-                      defaultValue={m?.provider_service_id || ''}
-                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                      onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null, enabled: enabled || !!v });
-                      }}
-                      className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
-                    />
-                  </div>
-                  <div className="text-right">
-                    <Input
-                      type="number"
-                      min={1}
-                      defaultValue={m?.priority ?? 1}
-                      onBlur={(e) => {
-                        const v = Math.max(1, Number(e.target.value) || 1);
-                        if (v !== (m?.priority ?? 1)) upsertMapping(a.id, { priority: v });
-                      }}
-                      className="h-9 w-20 ml-auto text-right"
-                    />
-                  </div>
+    <div className="space-y-3">
+      <div className="text-xs text-muted-foreground">Which provider accounts can fulfill "{itemLabel}"</div>
+      <div className="rounded-lg border overflow-hidden bg-card">
+        <div className="grid grid-cols-[64px_1fr_1fr_100px] text-xs font-semibold px-4 py-2 bg-muted/50 border-b">
+          <div>Use</div>
+          <div>Account</div>
+          <div>Service ID</div>
+          <div className="text-right">Priority</div>
+        </div>
+        <div className="max-h-96 overflow-y-auto divide-y">
+          {accounts.length === 0 && (
+            <div className="p-6 text-center text-sm text-muted-foreground">No provider accounts. Add one from My Providers first.</div>
+          )}
+          {accounts.map((a: any) => {
+            const m = byAccount[a.id];
+            const enabled = !!m?.enabled;
+            return (
+              <div key={a.id} className={`grid grid-cols-[64px_1fr_1fr_100px] items-center px-4 py-3 gap-2 ${enabled ? 'bg-primary/5' : ''}`}>
+                <div>
+                  <button
+                    onClick={() => upsertMapping(a.id, { enabled: !enabled })}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${enabled ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}
+                    aria-label="toggle use"
+                  >
+                    {enabled && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{a.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{a.name}</div>
+                </div>
+                <div>
+                  <Input
+                    placeholder="Service ID"
+                    defaultValue={m?.provider_service_id || ''}
+                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null, enabled: enabled || !!v });
+                    }}
+                    className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
+                  />
+                </div>
+                <div className="text-right">
+                  <Input
+                    type="number"
+                    min={1}
+                    defaultValue={m?.priority ?? 1}
+                    onBlur={(e) => {
+                      const v = Math.max(1, Number(e.target.value) || 1);
+                      if (v !== (m?.priority ?? 1)) upsertMapping(a.id, { priority: v });
+                    }}
+                    className="h-9 w-20 ml-auto text-right"
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-        <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground">
-          <b className="text-foreground">Priority Order:</b> Lower number = tried first (1 = highest priority).<br />
-          If account #1 has an active order on the same link, system tries #2, then #3, and so on.
-        </div>
+      </div>
+      <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground">
+        <b className="text-foreground">Priority Order:</b> Lower number = tried first (1 = highest priority).<br />
+        If account #1 has an active order on the same link, system tries #2, then #3, and so on.
+      </div>
+    </div>
+  );
+}
 
         <DialogFooter>
           <Button onClick={onClose}>Done</Button>
