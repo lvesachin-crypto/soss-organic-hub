@@ -186,6 +186,8 @@ const Index = () => {
                   alt="Isometric factory delivering engagement boxes to a stylized store"
                   width={1408}
                   height={1200}
+                  fetchPriority="high"
+                  decoding="async"
                   className="w-full h-auto select-none"
                   style={{ filter: 'drop-shadow(0 30px 40px rgba(14,27,77,0.10))' }}
                 />
