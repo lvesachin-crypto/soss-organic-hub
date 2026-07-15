@@ -23,7 +23,7 @@ export default function MyServices() {
     queryKey: ['user-services', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase.from('user_services').select('*, user_provider_accounts_safe:user_provider_account_id(name)').order('name');
+      const { data, error } = await supabase.from('user_services').select('*, provider:user_provider_account_id(name)').order('name');
       if (error) throw error;
       return data || [];
     },
