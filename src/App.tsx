@@ -25,6 +25,8 @@ import ApiAccess from "./pages/ApiAccess";
 import MyProviders from "./pages/MyProviders";
 import MyServices from "./pages/MyServices";
 import MyBundles from "./pages/MyBundles";
+import MassOrder from "./pages/MassOrder";
+import AIIntelligence from "./pages/AIIntelligence";
 
 // Engagement pages
 import EngagementOrder from "./pages/EngagementOrder";
@@ -115,6 +117,8 @@ const App = () => {
                     <Route path="/my-providers" element={<MyProviders />} />
                     <Route path="/my-services" element={<MyServices />} />
                     <Route path="/my-bundles" element={<MyBundles />} />
+                    <Route path="/mass-order" element={<MassOrder />} />
+                    <Route path="/ai-intelligence" element={<AIIntelligence />} />
 
                     {/* Engagement */}
                     <Route path="/engagement-order" element={<EngagementOrder />} />

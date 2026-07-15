@@ -1,0 +1,310 @@
+import { useMemo, useState } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageMeta } from '@/components/seo/PageMeta';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Rocket, Upload, Package, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface Row {
+  id: string;
+  link: string;
+  base_quantity: number;
+  timeframe: string;
+  types: Record<string, boolean>;
+}
+
+const DEFAULT_TYPES = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
+const TIMEFRAMES = ['Under 6 hours', 'Under 12 hours', 'Under 24 hours', 'Under 48 hours', 'Under 72 hours'];
+const RATIOS: Record<string, number> = { views: 1, likes: 0.031, shares: 0.013, comments: 0.008, saves: 0.012, followers: 0.02 };
+
+function parseLinks(raw: string): string[] {
+  return raw
+    .split(/\r?\n|,/)
+    .map(l => l.trim())
+    .filter(l => /^https?:\/\/\S+/i.test(l));
+}
+
+function newRow(link: string, base: number, tf: string): Row {
+  return {
+    id: crypto.randomUUID(),
+    link,
+    base_quantity: base,
+    timeframe: tf,
+    types: { ...DEFAULT_TYPES },
+  };
+}
+
+export default function MassOrder() {
+  const { user } = useAuth();
+  const [raw, setRaw] = useState('');
+  const [baseQty, setBaseQty] = useState(1000);
+  const [timeframe, setTimeframe] = useState('Under 24 hours');
+  const [campaign, setCampaign] = useState('');
+  const [bundleId, setBundleId] = useState('');
+  const [rows, setRows] = useState<Row[]>([]);
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: bundles = [] } = useQuery({
+    queryKey: ['mass-order-bundles', user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_bundles')
+        .select('id, name, platform, user_bundle_items(id)')
+        .order('created_at', { ascending: false });
+      return data || [];
+    },
+  });
+
+  const totalValid = useMemo(() => rows.length, [rows]);
+  const perRowCost = (r: Row) => {
+    let cost = 0;
+    for (const k of Object.keys(r.types)) if (r.types[k]) cost += (r.base_quantity * (RATIOS[k] || 0)) / 1000 * 0.1;
+    return cost;
+  };
+  const grandTotal = useMemo(() => rows.reduce((s, r) => s + perRowCost(r), 0), [rows]);
+
+  function preview() {
+    const links = parseLinks(raw);
+    if (!links.length) return toast.error('Koi valid link nahi mila');
+    setRows(links.map(l => newRow(l, baseQty, timeframe)));
+    toast.success(`${links.length} link(s) tayaar`);
+  }
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      const firstCol = text.split(/\r?\n/).map(l => l.split(/[,\t;]/)[0]).join('\n');
+      setRaw(firstCol);
+      toast.success('File loaded');
+    };
+    reader.readAsText(f);
+  }
+
+  function saveEdit(r: Row) {
+    setRows(prev => prev.map(x => x.id === r.id ? r : x));
+    setEditing(null);
+  }
+
+  async function submit() {
+    if (!bundleId) return toast.error('Pehle apna bundle select karo');
+    if (!rows.length) return toast.error('No rows to submit');
+    setSubmitting(true);
+    try {
+      let ok = 0, fail = 0;
+      for (const r of rows) {
+        const { error } = await supabase.from('engagement_orders').insert({
+          user_id: user!.id,
+          bundle_id: null,
+          link: r.link,
+          total_price: perRowCost(r),
+          base_quantity: r.base_quantity,
+          is_organic_mode: true,
+          status: 'pending',
+          notes: campaign ? `Mass Order: ${campaign}` : 'Mass Order',
+        } as any);
+        if (error) fail++; else ok++;
+      }
+      toast[ok ? 'success' : 'error'](`Submitted ${ok}/${rows.length} orders${fail ? ` (${fail} failed)` : ''}`);
+      if (ok) { setRows([]); setRaw(''); setCampaign(''); }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally { setSubmitting(false); }
+  }
+
+  return (
+    <DashboardLayout>
+      <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
+
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="glass-card p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-luxury)' }}>
+              <Rocket className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Mass Order <span className="text-muted-foreground font-normal">— Bulk Engagement</span></h1>
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+                Multiple links ek saath order karo. Paste karo ya CSV/TXT file upload karo, har link customize karo, batch me submit karo aur history me track karo.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bundle + Campaign */}
+        <div className="glass-card p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <Package className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Apna Bundle</h2>
+          </div>
+          <select
+            className="w-full h-12 px-4 rounded-xl bg-secondary border border-border text-foreground"
+            value={bundleId}
+            onChange={e => setBundleId(e.target.value)}
+          >
+            <option value="">— Select bundle —</option>
+            {bundles.map((b: any) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.platform} • {b.user_bundle_items?.length || 0} items)
+              </option>
+            ))}
+          </select>
+          {bundles.length === 0 && (
+            <p className="text-xs text-warning">Pehle <a href="/my-bundles" className="underline">My Bundles</a> me ek bundle banao.</p>
+          )}
+
+          <div>
+            <Label>Campaign Name (optional)</Label>
+            <Input className="input-3d mt-2 h-12" placeholder="new campaign" value={campaign} onChange={e => setCampaign(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Defaults */}
+        <div className="glass-card p-6 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label>Default Base Quantity (Views)</Label>
+              <Input type="number" className="input-3d mt-2 h-12" value={baseQty} onChange={e => setBaseQty(Number(e.target.value) || 0)} />
+            </div>
+            <div>
+              <Label>Default Timeframe</Label>
+              <select className="w-full h-12 mt-2 px-4 rounded-xl bg-secondary border border-border text-foreground" value={timeframe} onChange={e => setTimeframe(e.target.value)}>
+                {TIMEFRAMES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">Defaults sirf naye links par apply hote hain. Existing rows ko edit karke per-link override karo.</p>
+        </div>
+
+        {/* Links input */}
+        <div className="glass-card p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold flex items-center gap-2">🔗 Links</h2>
+            <label className="btn-glass px-3 py-2 text-xs cursor-pointer flex items-center gap-2">
+              <Upload className="w-3.5 h-3.5" /> Upload CSV / TXT
+              <input type="file" accept=".csv,.txt" className="hidden" onChange={onFile} />
+            </label>
+          </div>
+          <Textarea
+            rows={7}
+            className="input-3d font-mono text-[13px]"
+            placeholder={`Ek line par ek link.\nhttps://instagram.com/p/abc\nhttps://instagram.com/p/xyz\n\nYa CSV upload karo (first column = link).`}
+            value={raw}
+            onChange={e => setRaw(e.target.value)}
+          />
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{parseLinks(raw).length} valid link(s)</span>
+            <Button onClick={preview} className="btn-3d h-10 px-5">Preview</Button>
+          </div>
+        </div>
+
+        {/* Preview */}
+        {rows.length > 0 && (
+          <div className="glass-card p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Preview ({rows.length})</h2>
+              <span className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary font-mono text-sm">
+                Total: ${grandTotal.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-3">
+              {rows.map(r => {
+                const activeTypes = Object.entries(r.types).filter(([, v]) => v).map(([k]) => k);
+                return (
+                  <div key={r.id} className="rounded-xl border border-border bg-secondary/40 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="lux-mono text-[9px] text-muted-foreground">LINK</p>
+                        <p className="text-[12px] font-mono truncate text-foreground">{r.link}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => setEditing(r)} className="text-muted-foreground hover:text-primary p-1"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => setRows(rows.filter(x => x.id !== r.id))} className="text-muted-foreground hover:text-destructive p-1"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
+                      {activeTypes.map(t => (
+                        <span key={t} className="text-foreground">
+                          <span className="capitalize text-muted-foreground">{t}:</span>{' '}
+                          <b>{Math.round(r.base_quantity * (RATIOS[t] || 0)).toLocaleString()}</b>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>⏱ {r.timeframe}</span>
+                      <span className="text-primary font-semibold">${perRowCost(r).toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                <span className="text-foreground font-semibold">{totalValid}</span> order(s) ready · Total <span className="text-primary font-bold">${grandTotal.toFixed(2)}</span>
+              </p>
+              <Button className="btn-3d h-11 px-6" disabled={submitting || !bundleId} onClick={submit}>
+                {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…</> : 'Submit All'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
+        {editing && (
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Edit Order</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Link</Label>
+                <Input className="input-3d mt-2" value={editing.link} onChange={e => setEditing({ ...editing, link: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Base Quantity</Label>
+                  <Input type="number" className="input-3d mt-2" value={editing.base_quantity} onChange={e => setEditing({ ...editing, base_quantity: Number(e.target.value) || 0 })} />
+                </div>
+                <div>
+                  <Label>Timeframe</Label>
+                  <select className="w-full h-10 mt-2 px-3 rounded-xl bg-secondary border border-border text-foreground" value={editing.timeframe} onChange={e => setEditing({ ...editing, timeframe: e.target.value })}>
+                    {TIMEFRAMES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <Label>Engagement Types</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {Object.keys(DEFAULT_TYPES).map(t => (
+                    <label key={t} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-secondary/40 cursor-pointer">
+                      <input type="checkbox" checked={editing.types[t] || false} onChange={e => setEditing({ ...editing, types: { ...editing.types, [t]: e.target.checked } })} />
+                      <span className="capitalize text-sm">{t}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <Button className="btn-3d" onClick={() => saveEdit(editing)}>Save</Button>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
+    </DashboardLayout>
+  );
+}
