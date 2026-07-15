@@ -358,28 +358,77 @@ const Index = () => {
           </div>
         </section>
 
-        {/* ═══════════ CTA ═══════════ */}
-        <section id="why" className="py-20 px-4 sm:px-6">
-          <div className="max-w-4xl mx-auto rounded-[36px] p-10 sm:p-14 text-center relative overflow-hidden"
-            style={{ background: C.navy }}>
-            <h2 className="bp-heading text-[2.2rem] sm:text-[3.4rem]" style={{ color: C.white }}>
-              Ready to grow<br />
-              <span className="bp-serif" style={{ color: C.pink2 }}>the honest way?</span>
-            </h2>
-            <p className="mt-4 text-[15px] font-medium max-w-md mx-auto" style={{ color: 'rgba(255,255,255,0.75)' }}>
-              Join 2,400+ creators shipping human-pattern engagement through Boostly Pro.
-            </p>
-            <Link to="/auth"
-              className="mt-8 inline-flex items-center gap-2 h-14 px-8 rounded-full text-[15px] font-extrabold transition-transform hover:-translate-y-0.5"
-              style={{ background: C.pink, color: C.white, boxShadow: '0 20px 40px -14px rgba(232,48,138,0.6)' }}>
-              Start boosting <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </section>
-
         {/* ═══════════ FOOTER ═══════════ */}
-        <footer className="py-10 px-4 sm:px-6 text-center text-[13px] font-medium" style={{ color: C.mute }}>
-          © {new Date().getFullYear()} Boostly Pro. Bring your own provider, own your growth.
+        <footer className="mt-8 pt-16 pb-8 px-4 sm:px-6" style={{ background: C.cream2, borderTop: '1px solid rgba(14,27,77,0.08)' }}>
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              {/* Brand */}
+              <div>
+                <Link to="/" className="flex items-center gap-2.5 mb-4">
+                  <img src={logo} alt="Boostly Pro logo" width={36} height={36}
+                    className="w-9 h-9 rounded-full object-cover" />
+                  <span className="text-[18px] font-extrabold" style={{ color: C.navy }}>
+                    boostly<span style={{ color: C.pink }}>.</span>pro
+                  </span>
+                </Link>
+                <p className="text-[13.5px] leading-relaxed font-medium max-w-[240px]" style={{ color: C.mute }}>
+                  Bring your own provider, own your growth. Human-pattern engagement, delivered honestly.
+                </p>
+              </div>
+
+              {/* Quick Links */}
+              <div>
+                <h4 className="text-[12px] font-extrabold uppercase tracking-[0.14em] mb-4" style={{ color: C.navy }}>Quick Links</h4>
+                <ul className="space-y-2.5 text-[14px] font-semibold" style={{ color: C.mute }}>
+                  <li><Link to="/auth" className="hover:text-[color:var(--pink)] transition" style={{ ['--pink' as any]: C.pink }}>Get Started</Link></li>
+                  <li><Link to="/dashboard" className="hover:opacity-70 transition">Dashboard</Link></li>
+                  <li><Link to="/subscription" className="hover:opacity-70 transition">Pricing</Link></li>
+                  <li><a href="#features" className="hover:opacity-70 transition">Features</a></li>
+                </ul>
+              </div>
+
+              {/* Legal */}
+              <div>
+                <h4 className="text-[12px] font-extrabold uppercase tracking-[0.14em] mb-4" style={{ color: C.navy }}>Legal</h4>
+                <ul className="space-y-2.5 text-[14px] font-semibold" style={{ color: C.mute }}>
+                  <li><Link to="/terms" className="hover:opacity-70 transition">Terms of Service</Link></li>
+                  <li><Link to="/privacy" className="hover:opacity-70 transition">Privacy Policy</Link></li>
+                  <li><Link to="/refund" className="hover:opacity-70 transition">Refund Policy</Link></li>
+                  <li><Link to="/shipping" className="hover:opacity-70 transition">Shipping &amp; Delivery</Link></li>
+                  <li><Link to="/cookies" className="hover:opacity-70 transition">Cookie Policy</Link></li>
+                </ul>
+              </div>
+
+              {/* Support */}
+              <div>
+                <h4 className="text-[12px] font-extrabold uppercase tracking-[0.14em] mb-4" style={{ color: C.navy }}>Support</h4>
+                <ul className="space-y-2.5 text-[14px] font-semibold" style={{ color: C.mute }}>
+                  <li><Link to="/about" className="hover:opacity-70 transition">About Us</Link></li>
+                  <li><Link to="/contact" className="hover:opacity-70 transition">Contact Us</Link></li>
+                  <li><Link to="/support" className="hover:opacity-70 transition">Help Center</Link></li>
+                  <li><Link to="/api-access" className="hover:opacity-70 transition">API Documentation</Link></li>
+                  <li>
+                    <a href="mailto:support@boostly.pro" className="hover:opacity-70 transition break-all">support@boostly.pro</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-12 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-4"
+              style={{ borderColor: 'rgba(14,27,77,0.08)' }}>
+              <p className="text-[12.5px] font-medium" style={{ color: C.mute }}>
+                © {new Date().getFullYear()} Boostly Pro. All rights reserved.
+              </p>
+              <div className="flex items-center gap-5 text-[12.5px] font-semibold" style={{ color: C.mute }}>
+                <span className="inline-flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" style={{ color: C.pink }} /> SSL Secured
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5" style={{ color: C.pink }} /> 99.9% Uptime
+                </span>
+              </div>
+            </div>
+          </div>
         </footer>
       </main>
     </div>
