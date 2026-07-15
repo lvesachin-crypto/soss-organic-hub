@@ -90,8 +90,8 @@ export default function AIIntelligence() {
       const reply = (data as any)?.reply || (data as any)?.suggestion || 'No response';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (e: any) {
-      if (e.message?.includes('429')) toast.error('Rate limit — thodi der baad try karo');
-      else if (e.message?.includes('402')) toast.error('AI credits khatam — admin ko batayein');
+      if (e.message?.includes('429')) toast.error('Rate limit — please try again in a moment');
+      else if (e.message?.includes('402')) toast.error('AI credits exhausted — please contact admin');
       else toast.error(e.message || 'Failed');
       setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${e.message || 'Failed to respond'}` }]);
     } finally {
