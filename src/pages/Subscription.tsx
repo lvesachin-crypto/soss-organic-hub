@@ -266,7 +266,7 @@ export default function Subscription() {
           <DialogHeader>
             <DialogTitle>Request Manual Activation</DialogTitle>
             <DialogDescription>
-              Admin ko contact request bhejein — vo aap se pay ka detail leke manually activate karenge.
+              Send a contact request to admin — they will collect your payment details and activate manually.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
