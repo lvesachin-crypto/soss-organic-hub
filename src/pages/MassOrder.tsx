@@ -19,9 +19,11 @@ interface Row {
   base_quantity: number;
   timeframe: string;
   types: Record<string, boolean>;
+  qty: Record<string, number>; // per-type quantity (custom override)
 }
 
-const DEFAULT_TYPES = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
+const ALL_TYPES = ['views', 'likes', 'shares', 'comments', 'saves', 'followers'] as const;
+const DEFAULT_TYPES: Record<string, boolean> = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
 const TIMEFRAMES = ['Under 6 hours', 'Under 12 hours', 'Under 24 hours', 'Under 48 hours', 'Under 72 hours'];
 const CUSTOM = 'Custom';
 const isCustom = (v: string) => !TIMEFRAMES.includes(v);
@@ -34,13 +36,25 @@ function parseLinks(raw: string): string[] {
     .filter(l => /^https?:\/\/\S+/i.test(l));
 }
 
-function newRow(link: string, base: number, tf: string): Row {
+function defaultQty(base: number): Record<string, number> {
+  const q: Record<string, number> = {};
+  ALL_TYPES.forEach(t => { q[t] = Math.round(base * (RATIOS[t] || 0)); });
+  return q;
+}
+
+function newRow(link: string, base: number, tf: string, allowedTypes?: string[]): Row {
+  const types: Record<string, boolean> = { ...DEFAULT_TYPES };
+  if (allowedTypes && allowedTypes.length) {
+    ALL_TYPES.forEach(t => { types[t] = false; });
+    allowedTypes.forEach(t => { if (t in types) types[t] = true; });
+  }
   return {
     id: crypto.randomUUID(),
     link,
     base_quantity: base,
     timeframe: tf,
-    types: { ...DEFAULT_TYPES },
+    types,
+    qty: defaultQty(base),
   };
 }
 
