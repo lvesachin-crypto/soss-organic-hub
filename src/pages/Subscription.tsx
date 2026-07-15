@@ -237,15 +237,15 @@ export default function Subscription() {
                         )}
                         Pay with UPI (ZapUPI)
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-xs"
-                        onClick={() => setRequestOpen(plan.plan_type)}
+                      <a
+                        href="https://t.me/Organicsmmcashier"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center text-xs text-muted-foreground hover:text-primary transition-colors py-2"
                       >
                         <MessageSquare className="w-3 h-3 mr-1" />
                         Or request manual activation
-                      </Button>
+                      </a>
                     </div>
                   )}
                 </CardContent>
