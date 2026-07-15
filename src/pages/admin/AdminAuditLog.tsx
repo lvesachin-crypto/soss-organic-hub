@@ -60,7 +60,7 @@ export default function AdminAuditLog() {
           <div>
             <h1 className="text-2xl font-bold">Admin Audit Log</h1>
             <p className="text-sm text-muted-foreground">
-              Har admin deposit/withdrawal yahaan record hota hai — IP, time, actor sab visible.
+              Every admin deposit/withdrawal is recorded here — IP, time, and actor are all visible.
             </p>
           </div>
         </div>
