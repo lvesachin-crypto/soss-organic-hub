@@ -197,7 +197,7 @@ const Index = () => {
                 </div>
 
                 {/* ── Conveyor-belt engagement icons flowing INTO the shop ── */}
-                <div className="pointer-events-none absolute inset-0 hidden sm:block">
+                <div className="pointer-events-none absolute inset-0 block">
                   {[
                     { Icon: Eye,           label: 'Views',    delay: '0s'   },
                     { Icon: Heart,         label: 'Likes',    delay: '0.9s' },
