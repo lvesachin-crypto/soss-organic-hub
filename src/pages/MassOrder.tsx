@@ -113,9 +113,9 @@ export default function MassOrder() {
 
   function preview() {
     const links = parseLinks(raw);
-    if (!links.length) return toast.error('Koi valid link nahi mila');
+    if (!links.length) return toast.error('No valid links found');
     setRows(links.map(l => newRow(l, baseQty, timeframe, allowedTypes)));
-    toast.success(`${links.length} link(s) tayaar`);
+    toast.success(`${links.length} link(s) ready`);
   }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
