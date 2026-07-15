@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Rocket, Upload, Package, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { NoBundleEmptyState } from '@/components/NoBundleEmptyState';
+import { NoBundleBanner } from '@/components/NoBundleBanner';
 
 interface Row {
   id: string;
