@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageMeta } from '@/components/seo/PageMeta';
 import { useAuth } from '@/hooks/useAuth';
@@ -219,44 +219,94 @@ function ProvidersPanel({
   const byAccount: Record<string, any> = {};
   for (const m of mappings) byAccount[m.user_provider_account_id] = m;
 
-  const [validating, setValidating] = useState<string | null>(null);
+  type Draft = { enabled: boolean; provider_service_id: string; priority: number };
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [saving, setSaving] = useState(false);
 
-  async function upsertMapping(accountId: string, patch: Partial<{ enabled: boolean; provider_service_id: string | null; priority: number }>) {
-    // If setting a service_id, validate against the provider first
-    if (patch.provider_service_id !== undefined && patch.provider_service_id !== null && patch.provider_service_id !== '') {
-      setValidating(accountId);
-      try {
+  // Sync drafts when mappings load/change
+  useEffect(() => {
+    const next: Record<string, Draft> = {};
+    for (const a of accounts) {
+      const m = byAccount[a.id];
+      next[a.id] = {
+        enabled: !!m?.enabled,
+        provider_service_id: m?.provider_service_id || '',
+        priority: m?.priority ?? 1,
+      };
+    }
+    setDrafts(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mappings, accounts]);
+
+  function updateDraft(accountId: string, patch: Partial<Draft>) {
+    setDrafts((d) => ({ ...d, [accountId]: { ...d[accountId], ...patch } }));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const changed: { accountId: string; draft: Draft; existing: any }[] = [];
+      for (const a of accounts) {
+        const d = drafts[a.id];
+        if (!d) continue;
+        const m = byAccount[a.id];
+        const same =
+          !!m?.enabled === d.enabled &&
+          (m?.provider_service_id || '') === d.provider_service_id.trim() &&
+          (m?.priority ?? 1) === d.priority;
+        if (!same) changed.push({ accountId: a.id, draft: d, existing: m });
+      }
+
+      if (changed.length === 0) {
+        toast.info('No changes to save');
+        return;
+      }
+
+      // Validate all non-empty service IDs first
+      for (const c of changed) {
+        const sid = c.draft.provider_service_id.trim();
+        if (!sid) continue;
+        if (!/^\d+$/.test(sid)) {
+          toast.error(`Service ID must be numeric (${accounts.find(x=>x.id===c.accountId)?.name})`);
+          return;
+        }
+        const prevSid = c.existing?.provider_service_id || '';
+        if (sid === prevSid) continue;
         const { data, error } = await supabase.functions.invoke('user-provider-manage', {
-          body: { op: 'validate_service', account_id: accountId, service_id: patch.provider_service_id },
+          body: { op: 'validate_service', account_id: c.accountId, service_id: sid },
         });
         if (error) { toast.error(error.message || 'Validation failed'); return; }
-        if (!data?.ok) { toast.error(data?.error || 'Invalid Service ID'); return; }
-        toast.success(`Valid: ${data.service?.name || 'service'}`);
-      } finally {
-        setValidating(null);
+        if (!data?.ok) { toast.error(`${accounts.find(x=>x.id===c.accountId)?.name}: ${data?.error || 'Invalid Service ID'}`); return; }
       }
-    }
 
-    const existing = byAccount[accountId];
-    let error: any = null;
-    if (existing) {
-      ({ error } = await supabase.from('user_bundle_item_providers').update(patch).eq('id', existing.id));
-    } else {
-      ({ error } = await supabase.from('user_bundle_item_providers').insert({
-        user_id: userId,
-        user_bundle_item_id: itemId,
-        user_provider_account_id: accountId,
-        enabled: patch.enabled ?? true,
-        provider_service_id: patch.provider_service_id ?? null,
-        priority: patch.priority ?? 1,
-      }));
+      // Persist changes
+      for (const c of changed) {
+        const sid = c.draft.provider_service_id.trim();
+        const payload = {
+          enabled: c.draft.enabled,
+          provider_service_id: sid === '' ? null : sid,
+          priority: c.draft.priority,
+        };
+        if (c.existing) {
+          const { error } = await supabase.from('user_bundle_item_providers').update(payload).eq('id', c.existing.id);
+          if (error) { toast.error(error.message); return; }
+        } else {
+          const { error } = await supabase.from('user_bundle_item_providers').insert({
+            user_id: userId,
+            user_bundle_item_id: itemId,
+            user_provider_account_id: c.accountId,
+            ...payload,
+          });
+          if (error) { toast.error(error.message); return; }
+        }
+      }
+
+      toast.success(`Saved ${changed.length} change${changed.length > 1 ? 's' : ''}`);
+      await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
+      onChanged?.();
+    } finally {
+      setSaving(false);
     }
-    if (error) {
-      toast.error(error.message || 'Failed to save');
-      return;
-    }
-    await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
-    onChanged?.();
   }
 
   return (
@@ -274,17 +324,16 @@ function ProvidersPanel({
             <div className="p-6 text-center text-sm text-muted-foreground">No provider accounts. Add one from My Providers first.</div>
           )}
           {accounts.map((a: any) => {
-            const m = byAccount[a.id];
-            const enabled = !!m?.enabled;
+            const d = drafts[a.id] || { enabled: false, provider_service_id: '', priority: 1 };
             return (
-              <div key={a.id} className={`grid grid-cols-[64px_1fr_1fr_100px] items-center px-4 py-3 gap-2 ${enabled ? 'bg-primary/5' : ''}`}>
+              <div key={a.id} className={`grid grid-cols-[64px_1fr_1fr_100px] items-center px-4 py-3 gap-2 ${d.enabled ? 'bg-primary/5' : ''}`}>
                 <div>
                   <button
-                    onClick={() => upsertMapping(a.id, { enabled: !enabled })}
-                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${enabled ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}
+                    onClick={() => updateDraft(a.id, { enabled: !d.enabled })}
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${d.enabled ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}
                     aria-label="toggle use"
                   >
-                    {enabled && <div className="w-2 h-2 rounded-full bg-white" />}
+                    {d.enabled && <div className="w-2 h-2 rounded-full bg-white" />}
                   </button>
                 </div>
                 <div className="min-w-0">
@@ -294,16 +343,8 @@ function ProvidersPanel({
                 <div>
                   <Input
                     placeholder="Service ID"
-                    defaultValue={m?.provider_service_id || ''}
-                    disabled={validating === a.id}
-                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                    onBlur={(e) => {
-                      const v = e.target.value.trim();
-                      if (v !== (m?.provider_service_id || '')) {
-                        if (v === '') upsertMapping(a.id, { provider_service_id: null });
-                        else upsertMapping(a.id, { provider_service_id: v, enabled: enabled || true });
-                      }
-                    }}
+                    value={d.provider_service_id}
+                    onChange={(e) => updateDraft(a.id, { provider_service_id: e.target.value })}
                     className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
                   />
                 </div>
@@ -311,11 +352,8 @@ function ProvidersPanel({
                   <Input
                     type="number"
                     min={1}
-                    defaultValue={m?.priority ?? 1}
-                    onBlur={(e) => {
-                      const v = Math.max(1, Number(e.target.value) || 1);
-                      if (v !== (m?.priority ?? 1)) upsertMapping(a.id, { priority: v });
-                    }}
+                    value={d.priority}
+                    onChange={(e) => updateDraft(a.id, { priority: Math.max(1, Number(e.target.value) || 1) })}
                     className="h-9 w-20 ml-auto text-right"
                   />
                 </div>
@@ -328,6 +366,14 @@ function ProvidersPanel({
         <b className="text-foreground">Priority Order:</b> Lower number = tried first (1 = highest priority).<br />
         If account #1 has an active order on the same link, system tries #2, then #3, and so on.
       </div>
+      {accounts.length > 0 && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving} className="min-w-32">
+            {saving ? 'Saving…' : 'Save Changes'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
+
