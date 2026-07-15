@@ -117,10 +117,10 @@ export default function AdminUsers() {
           total_deposited: u.total_deposited,
           total_spent: u.total_spent
         },
-        subscription: u.subscription_plan !== 'none' ? {
-          plan_type: u.subscription_plan,
+        subscription: u.plan_type && u.plan_type !== 'none' ? {
+          plan_type: u.plan_type,
           status: u.subscription_status,
-          expires_at: u.subscription_expires
+          expires_at: u.subscription_expires ?? null,
         } : null,
         orderCounts: {
           singleActive: u.active_single_orders,
