@@ -15,25 +15,25 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 
 const WELCOME: Msg = {
   role: 'assistant',
-  content: `**Namaste! 👋 Main Boostly AI hoon** — aapka personal SMM strategist.
+  content: `**Hi there! 👋 I'm Boostly AI** — your personal SMM strategist.
 
-Aap mujhse kuch bhi puchh sakte ho, jaise ChatGPT ke saath baat karte ho:
+Ask me anything, just like you would ChatGPT:
 
-- 📈 **"Mera Instagram reel viral kaise karu?"**
-- 🎯 **"Is link ke liye best engagement ratio kya hai?"** — bas link paste karo
-- ⏰ **"Kis time post karna best hai India me?"**
-- 🧩 **"Bundle kaise banau, kya ratio rakhu?"**
-- 🛡️ **"Detection risk kaise kam karu?"**
-- 💡 **"Content ideas do trending topics pe"**
+- 📈 **"How can I make my Instagram reel go viral?"**
+- 🎯 **"What's the best engagement ratio for this link?"** — just paste the link
+- ⏰ **"What's the best time to post in India?"**
+- 🧩 **"How should I build a bundle and what ratio should I use?"**
+- 🛡️ **"How can I reduce detection risk?"**
+- 💡 **"Give me content ideas on trending topics"**
 
-**Panel use karne ka simple flow:**
-1. **My Providers** → apna SMM provider add karo (API key)
-2. **Import Services** → provider ki services import karo
-3. **My Bundles** → apna bundle banao (jo types chahiye)
-4. **Full Engagement** ya **Mass Order** → order place karo
-5. **Engagement Orders** → live tracking
+**How to use the panel:**
+1. **My Providers** → add your SMM provider (API key)
+2. **Import Services** → import the provider's services
+3. **My Bundles** → build your bundle with the types you want
+4. **Full Engagement** or **Mass Order** → place the order
+5. **Engagement Orders** → track it live
 
-Chalo shuru karte hain — kya puchhna hai? 🚀`,
+Let's get started — what would you like to ask? 🚀`,
 };
 
 const STORAGE_KEY = 'boostly.ai.chat.v1';
