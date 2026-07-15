@@ -191,6 +191,33 @@ export default function Admin() {
         </Card>
 
 
+        {/* Subscription Manager — HERO CARD */}
+        <Link to="/admin/subscriptions" className="block">
+          <Card className="glass-card relative overflow-hidden border-2 border-primary/40 hover:border-primary hover:shadow-2xl hover:shadow-primary/20 transition-all cursor-pointer group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-accent/10" />
+            <CardContent className="p-6 relative">
+              <div className="flex items-center gap-5 flex-wrap">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-xl shadow-primary/30 shrink-0 group-hover:scale-110 transition-transform">
+                  <Crown className="h-8 w-8 text-primary-foreground" />
+                </div>
+                <div className="flex-1 min-w-[240px]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl sm:text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
+                      Subscription Manager
+                    </h3>
+                    <Badge className="bg-primary text-primary-foreground">PRO</Badge>
+                    <Badge className="bg-accent text-accent-foreground text-[10px]">MANUAL GRANT</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Kisi bhi user ke Gmail pe manual subscription enable karo — Monthly / Yearly / Lifetime. OxaPay + ZapUPI auto-payments bhi yahi se track hote hain.
+                  </p>
+                </div>
+                <ArrowUpRight className="h-6 w-6 text-primary group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
         {/* Quick Access Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link to="/admin/users">
