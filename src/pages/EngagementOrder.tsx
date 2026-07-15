@@ -552,9 +552,7 @@ export default function EngagementOrder() {
       }
 
       if (wallet.balance < totalPrice) {
-        throw new Error(
-          `Insufficient balance! You need ${formatPrice(totalPrice)} but only have ${formatPrice(wallet.balance)}. Please add funds.`
-        );
+        throw new Error(`Wallet balance kam hai. Please add funds.`);
       }
 
       if (totalPrice <= 0) {
