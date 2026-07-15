@@ -282,7 +282,7 @@ export default function MassOrder() {
               </div>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">Defaults sirf naye links par apply hote hain. Existing rows ko edit karke per-link override karo.</p>
+          <p className="text-[11px] text-muted-foreground">Defaults apply only to new links. Edit existing rows to override per-link values.</p>
         </div>
 
         {/* Links input */}
