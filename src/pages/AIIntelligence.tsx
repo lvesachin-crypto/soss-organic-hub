@@ -163,7 +163,7 @@ export default function AIIntelligence() {
           {busy && (
             <div className="flex justify-start">
               <div className="bg-muted/40 border border-border/40 rounded-2xl rounded-bl-md px-4 py-3 text-sm flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Boostly AI soch raha hai…
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Boostly AI is thinking…
               </div>
             </div>
           )}
