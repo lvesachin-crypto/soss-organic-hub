@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Rocket, Upload, Package, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { NoBundleEmptyState } from '@/components/NoBundleEmptyState';
+import { NoBundleBanner } from '@/components/NoBundleBanner';
 
 interface Row {
   id: string;
@@ -162,23 +162,14 @@ export default function MassOrder() {
     } finally { setSubmitting(false); }
   }
 
-  if (bundles.length === 0) {
-    return (
-      <DashboardLayout>
-        <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
-        <NoBundleEmptyState
-          title="Mass Order ke liye bundle chahiye"
-          description="Bulk orders place karne ke liye pehle apna provider add karo aur ek bundle banao. Uske baad multiple links ek saath submit kar paoge."
-        />
-      </DashboardLayout>
-    );
-  }
+  const showBundleBanner = bundles.length === 0;
 
   return (
     <DashboardLayout>
       <PageMeta title="Mass Order — Bulk Engagement" description="Bulk engagement orders across multiple links." canonicalPath="/mass-order" noIndex />
 
       <div className="max-w-6xl mx-auto space-y-6">
+        {showBundleBanner && <NoBundleBanner message="Bulk order submit karne ke liye pehle apna provider add karke ek bundle banao. Tab tak niche form dikhega but submit block rahega." />}
         {/* Header */}
         <div className="glass-card p-6">
           <div className="flex items-start gap-4">

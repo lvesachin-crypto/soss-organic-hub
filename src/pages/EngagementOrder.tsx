@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/hooks/useCurrency";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { NoBundleBanner } from "@/components/NoBundleBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -790,39 +791,14 @@ export default function EngagementOrder() {
     placeOrderMutation.mutate();
   };
 
-  // Empty state: user has no bundles → nothing to show
-  if (!userBundlesLoading && !hasAnyUserBundle) {
-    return (
-      <DashboardLayout>
-        <PageMeta title="New Engagement Order" description="Place a natural, AI-organic engagement order." canonicalPath="/engagement-order" noIndex />
-        <div className="max-w-2xl mx-auto px-4 py-16">
-          <div className="glass-card border-2 border-dashed border-border rounded-2xl p-10 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
-              <Package className="h-8 w-8 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">No bundles yet</h2>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-              Engagement types wahi dikhenge jo aap ke bundle mein add hain. Pehle apna provider add karo aur ek bundle banao.
-            </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <Button onClick={() => navigate('/my-bundles')} className="btn-3d">
-                <Package className="h-4 w-4 mr-2" /> Create Bundle
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/my-providers')}>
-                Add Provider
-              </Button>
-            </div>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const showBundleBanner = !userBundlesLoading && !hasAnyUserBundle;
 
   return (
     <DashboardLayout>
       <PageMeta title="New Engagement Order" description="Place a natural, AI-organic engagement order — Instagram, YouTube, or TikTok views, likes, and comments delivered on a real growth curve." canonicalPath="/engagement-order" noIndex />
 
       <div className="max-w-5xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3 sm:space-y-6 pb-8">
+        {showBundleBanner && <NoBundleBanner message="Engagement types tab hi visible honge jab aap ke bundle me services add hongi. Pehle bundle bana lo." />}
         {/* Header with gradient - Compact on mobile */}
         <div className="relative overflow-hidden rounded-xl sm:rounded-2xl p-2.5 sm:p-4 lg:p-5" style={{ background: 'linear-gradient(135deg, #831843, #166534, #2563eb)', boxShadow: '0 8px 32px rgba(190,24,93,.25)' }}>
           <div className="relative z-10 text-center">

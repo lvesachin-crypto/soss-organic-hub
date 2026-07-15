@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { NoBundleEmptyState } from '@/components/NoBundleEmptyState';
+import { NoBundleBanner } from '@/components/NoBundleBanner';
 
 export default function AIIntelligence() {
   const { user } = useAuth();
@@ -49,23 +49,14 @@ export default function AIIntelligence() {
     } finally { setBusy(false); }
   }
 
-  if (!bundlesLoading && bundles.length === 0) {
-    return (
-      <DashboardLayout>
-        <PageMeta title="AI Intelligence" description="AI-powered engagement strategy" canonicalPath="/ai-intelligence" noIndex />
-        <NoBundleEmptyState
-          title="AI Intelligence ke liye bundle chahiye"
-          description="AI aap ke bundle ke services aur pricing ke basis par strategy banata hai. Pehle apna provider add karo aur ek bundle banao."
-        />
-      </DashboardLayout>
-    );
-  }
+  const showBundleBanner = !bundlesLoading && bundles.length === 0;
 
   return (
     <DashboardLayout>
       <PageMeta title="AI Intelligence" description="AI-powered engagement strategy" canonicalPath="/ai-intelligence" noIndex />
 
       <div className="max-w-4xl mx-auto space-y-6">
+        {showBundleBanner && <NoBundleBanner message="AI strategy aap ke bundle ki services aur pricing use karta hai. Bundle ke bina suggestions accurate nahi honge." />}
         <div className="glass-card p-6">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-luxury)' }}>
