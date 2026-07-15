@@ -2069,6 +2069,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
+      cleanup_old_completed_orders: { Args: never; Returns: Json }
       credit_wallet_oxapay: { Args: { p_order_id: string }; Returns: Json }
       credit_wallet_zapupi: {
         Args: {
