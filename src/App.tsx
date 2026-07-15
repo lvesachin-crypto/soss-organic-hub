@@ -112,6 +112,9 @@ const App = () => {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/support" element={<Support />} />
                     <Route path="/api-access" element={<ApiAccess />} />
+                    <Route path="/my-providers" element={<MyProviders />} />
+                    <Route path="/my-services" element={<MyServices />} />
+                    <Route path="/my-bundles" element={<MyBundles />} />
 
                     {/* Engagement */}
                     <Route path="/engagement-order" element={<EngagementOrder />} />
