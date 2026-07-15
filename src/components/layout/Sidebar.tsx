@@ -103,10 +103,10 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="flex items-center justify-between px-5 pt-5 pb-4">
         <Link to="/" className="flex items-center gap-3">
           <div
-            className="w-11 h-11 rounded-2xl flex items-center justify-center"
+            className="w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden"
             style={{ background: C.navy, boxShadow: '0 8px 20px -8px rgba(14,27,77,0.45)' }}
           >
-            <span className="text-white font-black text-[18px]">B</span>
+            <img src={logo} alt="Boostly Pro logo" className="w-full h-full object-cover" />
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-[15px] font-black tracking-tight" style={{ color: C.navy }}>
