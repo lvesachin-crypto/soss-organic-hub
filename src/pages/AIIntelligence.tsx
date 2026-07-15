@@ -49,6 +49,18 @@ export default function AIIntelligence() {
     } finally { setBusy(false); }
   }
 
+  if (!bundlesLoading && bundles.length === 0) {
+    return (
+      <DashboardLayout>
+        <PageMeta title="AI Intelligence" description="AI-powered engagement strategy" canonicalPath="/ai-intelligence" noIndex />
+        <NoBundleEmptyState
+          title="AI Intelligence ke liye bundle chahiye"
+          description="AI aap ke bundle ke services aur pricing ke basis par strategy banata hai. Pehle apna provider add karo aur ek bundle banao."
+        />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <PageMeta title="AI Intelligence" description="AI-powered engagement strategy" canonicalPath="/ai-intelligence" noIndex />
