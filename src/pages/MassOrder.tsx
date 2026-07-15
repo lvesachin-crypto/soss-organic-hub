@@ -306,7 +306,7 @@ export default function MassOrder() {
                     </div>
                     <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
                       <span>⏱ {r.timeframe}</span>
-                      <span className="text-primary font-semibold">${perRowCost(r).toFixed(2)}</span>
+                      <span className="text-primary font-semibold">{activeTypes.length} type(s)</span>
                     </div>
                   </div>
                 );
