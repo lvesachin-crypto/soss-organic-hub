@@ -276,8 +276,8 @@ export default function MassOrder() {
           <div className="glass-card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Preview ({rows.length})</h2>
-              <span className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary font-mono text-sm">
-                Total: ${grandTotal.toFixed(2)}
+              <span className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium">
+                {rows.length} link(s)
               </span>
             </div>
 
