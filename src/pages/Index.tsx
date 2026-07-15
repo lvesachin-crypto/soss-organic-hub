@@ -219,7 +219,6 @@ const Index = () => {
                     <div key={label}
                       className="absolute bp-in flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
                       style={{
-                        left: '6%', bottom: '18%',
                         background: C.white,
                         boxShadow: '0 10px 20px -8px rgba(14,27,77,0.35), 0 0 0 2px rgba(232,48,138,0.08)',
                         animationDelay: delay,
