@@ -346,8 +346,17 @@ export default function MassOrder() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Base Quantity</Label>
-                  <Input type="number" className="input-3d mt-2" value={editing.base_quantity} onChange={e => setEditing({ ...editing, base_quantity: Number(e.target.value) || 0 })} />
+                  <Label>Base Quantity (Views)</Label>
+                  <Input
+                    type="number"
+                    className="input-3d mt-2"
+                    value={editing.base_quantity}
+                    onChange={e => {
+                      const b = Number(e.target.value) || 0;
+                      setEditing({ ...editing, base_quantity: b, qty: defaultQty(b) });
+                    }}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Base badloge to har type ka default qty auto-adjust hoga.</p>
                 </div>
                 <div>
                   <Label>Timeframe</Label>
@@ -374,14 +383,41 @@ export default function MassOrder() {
                 </div>
               </div>
               <div>
-                <Label>Engagement Types</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {Object.keys(DEFAULT_TYPES).map(t => (
-                    <label key={t} className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-secondary/40 cursor-pointer">
-                      <input type="checkbox" checked={editing.types[t] || false} onChange={e => setEditing({ ...editing, types: { ...editing.types, [t]: e.target.checked } })} />
-                      <span className="capitalize text-sm">{t}</span>
-                    </label>
-                  ))}
+                <Label>Engagement Types & Quantities</Label>
+                <p className="text-[11px] text-muted-foreground mt-1">Har type ke liye alag quantity set karo. Sirf enable kiye hue types submit honge.</p>
+                <div className="mt-2 space-y-2">
+                  {(allowedTypes.length ? allowedTypes : ALL_TYPES).map(t => {
+                    const on = !!editing.types[t];
+                    const q = editing.qty[t] ?? Math.round(editing.base_quantity * (RATIOS[t] || 0));
+                    const lineCost = on ? (q / 1000) * (priceMap[t] ?? 0.1) : 0;
+                    return (
+                      <div key={t} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-secondary/40">
+                        <label className="flex items-center gap-2 min-w-[110px] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={e => setEditing({ ...editing, types: { ...editing.types, [t]: e.target.checked } })}
+                          />
+                          <span className="capitalize text-sm font-medium">{t}</span>
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          disabled={!on}
+                          className="input-3d h-9 flex-1"
+                          value={q}
+                          onChange={e => setEditing({ ...editing, qty: { ...editing.qty, [t]: Math.max(0, Number(e.target.value) || 0) } })}
+                        />
+                        <span className="text-[11px] text-muted-foreground w-16 text-right font-mono">
+                          ₹{lineCost.toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 border border-primary/20">
+                  <span className="text-sm font-semibold">Total</span>
+                  <span className="text-sm font-bold text-primary font-mono">${perRowCost(editing).toFixed(2)}</span>
                 </div>
               </div>
             </div>
