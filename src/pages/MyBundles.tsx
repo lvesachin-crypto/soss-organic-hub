@@ -155,26 +155,19 @@ export default function MyBundles() {
                                 <div className="text-[11px] text-muted-foreground">{mappedCount} provider{mappedCount !== 1 ? 's' : ''} mapped</div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" variant={isOpen ? 'default' : 'outline'} onClick={() => setExpandedItem(isOpen ? null : it.id)}>
-                                <Globe className="w-3.5 h-3.5 mr-1" /> Providers
-                              </Button>
-                              <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => deleteItem(it.id)}>
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
+                            <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => deleteItem(it.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
-                          {isOpen && (
-                            <div className="border-t bg-background/60 p-3">
-                              <ProvidersPanel
-                                itemId={it.id}
-                                itemLabel={`${b.platform} ${it.engagement_type}`}
-                                accounts={accounts as any[]}
-                                userId={user?.id || ''}
-                                onChanged={refresh}
-                              />
-                            </div>
-                          )}
+                          <div className="border-t bg-background/60 p-3">
+                            <ProvidersPanel
+                              itemId={it.id}
+                              itemLabel={`${b.platform} ${it.engagement_type}`}
+                              accounts={accounts as any[]}
+                              userId={user?.id || ''}
+                              onChanged={refresh}
+                            />
+                          </div>
                         </div>
                       );
                     })}
