@@ -32,6 +32,7 @@ import {
   ShieldAlert,
   Megaphone,
   Radio,
+  Crown,
 } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
