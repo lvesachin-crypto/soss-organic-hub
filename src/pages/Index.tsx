@@ -333,27 +333,74 @@ const Index = () => {
         {/* ═══════════ HOW IT WORKS ═══════════ */}
         <section id="how" className="py-20 px-4 sm:px-6" style={{ background: C.cream2 }}>
           <div className="max-w-6xl mx-auto">
-            <div className="text-center max-w-2xl mx-auto mb-12">
+            <div className="text-center max-w-2xl mx-auto mb-14">
               <span className="inline-block text-[11.5px] font-bold uppercase tracking-[0.18em] mb-4"
                 style={{ color: C.pink }}>How it works</span>
               <h2 className="bp-heading text-[2rem] sm:text-[3.2rem]" style={{ color: C.navy }}>
-                Three steps to<br />your first drop.
+                From signup to first drop,<br />explained in depth.
               </h2>
+              <p className="mt-5 text-[15px] font-medium leading-relaxed" style={{ color: C.mute }}>
+                A complete walkthrough — subscribe, connect providers, build bundles, place orders and monitor balance in one honest flow.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {[
-                { n:'01', t:'Register',        d:'Sign up in 60 seconds. Your wallet and provider vault appear instantly.' },
-                { n:'02', t:'Add your provider', d:'Paste any SMM API URL + key. Import services in one click.' },
-                { n:'03', t:'Ship the boost',  d:'Paste link → pick bundle → set qty. Human-pattern engine handles the rest.' },
+                {
+                  n:'01', t:'Create your account & pick a plan',
+                  d:'Sign up with email in 60 seconds — no verification friction. On the Subscription page choose Monthly ($39), Yearly ($99) or Lifetime ($199). A subscription unlocks the Provider Vault, Bundles and Mass Order.',
+                  b:['Free signup, instant login','Wallet, dashboard & vault auto-created','Upgrade / downgrade anytime from /subscription'],
+                },
+                {
+                  n:'02', t:'Add your SMM provider',
+                  d:'Head to My Providers → Add Provider. Paste the provider\'s API URL and your personal API key. Boostly stores it with AES-GCM encryption — no one else can read it, not even us.',
+                  b:['Works with any standard SMM API panel','Multiple providers supported (rotation ready)','Live balance check on save'],
+                },
+                {
+                  n:'03', t:'Import services & build bundles',
+                  d:'Once a provider is linked, click Import Services to sync its full catalog. Then open My Bundles and combine services (Views + Likes + Comments + Saves…) into a single named bundle with default ratios.',
+                  b:['One-click service import per provider','Mix services from multiple providers in one bundle','Set default quantity per engagement type'],
+                },
+                {
+                  n:'04', t:'Place a Single or Mass Order',
+                  d:'Open Engagement Order — paste the target link, choose your bundle, set base quantity and hit Ship. For creators dropping on 20+ posts at once, use Mass Order to fire the same bundle across every link in parallel.',
+                  b:['Single order: link → bundle → qty → ship','Mass order: paste up to N links at once','Human-pattern pacing engine handles delivery'],
+                },
+                {
+                  n:'05', t:'Track balance & orders live',
+                  d:'The Wallet page shows real-time provider balances (fetched directly from each API) plus your Boostly credits. Orders page shows Queued → Processing → Partial → Completed with the provider\'s live start count and delivery progress.',
+                  b:['Per-provider live balance ping','Order status auto-refreshed via cron','Full history with start count & remains'],
+                },
+                {
+                  n:'06', t:'Top up, refund & AI assist',
+                  d:'Low on credits? Top up via UPI (ZapUPI) or crypto (OxaPay) — instant, idempotent, ledger-safe. Auto-cancelled runs are refunded automatically. Stuck anywhere? Ask AI Intelligence — a ChatGPT-style assistant for order strategy and provider tips.',
+                  b:['UPI + Crypto payments, auto-credited','Automatic refund on failed provider runs','Built-in AI copilot for growth strategy'],
+                },
               ].map((s)=>(
                 <div key={s.n} className="p-7 rounded-3xl relative"
                   style={{ background: C.white, boxShadow: '0 20px 40px -30px rgba(14,27,77,0.25)' }}>
                   <span className="absolute -top-4 left-6 px-3 py-1 rounded-full text-[12px] font-extrabold"
                     style={{ background: C.pink, color: C.white }}>{s.n}</span>
-                  <h3 className="mt-3 text-[20px] font-extrabold" style={{ color: C.navy }}>{s.t}</h3>
-                  <p className="mt-2 text-[14px] font-medium leading-relaxed" style={{ color: C.mute }}>{s.d}</p>
+                  <h3 className="mt-3 text-[20px] font-extrabold leading-tight" style={{ color: C.navy }}>{s.t}</h3>
+                  <p className="mt-3 text-[14px] font-medium leading-relaxed" style={{ color: C.mute }}>{s.d}</p>
+                  <ul className="mt-4 space-y-1.5">
+                    {s.b.map((item)=>(
+                      <li key={item} className="flex items-start gap-2 text-[13px] font-semibold" style={{ color: C.navy }}>
+                        <span className="mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: C.pink }} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-10 text-center">
+              <Link to="/auth" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-[14px] font-extrabold transition hover:opacity-90"
+                style={{ background: C.navy, color: C.white }}>
+                Start free — walk through it live
+                <span aria-hidden>→</span>
+              </Link>
             </div>
           </div>
         </section>
