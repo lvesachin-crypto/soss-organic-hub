@@ -222,22 +222,29 @@ function ProvidersDialog({
   const byAccount: Record<string, any> = {};
   for (const m of mappings) byAccount[m.user_provider_account_id] = m;
 
-  async function upsertMapping(accountId: string, patch: Partial<{ enabled: boolean; provider_service_id: string; priority: number }>) {
+  async function upsertMapping(accountId: string, patch: Partial<{ enabled: boolean; provider_service_id: string | null; priority: number }>) {
     const existing = byAccount[accountId];
+    let error: any = null;
     if (existing) {
-      await supabase.from('user_bundle_item_providers').update(patch).eq('id', existing.id);
+      ({ error } = await supabase.from('user_bundle_item_providers').update(patch).eq('id', existing.id));
     } else {
-      await supabase.from('user_bundle_item_providers').insert({
+      ({ error } = await supabase.from('user_bundle_item_providers').insert({
         user_id: userId,
         user_bundle_item_id: itemId,
         user_provider_account_id: accountId,
         enabled: patch.enabled ?? true,
         provider_service_id: patch.provider_service_id ?? null,
         priority: patch.priority ?? 1,
-      });
+      }));
     }
-    qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
+    if (error) {
+      toast.error(error.message || 'Failed to save');
+      return;
+    }
+    toast.success('Saved');
+    await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
   }
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
