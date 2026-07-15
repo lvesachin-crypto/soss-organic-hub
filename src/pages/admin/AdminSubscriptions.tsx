@@ -469,7 +469,6 @@ export default function AdminSubscriptions() {
                           Yearly ($99 / 365 days)
                         </span>
                       </SelectItem>
-                      </SelectItem>
                       <SelectItem value="lifetime">
                         <span className="flex items-center gap-2">
                           <Crown className="h-4 w-4 text-amber-500" />
