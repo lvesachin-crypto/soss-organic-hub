@@ -322,6 +322,21 @@ function ProvidersPanel({
         return;
       }
 
+      // Validate: enabled providers must have unique priorities within this engagement item
+      const enabledPriorities = accounts
+        .map((a) => ({ name: a.name, d: drafts[a.id] }))
+        .filter((x) => x.d?.enabled);
+      const seen = new Map<number, string>();
+      for (const ep of enabledPriorities) {
+        const p = ep.d!.priority;
+        if (seen.has(p)) {
+          toast.error(`Priority ${p} is used by both "${seen.get(p)}" and "${ep.name}". Each enabled provider must have a unique priority.`);
+          return;
+        }
+        seen.set(p, ep.name);
+      }
+
+
       // Validate all non-empty service IDs first
       for (const c of changed) {
         const sid = c.draft.provider_service_id.trim();
