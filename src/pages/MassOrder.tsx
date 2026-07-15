@@ -315,7 +315,7 @@ export default function MassOrder() {
 
             <div className="pt-2 flex items-center justify-between border-t border-border">
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">{totalValid}</span> order(s) ready · Total <span className="text-primary font-bold">${grandTotal.toFixed(2)}</span>
+                <span className="text-foreground font-semibold">{totalValid}</span> order(s) ready
               </p>
               <Button className="btn-3d h-11 px-6" disabled={submitting || !bundleId} onClick={submit}>
                 {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting…</> : 'Submit All'}
