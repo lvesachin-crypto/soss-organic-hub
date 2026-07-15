@@ -54,7 +54,7 @@ const requestSchema = z.object({
 interface SubscriptionRequestDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  planType: 'monthly' | 'lifetime';
+  planType: 'monthly' | 'yearly' | 'lifetime';
 }
 
 export function SubscriptionRequestDialog({
