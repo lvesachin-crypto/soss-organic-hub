@@ -9,7 +9,7 @@ interface Props {
 
 export function NoBundleEmptyState({
   title = 'No bundles yet',
-  description = 'Yahan use karne ke liye pehle apna provider add karo aur ek bundle banao. Order options, engagement types aur pricing sab aap ke bundle se aayenge.',
+  description = 'To use this page, first add your provider and create a bundle. Order options, engagement types, and pricing all come from your bundle.',
 }: Props) {
   const navigate = useNavigate();
   return (
