@@ -109,6 +109,7 @@ const App = () => {
                   <Routes>
                     {/* User pages */}
                     <Route path="/" element={<Index />} />
+                    <Route path="/smm-panel-usa" element={<SmmPanelUsa />} />
                     <Route path="*" element={<NotFound />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/dashboard" element={<Dashboard />} />
