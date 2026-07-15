@@ -380,7 +380,6 @@ export default function MassOrder() {
                   {(allowedTypes.length ? allowedTypes : ALL_TYPES).map(t => {
                     const on = !!editing.types[t];
                     const q = editing.qty[t] ?? Math.round(editing.base_quantity * (RATIOS[t] || 0));
-                    const lineCost = on ? (q / 1000) * (priceMap[t] ?? 0.1) : 0;
                     return (
                       <div key={t} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-border bg-secondary/40">
                         <label className="flex items-center gap-2 min-w-[110px] cursor-pointer">
@@ -399,16 +398,9 @@ export default function MassOrder() {
                           value={q}
                           onChange={e => setEditing({ ...editing, qty: { ...editing.qty, [t]: Math.max(0, Number(e.target.value) || 0) } })}
                         />
-                        <span className="text-[11px] text-muted-foreground w-16 text-right font-mono">
-                          ₹{lineCost.toFixed(2)}
-                        </span>
                       </div>
                     );
                   })}
-                </div>
-                <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 border border-primary/20">
-                  <span className="text-sm font-semibold">Total</span>
-                  <span className="text-sm font-bold text-primary font-mono">${perRowCost(editing).toFixed(2)}</span>
                 </div>
               </div>
             </div>
