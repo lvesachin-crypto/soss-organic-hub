@@ -71,7 +71,7 @@ export default function MyServices() {
                   <tr key={s.id} className="border-t hover:bg-muted/30">
                     <td className="p-2 font-mono text-xs">{s.provider_service_id}</td>
                     <td className="p-2"><div className="font-medium">{s.name}</div><div className="text-xs text-muted-foreground">{s.category}</div></td>
-                    <td className="p-2 text-xs">{s.user_provider_accounts_safe?.name}</td>
+                    <td className="p-2 text-xs">{s.provider?.name}</td>
                     <td className="p-2 text-right">{s.rate}</td>
                     <td className="p-2 text-right text-xs">{s.min_quantity}–{s.max_quantity}</td>
                     <td className="p-2 text-right"><Button size="sm" variant="outline" onClick={() => setOrder({ id: s.id, name: s.name, rate: s.rate, min: s.min_quantity, max: s.max_quantity })}><Send className="w-3.5 h-3.5 mr-1" /> Order</Button></td>
