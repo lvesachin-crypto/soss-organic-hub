@@ -190,7 +190,7 @@ const Index = () => {
                   style={{ filter: 'drop-shadow(0 30px 40px rgba(14,27,77,0.10))' }}
                 />
                 {/* Floating engagement chips */}
-                <div className="absolute bottom-[10%] right-[6%] hidden sm:flex items-center gap-2 px-3 py-2 rounded-full bp-float"
+                <div className="absolute bottom-[10%] right-[6%] flex items-center gap-2 px-3 py-2 rounded-full bp-float"
                   style={{ background: C.navy, boxShadow: '0 10px 24px -10px rgba(14,27,77,0.35)', animationDelay:'2s' }}>
                   <UserPlus className="w-4 h-4" style={{ color: C.pink2 }} />
                   <span className="text-[12px] font-bold" style={{ color: C.white }}>+860 followers</span>
