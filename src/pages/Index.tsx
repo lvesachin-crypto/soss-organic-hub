@@ -93,20 +93,21 @@ const Index = () => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: C.orange }} />
                 <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: C.orange }} />
               </span>
-              v2.0 — The human-pattern growth engine
+              Boostly Pro · The bring-your-own-provider growth OS
             </Pill>
           </div>
 
           <h1 className="text-[2.4rem] sm:text-5xl lg:text-[4.5rem] font-black leading-[1.04] tracking-[-0.035em] mb-5"
             style={{ color: C.ink, fontFamily: "'Outfit', 'Inter', system-ui, sans-serif" }}>
-            Growth that feels<br className="hidden sm:block" />
-            <span style={{ color: C.orangeDeep }}>authentically human.</span>
+            Your providers. Your bundles.<br className="hidden sm:block" />
+            <span style={{ color: C.orangeDeep }}>Boostly-grade delivery.</span>
           </h1>
 
           <p className="text-[15px] sm:text-[17.5px] leading-[1.65] mb-9 max-w-xl mx-auto" style={{ color: C.ink2 }}>
-            Every follower, like and view arrives on a rhythm real audiences follow —
-            no spikes, no floods, no risk to your handles.
+            Plug in any SMM provider key, build a bundle once, and drop human-pattern
+            orders on any link — with encrypted vaults and live rotation baked in.
           </p>
+
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <Link to="/auth" className="w-full sm:w-auto h-12 px-7 rounded-xl text-[14.5px] font-semibold text-white flex items-center justify-center gap-2 transition-transform hover:-translate-y-0.5"
