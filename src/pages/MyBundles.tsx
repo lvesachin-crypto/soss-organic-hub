@@ -287,12 +287,14 @@ function ProvidersDialog({
                     <Input
                       placeholder="Service ID"
                       defaultValue={m?.provider_service_id || ''}
+                      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                       onBlur={(e) => {
                         const v = e.target.value.trim();
-                        if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null as any, enabled: enabled || !!v });
+                        if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null, enabled: enabled || !!v });
                       }}
                       className="h-9"
                     />
+
                   </div>
                   <div className="text-right">
                     <Input
