@@ -142,9 +142,10 @@ export default function MyBundles() {
                       const meta = ENGAGEMENT_TYPES.find((e) => e.key === it.engagement_type);
                       const Icon = meta?.icon || Eye;
                       const mappedCount = (it.user_bundle_item_providers || []).filter((p: any) => p.enabled).length;
+                      const isOpen = expandedItem === it.id;
                       return (
-                        <div key={it.id} className="rounded-lg border bg-muted/30 p-3">
-                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div key={it.id} className="rounded-lg border bg-muted/30">
+                          <div className="p-3 flex items-center justify-between gap-3 flex-wrap">
                             <div className="flex items-center gap-2 min-w-0">
                               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                                 <Icon className="w-4 h-4 text-primary" />
@@ -155,7 +156,7 @@ export default function MyBundles() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" onClick={() => setProvidersFor({ itemId: it.id, itemLabel: `${b.platform} ${it.engagement_type}` })}>
+                              <Button size="sm" variant={isOpen ? 'default' : 'outline'} onClick={() => setExpandedItem(isOpen ? null : it.id)}>
                                 <Globe className="w-3.5 h-3.5 mr-1" /> Providers
                               </Button>
                               <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => deleteItem(it.id)}>
@@ -163,6 +164,17 @@ export default function MyBundles() {
                               </Button>
                             </div>
                           </div>
+                          {isOpen && (
+                            <div className="border-t bg-background/60 p-3">
+                              <ProvidersPanel
+                                itemId={it.id}
+                                itemLabel={`${b.platform} ${it.engagement_type}`}
+                                accounts={accounts as any[]}
+                                userId={user?.id || ''}
+                                onChanged={refresh}
+                              />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
