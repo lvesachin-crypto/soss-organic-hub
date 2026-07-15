@@ -76,7 +76,7 @@ export default function MassOrder() {
     queryFn: async () => {
       const { data } = await supabase
         .from('user_bundles')
-        .select('id, name, platform, user_bundle_items(id, engagement_type, price_per_k)')
+        .select('id, name, platform, user_bundle_items(id, engagement_type)')
         .order('created_at', { ascending: false });
       return data || [];
     },
