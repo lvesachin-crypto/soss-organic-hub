@@ -215,7 +215,7 @@ export default function MassOrder() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Mass Order <span className="text-muted-foreground font-normal">— Bulk Engagement</span></h1>
               <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-                Multiple links ek saath order karo. Paste karo ya CSV/TXT file upload karo, har link customize karo, batch me submit karo aur history me track karo.
+                Order multiple links at once. Paste them or upload a CSV/TXT file, customize each link, submit in a batch, and track everything in history.
               </p>
             </div>
           </div>
