@@ -292,9 +292,8 @@ function ProvidersDialog({
                         const v = e.target.value.trim();
                         if (v !== (m?.provider_service_id || '')) upsertMapping(a.id, { provider_service_id: v || null, enabled: enabled || !!v });
                       }}
-                      className="h-9"
+                      className="h-10 bg-background border-2 border-border hover:border-primary/50 focus-visible:border-primary rounded-lg px-3 font-mono text-sm shadow-sm"
                     />
-
                   </div>
                   <div className="text-right">
                     <Input
