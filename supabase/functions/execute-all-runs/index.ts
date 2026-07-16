@@ -1928,9 +1928,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               provider_order_id: null,
               provider_status: null,
               provider_response: null,
-              provider_account_id: selectedAccount.id,
+              provider_account_id: (selectedAccount as any).isUserOwned ? null : selectedAccount.id,
               provider_account_name: selectedAccount.name,
+              user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
+              user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
               last_status_check: new Date().toISOString(),
+
             },
           })
 
