@@ -1684,56 +1684,21 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       const accountsToTry: ProviderCandidate[] = [...availableAccounts]
 
       // ==========================================
-      // ROUND-ROBIN ROTATION across mapped providers for this ITEM.
-      // Look at the last non-pending runs for the same engagement_order_item_id
-      // and deprioritize accounts used most recently. This ensures that when
-      // multiple providers are mapped and no one is "busy", each new run rotates
-      // to a different provider instead of always hitting priority #1.
-      // Priority still breaks ties (least-recently-used first, then priority).
+      // STRICT PRIORITY ORDER — no round-robin.
+      // Providers that are currently BUSY on the same link+type are already
+      // filtered out of `availableAccounts` (via busyAccountIds). So here we
+      // simply sort by user-configured priority: #1 first, then #2, #3...
+      // If #1 is free → use #1. If #1 is busy → try #2. If both busy → #3.
+      // If ALL busy → the run stays queued and picks up as soon as anyone
+      // finishes on the next cron tick (handled below).
       // ==========================================
-      const lastUsedRankByAccountId = new Map<string, number>()
-      try {
-        const { data: recentItemRuns } = await supabase
-          .from('organic_run_schedule')
-          .select('id, run_number, provider_account_id, user_provider_account_id, started_at, created_at')
-          .eq('engagement_order_item_id', item.id)
-          .neq('id', run.id)
-          .not('status', 'in', '("pending")')
-          .order('run_number', { ascending: false })
-          .limit(20)
-        if (recentItemRuns) {
-          let rank = 0
-          for (const r of recentItemRuns as any[]) {
-            const accId = r.user_provider_account_id || r.provider_account_id
-            if (!accId) continue
-            if (!lastUsedRankByAccountId.has(accId)) {
-              // rank 0 = most recently used → largest penalty
-              lastUsedRankByAccountId.set(accId, rank++)
-            }
-          }
-        }
-      } catch (_e) { /* non-fatal */ }
-
       accountsToTry.sort((a, b) => {
         const aUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(a.account.name) ? 1 : 0
         const bUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(b.account.name) ? 1 : 0
         if (aUnhealthy !== bUnhealthy) return aUnhealthy - bUnhealthy
-        // Least-recently-used wins → accounts never used for this item come first,
-        // then accounts used longer ago, then most recently used.
-        const aRankRaw = lastUsedRankByAccountId.get(a.account.id)
-        const bRankRaw = lastUsedRankByAccountId.get(b.account.id)
-        const aRank = aRankRaw === undefined ? -1 : aRankRaw // -1 = never used
-        const bRank = bRankRaw === undefined ? -1 : bRankRaw
-        // Smaller rank number = more recent = worse. -1 (never used) should win.
-        // Convert so "never used" (=-1) sorts first, then largest rank (oldest), then smallest (newest).
-        const aKey = aRank === -1 ? -Infinity : -aRank
-        const bKey = bRank === -1 ? -Infinity : -bRank
-        if (aKey !== bKey) return aKey - bKey
-        const aRecent = recentCompletedAccountIds.has(a.account.id) ? 1 : 0
-        const bRecent = recentCompletedAccountIds.has(b.account.id) ? 1 : 0
-        if (aRecent !== bRecent) return aRecent - bRecent
         return (a.sortOrder || 999) - (b.sortOrder || 999)
       })
+
       
       if (accountsToTry.length === 0) {
         if (isUserBundleItem
