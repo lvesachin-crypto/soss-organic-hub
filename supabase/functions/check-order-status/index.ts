@@ -350,6 +350,8 @@ Deno.serve(async (req) => {
         *,
         retry_count,
         provider_account:provider_accounts(id, name, api_key, api_url),
+        user_provider_account:user_provider_accounts(id, name, api_key_ciphertext, api_url),
+
         engagement_order_item:engagement_order_items(
           id,
           status,
