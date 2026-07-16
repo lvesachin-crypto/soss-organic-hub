@@ -448,8 +448,18 @@ Deno.serve(async (req) => {
         let apiUrl: string
         let providerName: string
 
-        if (run.provider_account) {
-          // Use the actual provider account that placed this order
+        if (run.user_provider_account) {
+          // User-owned SMM panel key (multi-tenant path)
+          try {
+            apiKey = await decryptUserApiKey(run.user_provider_account.id, run.user_provider_account.api_key_ciphertext)
+          } catch (e) {
+            console.error(`Failed to decrypt user provider key for run ${run.id}:`, e)
+            continue
+          }
+          apiUrl = run.user_provider_account.api_url
+          providerName = run.user_provider_account.name
+        } else if (run.provider_account) {
+          // Admin-side provider account
           apiKey = run.provider_account.api_key
           apiUrl = run.provider_account.api_url
           providerName = run.provider_account.name
@@ -460,22 +470,23 @@ Deno.serve(async (req) => {
             console.error(`Run ${run.id} has no provider_account and no service provider_id`)
             continue
           }
-          
+
           const { data: provider } = await supabase
             .from('providers')
             .select('*')
             .eq('id', providerId)
             .single()
-            
+
           if (!provider) {
             console.error(`Provider ${providerId} not found for run ${run.id}`)
             continue
           }
-          
+
           apiKey = provider.api_key
           apiUrl = provider.api_url
           providerName = provider.name
         }
+
 
         console.log(`Checking ${run.engagement_order_item?.engagement_type} order ${run.provider_order_id} on ${providerName}`)
 
