@@ -1954,9 +1954,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         } else {
           await supabase.from('organic_run_schedule').update({
             error_message: `Trying ${selectedAccount.name}...`,
-            provider_account_id: selectedAccount.id,
+            provider_account_id: (selectedAccount as any).isUserOwned ? null : selectedAccount.id,
             provider_account_name: selectedAccount.name,
+            user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
+            user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
             provider_order_id: null,
+
             provider_status: null,
             provider_response: null,
             last_status_check: new Date().toISOString(),
