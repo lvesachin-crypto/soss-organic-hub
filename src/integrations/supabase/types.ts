@@ -316,6 +316,7 @@ export type Database = {
           max_observed_count: number | null
           price: number
           progress_percentage: number
+          provider_mappings: Json | null
           provider_order_id: string | null
           quantity: number
           remaining_count: number
@@ -325,6 +326,7 @@ export type Database = {
           status: string | null
           target_count: number | null
           updated_at: string | null
+          user_bundle_item_id: string | null
           user_provider_account_id: string | null
           user_service_id: string | null
         }
@@ -345,6 +347,7 @@ export type Database = {
           max_observed_count?: number | null
           price: number
           progress_percentage?: number
+          provider_mappings?: Json | null
           provider_order_id?: string | null
           quantity: number
           remaining_count?: number
@@ -354,6 +357,7 @@ export type Database = {
           status?: string | null
           target_count?: number | null
           updated_at?: string | null
+          user_bundle_item_id?: string | null
           user_provider_account_id?: string | null
           user_service_id?: string | null
         }
@@ -374,6 +378,7 @@ export type Database = {
           max_observed_count?: number | null
           price?: number
           progress_percentage?: number
+          provider_mappings?: Json | null
           provider_order_id?: string | null
           quantity?: number
           remaining_count?: number
@@ -383,6 +388,7 @@ export type Database = {
           status?: string | null
           target_count?: number | null
           updated_at?: string | null
+          user_bundle_item_id?: string | null
           user_provider_account_id?: string | null
           user_service_id?: string | null
         }
@@ -399,6 +405,13 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_bundle_item_id_fkey"
+            columns: ["user_bundle_item_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundle_items"
             referencedColumns: ["id"]
           },
           {
@@ -656,6 +669,8 @@ export type Database = {
           scheduled_at: string
           started_at: string | null
           status: string | null
+          user_provider_account_id: string | null
+          user_provider_account_name: string | null
           variance_applied: number | null
         }
         Insert: {
@@ -683,6 +698,8 @@ export type Database = {
           scheduled_at: string
           started_at?: string | null
           status?: string | null
+          user_provider_account_id?: string | null
+          user_provider_account_name?: string | null
           variance_applied?: number | null
         }
         Update: {
@@ -710,6 +727,8 @@ export type Database = {
           scheduled_at?: string
           started_at?: string | null
           status?: string | null
+          user_provider_account_id?: string | null
+          user_provider_account_name?: string | null
           variance_applied?: number | null
         }
         Relationships: [
@@ -732,6 +751,20 @@ export type Database = {
             columns: ["provider_account_id"]
             isOneToOne: false
             referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organic_run_schedule_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organic_run_schedule_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
             referencedColumns: ["id"]
           },
         ]

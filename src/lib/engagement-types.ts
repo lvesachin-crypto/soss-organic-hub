@@ -111,6 +111,7 @@ export interface EngagementConfig {
   quantity: number;
   price: number;
   serviceId: string | null;
+  userServiceId?: string | null;
   minQuantity?: number;        // Actual service minimum from provider
   // Per-type organic settings (optional - defaults will be used if not set)
   timeLimitHours: number;      // 0 = Auto, >0 = specific hours (actual value for backend)
