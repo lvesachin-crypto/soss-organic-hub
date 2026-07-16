@@ -1693,7 +1693,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       })
       
       if (accountsToTry.length === 0) {
-        if (mappingCache.hasConfiguredMappingForService(item.service.id)) {
+        if (isUserBundleItem
+              ? userMappingCache.hasConfigured((item as any).user_bundle_item_id)
+              : mappingCache.hasConfiguredMappingForService(item.service.id)) {
+
           // QUEUE: All mapped providers are busy for this link/type.
           // Keep scheduled_at unchanged so admin/user sees the run as queued, not auto-rescheduled.
           await supabase.from('organic_run_schedule').update({
