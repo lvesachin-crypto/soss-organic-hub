@@ -1713,11 +1713,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           // run picks up automatically on the next cron tick.
           const postponeMs = 5 * 60 * 1000
           const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
+          const waitMsg = isUserBundleItem
+            ? '[Waiting] No provider mapped in your bundle — add a mapping in My Bundles'
+            : '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping'
           await supabase.from('organic_run_schedule').update({
             scheduled_at: newScheduledAt,
-            error_message: '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping',
+            error_message: waitMsg,
             last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
+
           skipped++
           console.log(`⏸️ Run #${run.run_number} waiting — no provider mapping configured for service ${item.service.id}`)
           results.push({ run_id: run.id, run_number: run.run_number, type: item.engagement_type,
