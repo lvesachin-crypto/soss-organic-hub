@@ -2216,6 +2216,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           },
           provider_account_id: null,
           provider_account_name: null,
+          user_provider_account_id: null,
+          user_provider_account_name: null,
+
           provider_order_id: null,
           provider_status: null,
           retry_count: retryCount, last_status_check: new Date().toISOString(),
