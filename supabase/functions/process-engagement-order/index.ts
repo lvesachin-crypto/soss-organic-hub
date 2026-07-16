@@ -257,6 +257,24 @@ const supabaseModule = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+const KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET') || ''
+
+async function getProviderCryptoKey() {
+  const raw = new TextEncoder().encode(KEY_SECRET)
+  const hash = await crypto.subtle.digest('SHA-256', raw)
+  return await crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['decrypt'])
+}
+
+async function decryptProviderKey(payload: string): Promise<string> {
+  if (!KEY_SECRET) throw new Error('PROVIDER_KEY_SECRET missing')
+  const key = await getProviderCryptoKey()
+  const bytes = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0))
+  const iv = bytes.slice(0, 12)
+  const ct = bytes.slice(12)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)
+  return new TextDecoder().decode(plain)
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
