@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { NoBundleBanner } from "@/components/NoBundleBanner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,8 +24,6 @@ import {
   EngagementConfig,
   DEFAULT_RATIOS,
   DEFAULT_ORGANIC_SETTINGS,
-  EngagementBundle,
-  BundleItem
 } from "@/lib/engagement-types";
 import {
   ControlPoint,
@@ -35,7 +32,7 @@ import {
   curveToSchedule,
   calculateQuantitiesFromCurve,
 } from "@/lib/curve-to-schedule";
-import { Loader2, Rocket, Link as LinkIcon, Wallet, RefreshCw, Brain, Percent, HelpCircle, ArrowDown, Sparkles, Clock, Shuffle, Shield, TrendingUp, Eye, Heart, MessageCircle, Bookmark, Share2, Package } from "lucide-react";
+import { Loader2, Rocket, Link as LinkIcon, Brain, Percent, HelpCircle, ArrowDown, Sparkles, Clock, Shuffle, Shield, TrendingUp, Eye } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -43,47 +40,53 @@ import { FullOrganicConfig } from "@/lib/organic-algorithm";
 
 type EngagementConfigs = Record<string, EngagementConfig>;
 
-// All possible engagement types - will be filtered based on bundle
-const ALL_ENGAGEMENT_TYPES: EngagementType[] = ['views', 'likes', 'comments', 'saves', 'shares', 'reposts', 'followers', 'subscribers', 'watch_hours', 'retweets'];
+type UserBundleItemProvider = {
+  id: string;
+  enabled: boolean;
+  priority: number;
+  provider_service_id: string | null;
+  user_provider_account_id: string;
+};
 
-// Local formatPrice for micro-transactions (USD-only raw formatting)
-const formatPriceRaw = (price: number): string => {
-  if (price === 0) return '0.00';
-  if (price >= 0.01) return price.toFixed(2);
-  if (price >= 0.0001) return price.toFixed(4);
-  if (price >= 0.000001) return price.toFixed(6);
-  return price.toFixed(8);
+type UserBundleItem = {
+  id: string;
+  engagement_type: string;
+  quantity: number;
+  user_bundle_id: string;
+  user_service_id: string | null;
+  user_bundle_item_providers?: UserBundleItemProvider[];
+};
+
+type UserBundle = {
+  id: string;
+  name: string;
+  platform: string | null;
+  is_active: boolean;
+  user_bundle_items?: UserBundleItem[];
 };
 
 export default function EngagementOrder() {
   const navigate = useNavigate();
-  const { user, profile, isLoading: authLoading, isAdmin, wallet, refreshWallet } = useAuth();
+  const { user, isLoading: authLoading, isAdmin, wallet, refreshWallet } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { formatPrice, rates } = useCurrency();
-  // Pricing now comes from bundle_items.price_per_k (admin-controlled per type).
+  // Pricing/visibility now comes only from user's own bundles and mapped provider service IDs.
 
-  // Realtime: refresh view when admin bundles OR user bundles change.
+  // Realtime: refresh view when user's own bundle/provider setup changes.
   useEffect(() => {
     const channel = supabase
       .channel('pricing-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bundle_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['bundles'] });
-        queryClient.invalidateQueries({ queryKey: ['all-bundles-with-items'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'engagement_bundles' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['bundles'] });
-        queryClient.invalidateQueries({ queryKey: ['all-bundles-with-items'] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['bundles'] });
-        queryClient.invalidateQueries({ queryKey: ['all-active-services'] });
-      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundles' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['user-bundles-filter'] });
+        queryClient.invalidateQueries({ queryKey: ['full-engagement-user-bundles'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundle_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['user-bundles-filter'] });
+        queryClient.invalidateQueries({ queryKey: ['full-engagement-user-bundles'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_bundle_item_providers' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['full-engagement-user-bundles'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_services' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['full-engagement-user-bundles'] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -132,65 +135,34 @@ export default function EngagementOrder() {
   }, []);
 
 
-  // Fetch USER's own bundles + items (drives which platforms/types are visible)
-  const { data: userBundles, isLoading: userBundlesLoading } = useQuery({
-    queryKey: ['user-bundles-filter', user?.id],
+  // Fetch USER's own bundles + provider mappings (drives visible platforms/types)
+  const { data: userBundles = [], isLoading: userBundlesLoading } = useQuery({
+    queryKey: ['full-engagement-user-bundles', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from('user_bundles')
-        .select('id, platform, is_active, items:user_bundle_items(engagement_type)')
+        .select('id, name, platform, is_active, user_bundle_items(id, engagement_type, quantity, user_bundle_id, user_service_id, user_bundle_item_providers(id, enabled, priority, provider_service_id, user_provider_account_id))')
         .eq('user_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as UserBundle[];
     },
     enabled: !!user?.id,
     staleTime: 60 * 1000,
   });
 
-  // Map: platform -> Set of engagement_types user has in their bundle
-  const userPlatformTypes = useMemo<Record<string, Set<string>>>(() => {
-    const map: Record<string, Set<string>> = {};
-    (userBundles ?? []).forEach((b: any) => {
-      if (!b.items || b.items.length === 0) return;
-      if (!map[b.platform]) map[b.platform] = new Set();
-      b.items.forEach((it: any) => map[b.platform].add(it.engagement_type));
-    });
-    return map;
+  const bundlesWithItems = useMemo(() => {
+    return userBundles.filter((b) => (b.user_bundle_items?.length ?? 0) > 0 && !!b.platform);
   }, [userBundles]);
 
-  const hasAnyUserBundle = Object.keys(userPlatformTypes).length > 0;
+  const hasAnyUserBundle = bundlesWithItems.length > 0;
 
-  // Fetch ALL active admin bundles WITH items (for pricing + service routing)
-  const { data: allBundles } = useQuery({
-    queryKey: ['all-bundles-with-items'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('engagement_bundles')
-        .select(`
-          platform,
-          items:bundle_items(id, service_id)
-        `)
-        .eq('is_active', true);
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-    placeholderData: keepPreviousData,
-  });
-
-  // Available platforms = platforms user has in their own bundle
-  // (admin bundle must also exist for that platform so pricing/services resolve)
+  // Available platforms = platforms user has in their own bundle only.
   const availablePlatforms = useMemo(() => {
-    if (!allBundles) return [];
-    const adminPlatforms = new Set(
-      allBundles.filter(b => b.items && b.items.length > 0).map(b => b.platform)
-    );
-    const userPlatforms = Object.keys(userPlatformTypes);
-    // Intersection: only platforms present in BOTH user bundle and admin bundle
-    return userPlatforms.filter(p => adminPlatforms.has(p));
-  }, [allBundles, userPlatformTypes]);
+    return [...new Set(bundlesWithItems.map((b) => b.platform).filter(Boolean) as string[])];
+  }, [bundlesWithItems]);
 
   // Auto-select first available platform if current selection has no bundles
   useEffect(() => {
@@ -199,47 +171,16 @@ export default function EngagementOrder() {
     }
   }, [availablePlatforms, platform]);
 
-  // Fetch bundles for selected platform
-  const { data: bundles, isLoading: bundlesLoading } = useQuery({
-    queryKey: ['bundles', platform],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('engagement_bundles')
-        .select(`
-          *,
-          items:bundle_items(
-            *,
-            service:services(id, name, price, min_quantity, max_quantity)
-          )
-        `)
-        .eq('platform', platform)
-        .eq('is_active', true)
-        .order('sort_order');
-      if (error) throw error;
-      return data as (EngagementBundle & { items: (BundleItem & { service: any })[] })[];
-    },
-    enabled: !!platform && availablePlatforms.includes(platform),
-    staleTime: 5 * 60 * 1000,
-    placeholderData: keepPreviousData,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
+  const selectedBundle = useMemo(() => {
+    return bundlesWithItems.find((b) => b.platform === platform) ?? null;
+  }, [bundlesWithItems, platform]);
+
+  const bundlesLoading = userBundlesLoading;
 
   // Get active engagement types from bundle
   const activeEngagementTypes = useMemo<EngagementType[]>(() => {
-    if (!bundles || bundles.length === 0) return [];
-    const bundle = bundles[0];
-    if (!bundle?.items) return [];
-    const adminTypes = bundle.items.map(item => item.engagement_type as EngagementType);
-
-    // Intersect with user's own bundle types for the selected platform.
-    // Without a user bundle for this platform → no types visible.
-    const allowed = userPlatformTypes[platform];
-    const filtered = allowed
-      ? adminTypes.filter(t => allowed.has(t))
-      : [];
-
-    const uniqueTypes = [...new Set(filtered)];
+    const items = selectedBundle?.user_bundle_items ?? [];
+    const uniqueTypes = [...new Set(items.map(item => item.engagement_type as EngagementType).filter(Boolean))];
 
     const PREFERRED_ORDER: Record<string, number> = {
       views: 1,
@@ -251,7 +192,7 @@ export default function EngagementOrder() {
     };
 
     return uniqueTypes.sort((a, b) => (PREFERRED_ORDER[a] || 99) - (PREFERRED_ORDER[b] || 99));
-  }, [bundles, userPlatformTypes, platform]);
+  }, [selectedBundle]);
 
   // Base per-type quantities (used as "100%" reference for draw-mode scaling)
   // Use debounced value for expensive calculations
@@ -265,110 +206,78 @@ export default function EngagementOrder() {
     });
     return base;
   }, [debouncedBaseQuantity, activeEngagementTypes, userSavedRatios]);
-  // Fetch ALL active services as fallback for price lookup
-  const { data: allServices } = useQuery({
-    queryKey: ['all-active-services'],
+  const mappedProviderServiceIds = useMemo(() => {
+    const ids = new Set<string>();
+    (selectedBundle?.user_bundle_items ?? []).forEach((item) => {
+      (item.user_bundle_item_providers ?? [])
+        .filter((p) => p.enabled && p.provider_service_id)
+        .forEach((p) => ids.add(p.provider_service_id as string));
+    });
+    return [...ids];
+  }, [selectedBundle]);
+
+  const { data: userServices = [] } = useQuery({
+    queryKey: ['full-engagement-user-services', user?.id, mappedProviderServiceIds.join(',')],
+    enabled: !!user?.id && mappedProviderServiceIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('services')
-        .select('id, name, price, min_quantity, max_quantity, category')
-        .eq('is_active', true)
-        .order('price', { ascending: true });
+        .from('user_services')
+        .select('id, user_provider_account_id, provider_service_id, rate, min_quantity, max_quantity, is_active')
+        .eq('user_id', user!.id)
+        .in('provider_service_id', mappedProviderServiceIds)
+        .eq('is_active', true);
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
-  // Get service prices from bundle — with auto-match fallback for unlinked items
+  // Get service metadata from user's mapped provider services only.
   const servicePrices = useMemo(() => {
-    if (!bundles || bundles.length === 0) return {};
-    const bundle = bundles[0];
-    if (!bundle?.items) return {};
+    const prices: Record<string, { pricePerK: number; serviceId: string | null; userServiceId: string | null; minQuantity: number; maxQuantity?: number }> = {};
+    const serviceByAccountAndProviderId = new Map<string, any>();
+    userServices.forEach((s: any) => {
+      serviceByAccountAndProviderId.set(`${s.user_provider_account_id}:${s.provider_service_id}`, s);
+    });
 
-    // Keywords to match engagement types in service names
-    const typeKeywords: Record<string, string[]> = {
-      views: ['view'],
-      likes: ['like'],
-      comments: ['comment'],
-      saves: ['save'],
-      shares: ['share'],
-      reposts: ['repost'],
-      followers: ['follow'],
-      subscribers: ['subscrib'],
-      watch_hours: ['watch'],
-      retweets: ['retweet'],
-    };
+    (selectedBundle?.user_bundle_items ?? []).forEach((item) => {
+      const mappedProviders = (item.user_bundle_item_providers ?? [])
+        .filter((p) => p.enabled && p.provider_service_id)
+        .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
 
-    const prices: Record<string, { pricePerK: number; serviceId: string | null; minQuantity: number }> = {};
-    bundle.items.forEach(item => {
-      const keywords = typeKeywords[item.engagement_type] || [item.engagement_type];
-      const platName = platform.toLowerCase();
-      const matchingServices = (allServices || []).filter(s => {
-        const name = s.name?.toLowerCase() || '';
-        const cat = s.category?.toLowerCase() || '';
-        const matchesPlatform = name.includes(platName) || cat.includes(platName);
-        const matchesType = keywords.some(kw => name.includes(kw));
-        return matchesPlatform && matchesType;
-      });
-      const positiveMins = matchingServices.map(s => s.min_quantity ?? 0).filter(n => n > 0);
-      const lowestMatchedMin = positiveMins.length > 0 ? Math.min(...positiveMins) : undefined;
+      const matchedServices = mappedProviders
+        .map((p) => serviceByAccountAndProviderId.get(`${p.user_provider_account_id}:${p.provider_service_id}`))
+        .filter(Boolean);
 
-      // PRIORITY 0: admin-set per-bundle-item price overrides everything
-      const manualPricePerK = typeof item.price_per_k === 'number' && item.price_per_k > 0
-        ? Number(item.price_per_k)
-        : null;
+      if (matchedServices.length > 0) {
+        const rateServices = matchedServices.filter((s: any) => Number(s.rate) > 0);
+        const cheapest = (rateServices.length > 0 ? rateServices : matchedServices)
+          .reduce((a: any, b: any) => Number(a.rate) <= Number(b.rate) ? a : b);
+        const mins = matchedServices.map((s: any) => Number(s.min_quantity || 0)).filter((n: number) => n > 0);
+        const maxes = matchedServices.map((s: any) => Number(s.max_quantity || 0)).filter((n: number) => n > 0);
 
-      // 1) Try the linked service first, but show the lowest provider minimum across the rotation pool
-      if (item.service && (manualPricePerK !== null || item.service.price > 0)) {
         prices[item.engagement_type] = {
-          pricePerK: manualPricePerK ?? item.service.price,
-          serviceId: item.service.id,
-          minQuantity: lowestMatchedMin ?? item.service.min_quantity,
-        };
-        return;
-      }
-
-      // 2) Fallback: auto-match from all active services by platform + engagement type
-      if (allServices && allServices.length > 0) {
-        const matches = matchingServices.filter(s => s.price > 0);
-
-        if (matches.length > 0) {
-          // Cheapest service for pricing
-          const match = matches.reduce((a, b) => (a.price <= b.price ? a : b));
-          // Lowest min across all matching providers (router can rotate)
-          const lowestMin = Math.min(...matches.map(s => s.min_quantity ?? 0).filter(n => n > 0));
-          prices[item.engagement_type] = {
-            pricePerK: manualPricePerK ?? match.price,
-            serviceId: match.id,
-            minQuantity: Number.isFinite(lowestMin) ? lowestMin : match.min_quantity,
-          };
-          return;
-        }
-      }
-
-      // 3) Even if linked but price=0, still register the service for order routing
-      if (item.service) {
-        prices[item.engagement_type] = {
-          pricePerK: manualPricePerK ?? item.service.price,
-          serviceId: item.service.id,
-          minQuantity: lowestMatchedMin ?? item.service.min_quantity,
-        };
-        return;
-      }
-
-      // 4) No linked service and no auto-match, but admin set a manual price → still register
-      if (manualPricePerK !== null) {
-        prices[item.engagement_type] = {
-          pricePerK: manualPricePerK,
+          pricePerK: Number(cheapest.rate) || 0,
           serviceId: null,
-          minQuantity: lowestMatchedMin ?? 0,
+          userServiceId: cheapest.id,
+          minQuantity: mins.length > 0 ? Math.min(...mins) : 0,
+          maxQuantity: maxes.length > 0 ? Math.max(...maxes) : undefined,
+        };
+        return;
+      }
+
+      // If services were not imported, still show the card from provider mappings.
+      // Backend will validate/route by provider_service_id; price stays hidden/zero.
+      if (mappedProviders.length > 0) {
+        prices[item.engagement_type] = {
+          pricePerK: 0,
+          serviceId: null,
+          userServiceId: null,
+          minQuantity: item.engagement_type === 'views' ? 100 : 0,
         };
       }
     });
-    // Enforce platform minimum of 100 for views regardless of provider.
-    // Pricing for views (and every other type) comes from bundle_items.price_per_k
-    // set by the admin — no hardcoded overrides.
+
     if (prices['views']) {
       prices['views'] = {
         ...prices['views'],
@@ -376,18 +285,19 @@ export default function EngagementOrder() {
       };
     }
     return prices;
-  }, [bundles, allServices, platform, rates]);
+  }, [selectedBundle, userServices]);
 
   // Update engagement configs when bundle or base quantity changes
   // Use debounced value to prevent excessive recalculations
   useEffect(() => {
-    if (!bundles || bundles.length === 0) return;
-
-    const bundle = bundles[0];
-    if (!bundle?.items) return;
+    const items = selectedBundle?.user_bundle_items ?? [];
+    if (items.length === 0) {
+      setEngagements({});
+      return;
+    }
 
     // Get all engagement types from bundle items
-    const bundleTypes = bundle.items
+    const bundleTypes = items
       .map(item => item.engagement_type as EngagementType);
 
     const uniqueBundleTypes = [...new Set(bundleTypes)];
@@ -425,6 +335,7 @@ export default function EngagementOrder() {
           quantity: finalQuantity,
           price: finalPrice,
           serviceId: serviceData?.serviceId ?? prev[type]?.serviceId ?? null,
+          userServiceId: serviceData?.userServiceId ?? (prev[type] as any)?.userServiceId ?? null,
           minQuantity: serviceData?.minQuantity ?? prev[type]?.minQuantity,
           // Per-type organic settings
           timeLimitHours: prev[type]?.timeLimitHours ?? DEFAULT_ORGANIC_SETTINGS.timeLimitHours,
@@ -434,7 +345,7 @@ export default function EngagementOrder() {
       });
       return updated;
     });
-  }, [debouncedBaseQuantity, bundles, servicePrices, userSavedRatios, isAutoRatios]);
+  }, [debouncedBaseQuantity, selectedBundle, servicePrices, userSavedRatios, isAutoRatios]);
 
   const handleEngagementChange = useCallback((type: EngagementType, config: EngagementConfig) => {
     setEngagements(prev => {
@@ -555,10 +466,6 @@ export default function EngagementOrder() {
         throw new Error(`Insufficient wallet balance. Please add funds.`);
       }
 
-      if (totalPrice <= 0) {
-        throw new Error('Invalid order total. Please select engagement types.');
-      }
-
       // Prevent non-2xx failures from provider min-quantity rules
       const belowMin = Object.entries(engagements)
         .filter(([_, config]) => config.enabled)
@@ -577,21 +484,44 @@ export default function EngagementOrder() {
         );
       }
 
-      const bundle = bundles?.[0];
+      const bundle = selectedBundle;
+
+      if (!bundle) {
+        throw new Error('Please create a bundle first.');
+      }
+
+      const selectedEngagements = Object.entries(engagements)
+        .filter(([_, config]) => config.enabled)
+        .map(([type, config]) => {
+          const bundleItem = bundle.user_bundle_items?.find((item) => item.engagement_type === type);
+          const providerMappings = (bundleItem?.user_bundle_item_providers ?? [])
+            .filter((p) => p.enabled && p.provider_service_id)
+            .sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
+
+          return { type, config, bundleItem, providerMappings };
+        });
+
+      const missingProviders = selectedEngagements
+        .filter((entry) => entry.providerMappings.length === 0)
+        .map((entry) => entry.type);
+
+      if (missingProviders.length > 0) {
+        throw new Error(`${missingProviders.join(', ')} provider service IDs are not mapped. Please save them in My Bundles.`);
+      }
 
       // Call edge function to process engagement order with per-type organic settings
       const { data, error } = await supabase.functions.invoke('process-engagement-order', {
         body: {
           user_id: user.id,
-          bundle_id: bundle?.id,
+          user_bundle_id: bundle.id,
+          bundle_id: null,
           link: link.trim(),
           base_quantity: baseQuantity,
           total_price: totalPrice,
           is_organic_mode: isOrganicMode,
           // Per-type settings will be in each engagement object
-          engagements: Object.entries(engagements)
-            .filter(([_, config]) => config.enabled)
-            .map(([type, config]) => {
+          engagements: selectedEngagements
+            .map(({ type, config, bundleItem, providerMappings }) => {
               // CRITICAL: Resolve time limit - if -1 (custom), the actual value should be stored
               // The EngagementTypeCard should store actual hours, but if it sends -1, treat as Auto (0)
               let effectiveTimeLimit = config.timeLimitHours;
@@ -609,7 +539,14 @@ export default function EngagementOrder() {
                 type,
                 quantity: config.quantity,
                 price: config.price,
-                service_id: config.serviceId,
+                service_id: null,
+                user_service_id: (config as any).userServiceId ?? bundleItem?.user_service_id ?? null,
+                user_bundle_item_id: bundleItem?.id ?? null,
+                provider_mappings: providerMappings.map((p) => ({
+                  user_provider_account_id: p.user_provider_account_id,
+                  provider_service_id: p.provider_service_id,
+                  priority: p.priority,
+                })),
                 // Per-type organic settings - always send resolved hours value
                 time_limit_hours: effectiveTimeLimit,
                 variance_percent: config.variancePercent,
@@ -724,35 +661,7 @@ export default function EngagementOrder() {
     if (activeEngagementTypes.length === 0) {
       toast({
         title: "❌ Services Not Available",
-        description: `No services are configured for ${platform.toUpperCase()} yet. Please contact Admin.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // NEW: Double check that all enabled engagements have service IDs
-    const missingServiceEngagements = Object.entries(engagements)
-      .filter(([_, config]) => config.enabled && !config.serviceId)
-      .map(([type]) => type);
-
-    if (missingServiceEngagements.length > 0) {
-      toast({
-        title: "❌ Service Configuration Error",
-        description: `${missingServiceEngagements.join(', ')} services are not configured. This order cannot be sent to provider.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // NEW: Block orders where any enabled engagement type has zero price
-    const zeroPriceEngagements = Object.entries(engagements)
-      .filter(([_, config]) => config.enabled && config.price <= 0)
-      .map(([type]) => type);
-
-    if (zeroPriceEngagements.length > 0) {
-      toast({
-        title: "⚠️ Pricing Error",
-        description: `${zeroPriceEngagements.join(', ')} has $0.00 price. Service pricing may not be configured correctly. Please contact support.`,
+        description: `No services are configured for ${platform.toUpperCase()} yet. Please add service IDs in My Bundles.`,
         variant: "destructive",
       });
       return;
