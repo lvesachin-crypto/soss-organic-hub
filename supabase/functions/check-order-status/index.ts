@@ -36,6 +36,33 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
   }
 }
 
+// AES-GCM decryption for user_provider_accounts.api_key_ciphertext
+const PROVIDER_KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET') || ''
+let _upKeyPromise: Promise<CryptoKey> | null = null
+async function _getUpKey(): Promise<CryptoKey> {
+  if (!_upKeyPromise) {
+    _upKeyPromise = (async () => {
+      const raw = new TextEncoder().encode(PROVIDER_KEY_SECRET)
+      const hash = await crypto.subtle.digest('SHA-256', raw)
+      return await crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['decrypt'])
+    })()
+  }
+  return _upKeyPromise
+}
+const _decryptCache = new Map<string, string>()
+async function decryptUserApiKey(accountId: string, payload: string): Promise<string> {
+  const cached = _decryptCache.get(accountId)
+  if (cached) return cached
+  const key = await _getUpKey()
+  const bytes = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0))
+  const iv = bytes.slice(0, 12)
+  const ct = bytes.slice(12)
+  const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct))
+  _decryptCache.set(accountId, plain)
+  return plain
+}
+
+
 // Wall-clock budget so we always return under the edge-function limit and let
 // the cron job pick up the remaining runs on the next tick instead of 504-ing.
 const CHECK_STATUS_BUDGET_MS = 110_000
