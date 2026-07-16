@@ -2152,10 +2152,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const updatePromises = [
           supabase.from('organic_run_schedule').update({
             provider_order_id: providerOrderId, provider_response: providerResult,
-            error_message: null, provider_account_id: successAccount.id,
-            provider_account_name: successAccount.name, provider_status: verifiedStatus,
+            error_message: null,
+            provider_account_id: (successAccount as any).isUserOwned ? null : successAccount.id,
+            provider_account_name: successAccount.name,
+            user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
+            user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
+            provider_status: verifiedStatus,
             provider_start_count: verifiedStartCount, provider_remains: verifiedRemains,
             provider_charge: verifiedCharge,
+
             ...(providerIsTerminal
               ? {
                   status: 'completed',
