@@ -495,14 +495,21 @@ serve(async (req) => {
 
     // Check if bundle has AI Organic Mode enabled (default ON)
     let aiOrganicEnabled = true
-    if (bundle_id) {
+    if (bundle_id && !isUserBundleOrder) {
       const { data: bundle } = await supabase.from('engagement_bundles').select('ai_organic_enabled').eq('id', bundle_id).single()
       if (bundle) aiOrganicEnabled = bundle.ai_organic_enabled ?? true
     }
 
     // Create order
     const { data: order, error: orderError } = await supabase.from('engagement_orders').insert({
-      user_id, bundle_id, link, total_price: safeTotalPrice, base_quantity, is_organic_mode: true, status: 'processing'
+      user_id,
+      bundle_id: isUserBundleOrder ? null : bundle_id,
+      user_bundle_id: isUserBundleOrder ? user_bundle_id : null,
+      link,
+      total_price: safeTotalPrice,
+      base_quantity,
+      is_organic_mode: true,
+      status: 'processing'
     }).select().single()
 
     if (orderError || !order) return new Response(JSON.stringify({ error: `Failed to create order: ${orderError?.message || 'Unknown error'}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -529,12 +536,16 @@ serve(async (req) => {
 
     const newBalance = (debitData as any).new_balance as number
 
-    const createdItemIds: Array<{ type: string; itemId: string; engagement: any; finalServiceId: string }> = []
+    const createdItemIds: Array<{ type: string; itemId: string; engagement: any; finalServiceId: string | null }> = []
     for (const eng of engagements) {
       const { data: item } = await supabase.from('engagement_order_items').insert({
         engagement_order_id: order.id,
         engagement_type: eng.type,
         service_id: eng.service_id,
+        user_service_id: eng.user_service_id || null,
+        user_provider_account_id: eng.user_provider_account_id || null,
+        user_bundle_item_id: eng.user_bundle_item_id || null,
+        provider_mappings: eng.provider_mappings || null,
         quantity: eng.quantity,
         price: eng.price,
         status: 'pending'
