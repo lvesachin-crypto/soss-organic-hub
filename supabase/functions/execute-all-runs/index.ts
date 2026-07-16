@@ -1662,10 +1662,17 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
       // ==========================================
       // OPTIMIZED: Use cached mapping lookup
+      // User-bundle items route to user's OWN provider accounts (per-tenant),
+      // admin/services items route through service_provider_mapping.
       // ==========================================
-      const availableAccounts = await mappingCache.getForService(
-        supabase, item.service.id, busyAccountIds, executionId
-      )
+      const availableAccounts = isUserBundleItem
+        ? await userMappingCache.getForBundleItem(
+            supabase, (item as any).user_bundle_item_id, busyAccountIds
+          )
+        : await mappingCache.getForService(
+            supabase, item.service.id, busyAccountIds, executionId
+          )
+
       
       // STRICT MAPPING MODE — no automatic default-provider fallback.
       // Only providers explicitly mapped via service_provider_mapping for this
