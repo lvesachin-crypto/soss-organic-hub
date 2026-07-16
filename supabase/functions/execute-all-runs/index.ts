@@ -1417,7 +1417,21 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         console.error('Over-delivery guard error:', capErr)
       }
 
+      // ==========================================
+      // USER-BUNDLE PATH: order items placed against user's own SMM panel
+      // (user_bundle_item_id set) skip the admin services table entirely.
+      // Provide a synthetic service so downstream code passes null-checks.
+      // ==========================================
+      const isUserBundleItem = !!(item as any).user_bundle_item_id
+      if (isUserBundleItem && !item.service) {
+        item.service = {
+          id: `user:${(item as any).user_bundle_item_id}`,
+          name: item.engagement_type,
+        } as any
+      }
+
       if (!item.service) {
+
         // FALLBACK: Try bundle
         const bundleId = item.engagement_order?.bundle_id
         if (bundleId) {
