@@ -258,6 +258,130 @@ class MappingCache {
   }
 }
 
+// ==========================================
+// USER-PROVIDER PATH (multi-tenant)
+// Resolves runs whose engagement_order_items row uses user_bundle_item_id
+// (i.e. the order was placed against the user's own SMM panel key stored in
+// user_provider_accounts, not the platform admin's provider_accounts).
+// ==========================================
+const PROVIDER_KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET') || ''
+let _upKeyPromise: Promise<CryptoKey> | null = null
+async function _getUpKey(): Promise<CryptoKey> {
+  if (!_upKeyPromise) {
+    _upKeyPromise = (async () => {
+      const raw = new TextEncoder().encode(PROVIDER_KEY_SECRET)
+      const hash = await crypto.subtle.digest('SHA-256', raw)
+      return await crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['decrypt'])
+    })()
+  }
+  return _upKeyPromise
+}
+export async function decryptUserApiKey(payload: string): Promise<string> {
+  const key = await _getUpKey()
+  const bytes = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0))
+  const iv = bytes.slice(0, 12)
+  const ct = bytes.slice(12)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)
+  return new TextDecoder().decode(plain)
+}
+
+// Cache decrypted keys per invocation to avoid repeated crypto work.
+const _userKeyCache = new Map<string, string>()
+async function getUserProviderKey(accountId: string, ciphertext: string): Promise<string> {
+  const cached = _userKeyCache.get(accountId)
+  if (cached) return cached
+  const plain = await decryptUserApiKey(ciphertext)
+  _userKeyCache.set(accountId, plain)
+  return plain
+}
+
+class UserMappingCache {
+  private cache = new Map<string, ProviderCandidate[]>()
+  private configured = new Map<string, boolean>()
+
+  async getForBundleItem(supabase: any, bundleItemId: string, excludeIds: string[]): Promise<ProviderCandidate[]> {
+    if (!this.cache.has(bundleItemId)) {
+      // Fetch mappings + joined user_provider_accounts (with encrypted key)
+      const { data: mappings, error } = await supabase
+        .from('user_bundle_item_providers')
+        .select(`
+          id, priority, enabled, provider_service_id, user_provider_account_id,
+          user_provider_account:user_provider_accounts(
+            id, user_id, name, api_url, api_key_ciphertext, is_active
+          )
+        `)
+        .eq('user_bundle_item_id', bundleItemId)
+        .eq('enabled', true)
+        .order('priority', { ascending: true })
+
+      if (error || !mappings || mappings.length === 0) {
+        this.configured.set(bundleItemId, false)
+        this.cache.set(bundleItemId, [])
+      } else {
+        this.configured.set(bundleItemId, true)
+
+        // Fetch min_quantity from user_services keyed by (account_id, provider_service_id)
+        const accountIds = [...new Set(mappings.map((m: any) => m.user_provider_account_id).filter(Boolean))]
+        const providerServiceIds = [...new Set(mappings.map((m: any) => String(m.provider_service_id)).filter(Boolean))]
+        const minByKey = new Map<string, number>()
+        if (accountIds.length && providerServiceIds.length) {
+          const { data: svcRows } = await supabase
+            .from('user_services')
+            .select('user_provider_account_id, provider_service_id, min_quantity')
+            .in('user_provider_account_id', accountIds)
+            .in('provider_service_id', providerServiceIds)
+          for (const row of (svcRows || []) as any[]) {
+            minByKey.set(`${row.user_provider_account_id}:${row.provider_service_id}`, Number(row.min_quantity || 0))
+          }
+        }
+
+        const accounts: ProviderCandidate[] = []
+        for (const m of mappings as any[]) {
+          const upa = m.user_provider_account
+          if (!upa || !upa.is_active || !isValidHttpUrl(upa.api_url) || !upa.api_key_ciphertext) continue
+          let plainKey = ''
+          try {
+            plainKey = await getUserProviderKey(upa.id, upa.api_key_ciphertext)
+          } catch (e) {
+            console.error(`Failed to decrypt user key for account ${upa.id}:`, e)
+            continue
+          }
+          const account: ProviderAccount = {
+            id: upa.id,
+            provider_id: `user:${upa.user_id}`,
+            name: upa.name || 'User provider',
+            api_key: plainKey,
+            api_url: upa.api_url,
+            priority: Number(m.priority || 999),
+            is_active: true,
+            last_used_at: null,
+            delivery_multiplier: 1,
+            // @ts-ignore custom marker used downstream
+            isUserOwned: true,
+            // @ts-ignore
+            user_id: upa.user_id,
+          } as any
+          accounts.push({
+            account,
+            providerServiceId: String(m.provider_service_id),
+            minQuantity: minByKey.get(`${upa.id}:${String(m.provider_service_id)}`) || 0,
+            sortOrder: Number(m.priority || 999),
+          })
+        }
+        this.cache.set(bundleItemId, accounts)
+      }
+    }
+    const all = this.cache.get(bundleItemId) || []
+    return all.filter(a => !excludeIds.includes(a.account.id))
+  }
+
+  hasConfigured(bundleItemId: string): boolean {
+    return this.configured.get(bundleItemId) === true
+  }
+}
+
+
+
 async function checkProviderBalance(account: ProviderAccount): Promise<{ hasBalance: boolean; balance: number }> {
   if (!isValidHttpUrl(account.api_url)) {
     console.log(`⚠️ Balance check skipped for ${account.name}: invalid api_url`)
