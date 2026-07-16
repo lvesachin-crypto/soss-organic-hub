@@ -118,7 +118,7 @@ const App = () => {
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/orders" element={<Orders />} />
-                    <Route path="/wallet" element={<Wallet />} />
+                    
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/support" element={<Support />} />
                     <Route path="/api-access" element={<ApiAccess />} />
