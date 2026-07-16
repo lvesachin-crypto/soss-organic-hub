@@ -88,9 +88,8 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            { icon: Wallet, label: 'Balance', value: formatPrice(wallet?.balance || 0), sub: 'Available funds', accent: '#3b82f6' },
             { icon: ShoppingCart, label: 'Total Orders', value: stats?.totalOrders || 0, sub: `${stats?.completedOrders || 0} completed`, accent: '#3b82f6' },
             { icon: Activity, label: 'Active', value: stats?.activeOrders || 0, sub: 'In progress', accent: '#f59e0b' },
             { icon: TrendingUp, label: 'Total Spent', value: formatPrice(stats?.totalSpent || 0), sub: 'All time', accent: '#9333ea' },
@@ -179,7 +178,6 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { icon: Sparkles, label: 'Full Engagement', desc: 'Views + Likes + Comments', path: '/engagement-order', accent: '#9333ea' },
-            { icon: Wallet, label: 'Add Funds', desc: 'Deposit to wallet', path: '/wallet', accent: '#3b82f6' },
           ].map((a, i) => (
             <Link key={i} to={a.path} className="group flex items-center gap-3.5 p-4 rounded-xl transition-all hover:-translate-y-0.5" style={cardStyle}>
               <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: a.accent + '12', color: a.accent }}>
