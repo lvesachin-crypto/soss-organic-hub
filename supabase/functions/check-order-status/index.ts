@@ -36,6 +36,33 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
   }
 }
 
+// AES-GCM decryption for user_provider_accounts.api_key_ciphertext
+const PROVIDER_KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET') || ''
+let _upKeyPromise: Promise<CryptoKey> | null = null
+async function _getUpKey(): Promise<CryptoKey> {
+  if (!_upKeyPromise) {
+    _upKeyPromise = (async () => {
+      const raw = new TextEncoder().encode(PROVIDER_KEY_SECRET)
+      const hash = await crypto.subtle.digest('SHA-256', raw)
+      return await crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['decrypt'])
+    })()
+  }
+  return _upKeyPromise
+}
+const _decryptCache = new Map<string, string>()
+async function decryptUserApiKey(accountId: string, payload: string): Promise<string> {
+  const cached = _decryptCache.get(accountId)
+  if (cached) return cached
+  const key = await _getUpKey()
+  const bytes = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0))
+  const iv = bytes.slice(0, 12)
+  const ct = bytes.slice(12)
+  const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct))
+  _decryptCache.set(accountId, plain)
+  return plain
+}
+
+
 // Wall-clock budget so we always return under the edge-function limit and let
 // the cron job pick up the remaining runs on the next tick instead of 504-ing.
 const CHECK_STATUS_BUDGET_MS = 110_000
@@ -350,6 +377,8 @@ Deno.serve(async (req) => {
         *,
         retry_count,
         provider_account:provider_accounts(id, name, api_key, api_url),
+        user_provider_account:user_provider_accounts(id, name, api_key_ciphertext, api_url),
+
         engagement_order_item:engagement_order_items(
           id,
           status,
@@ -419,8 +448,18 @@ Deno.serve(async (req) => {
         let apiUrl: string
         let providerName: string
 
-        if (run.provider_account) {
-          // Use the actual provider account that placed this order
+        if (run.user_provider_account) {
+          // User-owned SMM panel key (multi-tenant path)
+          try {
+            apiKey = await decryptUserApiKey(run.user_provider_account.id, run.user_provider_account.api_key_ciphertext)
+          } catch (e) {
+            console.error(`Failed to decrypt user provider key for run ${run.id}:`, e)
+            continue
+          }
+          apiUrl = run.user_provider_account.api_url
+          providerName = run.user_provider_account.name
+        } else if (run.provider_account) {
+          // Admin-side provider account
           apiKey = run.provider_account.api_key
           apiUrl = run.provider_account.api_url
           providerName = run.provider_account.name
@@ -431,22 +470,23 @@ Deno.serve(async (req) => {
             console.error(`Run ${run.id} has no provider_account and no service provider_id`)
             continue
           }
-          
+
           const { data: provider } = await supabase
             .from('providers')
             .select('*')
             .eq('id', providerId)
             .single()
-            
+
           if (!provider) {
             console.error(`Provider ${providerId} not found for run ${run.id}`)
             continue
           }
-          
+
           apiKey = provider.api_key
           apiUrl = provider.api_url
           providerName = provider.name
         }
+
 
         console.log(`Checking ${run.engagement_order_item?.engagement_type} order ${run.provider_order_id} on ${providerName}`)
 

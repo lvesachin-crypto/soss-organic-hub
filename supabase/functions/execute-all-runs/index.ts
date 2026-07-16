@@ -258,6 +258,130 @@ class MappingCache {
   }
 }
 
+// ==========================================
+// USER-PROVIDER PATH (multi-tenant)
+// Resolves runs whose engagement_order_items row uses user_bundle_item_id
+// (i.e. the order was placed against the user's own SMM panel key stored in
+// user_provider_accounts, not the platform admin's provider_accounts).
+// ==========================================
+const PROVIDER_KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET') || ''
+let _upKeyPromise: Promise<CryptoKey> | null = null
+async function _getUpKey(): Promise<CryptoKey> {
+  if (!_upKeyPromise) {
+    _upKeyPromise = (async () => {
+      const raw = new TextEncoder().encode(PROVIDER_KEY_SECRET)
+      const hash = await crypto.subtle.digest('SHA-256', raw)
+      return await crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['decrypt'])
+    })()
+  }
+  return _upKeyPromise
+}
+export async function decryptUserApiKey(payload: string): Promise<string> {
+  const key = await _getUpKey()
+  const bytes = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0))
+  const iv = bytes.slice(0, 12)
+  const ct = bytes.slice(12)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)
+  return new TextDecoder().decode(plain)
+}
+
+// Cache decrypted keys per invocation to avoid repeated crypto work.
+const _userKeyCache = new Map<string, string>()
+async function getUserProviderKey(accountId: string, ciphertext: string): Promise<string> {
+  const cached = _userKeyCache.get(accountId)
+  if (cached) return cached
+  const plain = await decryptUserApiKey(ciphertext)
+  _userKeyCache.set(accountId, plain)
+  return plain
+}
+
+class UserMappingCache {
+  private cache = new Map<string, ProviderCandidate[]>()
+  private configured = new Map<string, boolean>()
+
+  async getForBundleItem(supabase: any, bundleItemId: string, excludeIds: string[]): Promise<ProviderCandidate[]> {
+    if (!this.cache.has(bundleItemId)) {
+      // Fetch mappings + joined user_provider_accounts (with encrypted key)
+      const { data: mappings, error } = await supabase
+        .from('user_bundle_item_providers')
+        .select(`
+          id, priority, enabled, provider_service_id, user_provider_account_id,
+          user_provider_account:user_provider_accounts(
+            id, user_id, name, api_url, api_key_ciphertext, is_active
+          )
+        `)
+        .eq('user_bundle_item_id', bundleItemId)
+        .eq('enabled', true)
+        .order('priority', { ascending: true })
+
+      if (error || !mappings || mappings.length === 0) {
+        this.configured.set(bundleItemId, false)
+        this.cache.set(bundleItemId, [])
+      } else {
+        this.configured.set(bundleItemId, true)
+
+        // Fetch min_quantity from user_services keyed by (account_id, provider_service_id)
+        const accountIds = [...new Set(mappings.map((m: any) => m.user_provider_account_id).filter(Boolean))]
+        const providerServiceIds = [...new Set(mappings.map((m: any) => String(m.provider_service_id)).filter(Boolean))]
+        const minByKey = new Map<string, number>()
+        if (accountIds.length && providerServiceIds.length) {
+          const { data: svcRows } = await supabase
+            .from('user_services')
+            .select('user_provider_account_id, provider_service_id, min_quantity')
+            .in('user_provider_account_id', accountIds)
+            .in('provider_service_id', providerServiceIds)
+          for (const row of (svcRows || []) as any[]) {
+            minByKey.set(`${row.user_provider_account_id}:${row.provider_service_id}`, Number(row.min_quantity || 0))
+          }
+        }
+
+        const accounts: ProviderCandidate[] = []
+        for (const m of mappings as any[]) {
+          const upa = m.user_provider_account
+          if (!upa || !upa.is_active || !isValidHttpUrl(upa.api_url) || !upa.api_key_ciphertext) continue
+          let plainKey = ''
+          try {
+            plainKey = await getUserProviderKey(upa.id, upa.api_key_ciphertext)
+          } catch (e) {
+            console.error(`Failed to decrypt user key for account ${upa.id}:`, e)
+            continue
+          }
+          const account: ProviderAccount = {
+            id: upa.id,
+            provider_id: `user:${upa.user_id}`,
+            name: upa.name || 'User provider',
+            api_key: plainKey,
+            api_url: upa.api_url,
+            priority: Number(m.priority || 999),
+            is_active: true,
+            last_used_at: null,
+            delivery_multiplier: 1,
+            // @ts-ignore custom marker used downstream
+            isUserOwned: true,
+            // @ts-ignore
+            user_id: upa.user_id,
+          } as any
+          accounts.push({
+            account,
+            providerServiceId: String(m.provider_service_id),
+            minQuantity: minByKey.get(`${upa.id}:${String(m.provider_service_id)}`) || 0,
+            sortOrder: Number(m.priority || 999),
+          })
+        }
+        this.cache.set(bundleItemId, accounts)
+      }
+    }
+    const all = this.cache.get(bundleItemId) || []
+    return all.filter(a => !excludeIds.includes(a.account.id))
+  }
+
+  hasConfigured(bundleItemId: string): boolean {
+    return this.configured.get(bundleItemId) === true
+  }
+}
+
+
+
 async function checkProviderBalance(account: ProviderAccount): Promise<{ hasBalance: boolean; balance: number }> {
   if (!isValidHttpUrl(account.api_url)) {
     console.log(`⚠️ Balance check skipped for ${account.name}: invalid api_url`)
@@ -957,6 +1081,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     // OPTIMIZATION: Single mapping cache for entire invocation
     // ==========================================
     const mappingCache = new MappingCache()
+    const userMappingCache = new UserMappingCache()
+
 
     // ==========================================
     // PRE-FETCH ALL DATA IN PARALLEL (batch queries)
@@ -1291,7 +1417,21 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         console.error('Over-delivery guard error:', capErr)
       }
 
+      // ==========================================
+      // USER-BUNDLE PATH: order items placed against user's own SMM panel
+      // (user_bundle_item_id set) skip the admin services table entirely.
+      // Provide a synthetic service so downstream code passes null-checks.
+      // ==========================================
+      const isUserBundleItem = !!(item as any).user_bundle_item_id
+      if (isUserBundleItem && !item.service) {
+        item.service = {
+          id: `user:${(item as any).user_bundle_item_id}`,
+          name: item.engagement_type,
+        } as any
+      }
+
       if (!item.service) {
+
         // FALLBACK: Try bundle
         const bundleId = item.engagement_order?.bundle_id
         if (bundleId) {
@@ -1522,10 +1662,17 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
       // ==========================================
       // OPTIMIZED: Use cached mapping lookup
+      // User-bundle items route to user's OWN provider accounts (per-tenant),
+      // admin/services items route through service_provider_mapping.
       // ==========================================
-      const availableAccounts = await mappingCache.getForService(
-        supabase, item.service.id, busyAccountIds, executionId
-      )
+      const availableAccounts = isUserBundleItem
+        ? await userMappingCache.getForBundleItem(
+            supabase, (item as any).user_bundle_item_id, busyAccountIds
+          )
+        : await mappingCache.getForService(
+            supabase, item.service.id, busyAccountIds, executionId
+          )
+
       
       // STRICT MAPPING MODE — no automatic default-provider fallback.
       // Only providers explicitly mapped via service_provider_mapping for this
@@ -1546,7 +1693,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       })
       
       if (accountsToTry.length === 0) {
-        if (mappingCache.hasConfiguredMappingForService(item.service.id)) {
+        if (isUserBundleItem
+              ? userMappingCache.hasConfigured((item as any).user_bundle_item_id)
+              : mappingCache.hasConfiguredMappingForService(item.service.id)) {
+
           // QUEUE: All mapped providers are busy for this link/type.
           // Keep scheduled_at unchanged so admin/user sees the run as queued, not auto-rescheduled.
           await supabase.from('organic_run_schedule').update({
@@ -1563,11 +1713,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           // run picks up automatically on the next cron tick.
           const postponeMs = 5 * 60 * 1000
           const newScheduledAt = new Date(Date.now() + postponeMs).toISOString()
+          const waitMsg = isUserBundleItem
+            ? '[Waiting] No provider mapped in your bundle — add a mapping in My Bundles'
+            : '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping'
           await supabase.from('organic_run_schedule').update({
             scheduled_at: newScheduledAt,
-            error_message: '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping',
+            error_message: waitMsg,
             last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
+
           skipped++
           console.log(`⏸️ Run #${run.run_number} waiting — no provider mapping configured for service ${item.service.id}`)
           results.push({ run_id: run.id, run_number: run.run_number, type: item.engagement_type,
@@ -1774,9 +1928,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               provider_order_id: null,
               provider_status: null,
               provider_response: null,
-              provider_account_id: selectedAccount.id,
+              provider_account_id: (selectedAccount as any).isUserOwned ? null : selectedAccount.id,
               provider_account_name: selectedAccount.name,
+              user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
+              user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
               last_status_check: new Date().toISOString(),
+
             },
           })
 
@@ -1797,9 +1954,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         } else {
           await supabase.from('organic_run_schedule').update({
             error_message: `Trying ${selectedAccount.name}...`,
-            provider_account_id: selectedAccount.id,
+            provider_account_id: (selectedAccount as any).isUserOwned ? null : selectedAccount.id,
             provider_account_name: selectedAccount.name,
+            user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
+            user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
             provider_order_id: null,
+
             provider_status: null,
             provider_response: null,
             last_status_check: new Date().toISOString(),
@@ -1972,11 +2132,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           await supabase.from('organic_run_schedule').update({
             status: 'cancelled', provider_order_id: providerOrderId,
             provider_response: providerResult,
-            provider_account_id: successAccount.id, provider_account_name: successAccount.name,
+            provider_account_id: (successAccount as any).isUserOwned ? null : successAccount.id,
+            provider_account_name: successAccount.name,
+            user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
+            user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
             provider_status: verifiedStatus,
             error_message: `Order cancelled during send — provider order ${providerOrderId} may need manual cancellation`,
             completed_at: new Date().toISOString(), last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
+
           skipped++
           continue
         }
@@ -1988,10 +2152,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const updatePromises = [
           supabase.from('organic_run_schedule').update({
             provider_order_id: providerOrderId, provider_response: providerResult,
-            error_message: null, provider_account_id: successAccount.id,
-            provider_account_name: successAccount.name, provider_status: verifiedStatus,
+            error_message: null,
+            provider_account_id: (successAccount as any).isUserOwned ? null : successAccount.id,
+            provider_account_name: successAccount.name,
+            user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
+            user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
+            provider_status: verifiedStatus,
             provider_start_count: verifiedStartCount, provider_remains: verifiedRemains,
             provider_charge: verifiedCharge,
+
             ...(providerIsTerminal
               ? {
                   status: 'completed',
@@ -2047,6 +2216,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           },
           provider_account_id: null,
           provider_account_name: null,
+          user_provider_account_id: null,
+          user_provider_account_name: null,
+
           provider_order_id: null,
           provider_status: null,
           retry_count: retryCount, last_status_check: new Date().toISOString(),
