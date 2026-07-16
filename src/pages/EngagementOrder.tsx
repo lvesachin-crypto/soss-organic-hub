@@ -457,14 +457,9 @@ export default function EngagementOrder() {
       if (!user) throw new Error('Not authenticated');
       if (!link.trim()) throw new Error('Please enter a valid link');
 
-      // Strong client-side validation
-      if (!wallet) {
-        throw new Error('Wallet not found. Please refresh the page.');
-      }
+      // Wallet balance not required — orders are fulfilled directly from user's own provider account.
 
-      if (wallet.balance < totalPrice) {
-        throw new Error(`Insufficient wallet balance. Please add funds.`);
-      }
+
 
       // Prevent non-2xx failures from provider min-quantity rules
       const belowMin = Object.entries(engagements)
@@ -672,29 +667,7 @@ export default function EngagementOrder() {
       placeOrderMutation.mutate();
       return;
     }
-
-
-    // STEP 2: After subscription is confirmed, check balance
-    if (!wallet || wallet.balance <= 0) {
-      toast({
-        title: "🚫 No Balance",
-        description: "Your account has no balance. Please add funds first!",
-        variant: "destructive",
-      });
-      navigate('/wallet');
-      return;
-    }
-
-    if (!canAfford) {
-      toast({
-        title: "💰 Insufficient Balance",
-        description: `Insufficient wallet balance. Please add funds to continue.`,
-        variant: "destructive",
-      });
-      navigate('/wallet');
-      return;
-    }
-
+    // No wallet balance check — orders are deducted from the user's own provider account.
     placeOrderMutation.mutate();
   };
 

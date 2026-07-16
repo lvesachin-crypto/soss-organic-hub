@@ -487,11 +487,7 @@ serve(async (req) => {
     // Always use server-computed total — ignore client value entirely
     const safeTotalPrice = serverTotal
 
-    // Pre-check balance against the server total
-    const { data: walletPre } = await supabase.from('wallets').select('balance').eq('user_id', user_id).maybeSingle()
-    if (!walletPre || walletPre.balance < safeTotalPrice) {
-      return new Response(JSON.stringify({ error: 'Insufficient balance' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
+    // Wallet balance is not required — orders are fulfilled from the user's own provider account.
 
     // Check if bundle has AI Organic Mode enabled (default ON)
     let aiOrganicEnabled = true
@@ -514,27 +510,8 @@ serve(async (req) => {
 
     if (orderError || !order) return new Response(JSON.stringify({ error: `Failed to create order: ${orderError?.message || 'Unknown error'}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-    // Atomic debit + transaction insert under row lock. If this fails, roll the order back.
-    const { data: debitData, error: debitError } = await supabase.rpc('debit_wallet_for_order', {
-      p_user_id: user_id,
-      p_amount: safeTotalPrice,
-      p_order_id: null,
-      p_engagement_order_id: order.id,
-      p_description: `Engagement Order #${order.order_number}`,
-    })
-
-    if (debitError || !debitData) {
-      console.error('Atomic debit failed, rolling back engagement order:', debitError)
-      await supabase.from('engagement_orders').delete().eq('id', order.id)
-      const msg = debitError?.message || 'Payment failed'
-      const isInsufficient = msg.toLowerCase().includes('insufficient')
-      return new Response(JSON.stringify({ error: msg }), {
-        status: isInsufficient ? 400 : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const newBalance = (debitData as any).new_balance as number
+    // No wallet debit — cost is borne by the user's own provider account at the SMM provider.
+    const newBalance = 0
 
     const createdItemIds: Array<{ type: string; itemId: string; engagement: any; finalServiceId: string | null }> = []
     for (const eng of engagements) {
