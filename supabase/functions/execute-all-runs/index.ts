@@ -2132,11 +2132,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           await supabase.from('organic_run_schedule').update({
             status: 'cancelled', provider_order_id: providerOrderId,
             provider_response: providerResult,
-            provider_account_id: successAccount.id, provider_account_name: successAccount.name,
+            provider_account_id: (successAccount as any).isUserOwned ? null : successAccount.id,
+            provider_account_name: successAccount.name,
+            user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
+            user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
             provider_status: verifiedStatus,
             error_message: `Order cancelled during send — provider order ${providerOrderId} may need manual cancellation`,
             completed_at: new Date().toISOString(), last_status_check: new Date().toISOString(),
           }).eq('id', run.id)
+
           skipped++
           continue
         }
