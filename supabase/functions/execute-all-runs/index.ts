@@ -1081,6 +1081,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     // OPTIMIZATION: Single mapping cache for entire invocation
     // ==========================================
     const mappingCache = new MappingCache()
+    const userMappingCache = new UserMappingCache()
+
 
     // ==========================================
     // PRE-FETCH ALL DATA IN PARALLEL (batch queries)
