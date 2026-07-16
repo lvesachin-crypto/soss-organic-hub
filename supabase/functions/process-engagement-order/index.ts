@@ -303,67 +303,179 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { bundle_id, link, total_price, engagements, base_quantity } = body
+    const { bundle_id, user_bundle_id, link, total_price, engagements, base_quantity } = body
 
     // ============ SERVER-SIDE PRICE RECOMPUTATION (anti-tamper) ============
     // NEVER trust client-supplied price. Recompute from services.price + global markup.
     if (!Array.isArray(engagements) || engagements.length === 0) {
       return new Response(JSON.stringify({ error: 'No engagements provided' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
-    const serviceIds = [...new Set(engagements.map((e: any) => e.service_id).filter(Boolean))]
-    const { data: svcRows, error: svcErr } = await supabase
-      .from('services')
-      .select('id, price, min_quantity, max_quantity, is_active')
-      .in('id', serviceIds)
-    if (svcErr || !svcRows || svcRows.length !== serviceIds.length) {
-      return new Response(JSON.stringify({ error: 'Invalid service in engagements' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-    const svcMap = new Map(svcRows.map((s: any) => [s.id, s]))
-    const { data: ps } = await supabase.from('platform_settings').select('global_markup_percent').limit(1).maybeSingle()
-    const markupPct = Number(ps?.global_markup_percent ?? 0)
-    const markupMul = 1 + (markupPct / 100)
+    let serverTotal = 0
+    const isUserBundleOrder = Boolean(user_bundle_id)
 
-    // Admin-set per-bundle-item price overrides services.price.
-    // Build a map: service_id -> bundle_items.price_per_k (only when > 0).
-    const bundleItemPriceMap = new Map<string, number>()
-    if (bundle_id) {
-      const { data: biRows } = await supabase
-        .from('bundle_items')
-        .select('service_id, engagement_type, price_per_k')
-        .eq('bundle_id', bundle_id)
-      if (Array.isArray(biRows)) {
-        for (const bi of biRows) {
-          const ppk = Number(bi.price_per_k) || 0
-          if (bi.service_id && ppk > 0) {
-            bundleItemPriceMap.set(bi.service_id as string, ppk)
+    if (isUserBundleOrder) {
+      const { data: userBundle, error: userBundleError } = await supabase
+        .from('user_bundles')
+        .select('id, user_id, is_active')
+        .eq('id', user_bundle_id)
+        .eq('user_id', user_id)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (userBundleError || !userBundle) {
+        return new Response(JSON.stringify({ error: 'Your bundle was not found or is inactive' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      const { data: bundleItems, error: bundleItemsError } = await supabase
+        .from('user_bundle_items')
+        .select('id, engagement_type, user_bundle_id, user_bundle_item_providers(id, enabled, priority, provider_service_id, user_provider_account_id)')
+        .eq('user_bundle_id', user_bundle_id)
+        .eq('user_id', user_id)
+
+      if (bundleItemsError || !bundleItems?.length) {
+        return new Response(JSON.stringify({ error: 'No engagement types found in your bundle' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+
+      const accountIds = new Set<string>()
+      const providerServiceIds = new Set<string>()
+      for (const item of bundleItems as any[]) {
+        for (const mapping of item.user_bundle_item_providers || []) {
+          if (mapping.enabled && mapping.user_provider_account_id && mapping.provider_service_id) {
+            accountIds.add(mapping.user_provider_account_id)
+            providerServiceIds.add(String(mapping.provider_service_id))
           }
         }
       }
-    }
 
-    let serverTotal = 0
-    for (const eng of engagements) {
-      const svc = svcMap.get(eng.service_id) as any
-      if (!svc || svc.is_active === false) {
-        return new Response(JSON.stringify({ error: `Service unavailable: ${eng.service_id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const { data: userServices } = accountIds.size && providerServiceIds.size
+        ? await supabase
+          .from('user_services')
+          .select('id, user_provider_account_id, provider_service_id, rate, min_quantity, max_quantity, is_active')
+          .eq('user_id', user_id)
+          .eq('is_active', true)
+          .in('user_provider_account_id', [...accountIds])
+          .in('provider_service_id', [...providerServiceIds])
+        : { data: [] as any[] }
+
+      const serviceByKey = new Map<string, any>()
+      for (const svc of userServices || []) {
+        serviceByKey.set(`${svc.user_provider_account_id}:${svc.provider_service_id}`, svc)
       }
-      const qty = Math.max(0, Math.floor(Number(eng.quantity) || 0))
-      if (qty <= 0) {
-        return new Response(JSON.stringify({ error: 'Invalid quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+      for (const eng of engagements) {
+        const qty = Math.max(0, Math.floor(Number(eng.quantity) || 0))
+        if (qty <= 0) {
+          return new Response(JSON.stringify({ error: 'Invalid quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+
+        const bundleItem = (bundleItems as any[]).find((item: any) =>
+          item.id === eng.user_bundle_item_id || item.engagement_type === eng.type
+        )
+        if (!bundleItem) {
+          return new Response(JSON.stringify({ error: `Bundle item not found for ${eng.type}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+
+        const allowedMappings = new Map<string, any>()
+        for (const mapping of bundleItem.user_bundle_item_providers || []) {
+          if (!mapping.enabled || !mapping.provider_service_id || !mapping.user_provider_account_id) continue
+          allowedMappings.set(`${mapping.user_provider_account_id}:${mapping.provider_service_id}`, mapping)
+        }
+
+        const requestedMappings = Array.isArray(eng.provider_mappings) ? eng.provider_mappings : []
+        const sourceMappings = requestedMappings.length > 0 ? requestedMappings : [...allowedMappings.values()]
+        const providerMappings = sourceMappings
+          .map((mapping: any) => allowedMappings.get(`${mapping.user_provider_account_id}:${mapping.provider_service_id}`))
+          .filter(Boolean)
+          .sort((a: any, b: any) => Number(a.priority || 999) - Number(b.priority || 999))
+          .map((mapping: any) => ({
+            user_provider_account_id: mapping.user_provider_account_id,
+            provider_service_id: String(mapping.provider_service_id),
+            priority: Number(mapping.priority || 999),
+          }))
+
+        if (providerMappings.length === 0) {
+          return new Response(JSON.stringify({ error: `${eng.type} has no active provider mapping. Please save Service IDs in My Bundles.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+
+        const matchedServices = providerMappings
+          .map((mapping: any) => serviceByKey.get(`${mapping.user_provider_account_id}:${mapping.provider_service_id}`))
+          .filter(Boolean)
+        const rateServices = matchedServices.filter((svc: any) => Number(svc.rate) > 0)
+        const cheapest = rateServices.length > 0
+          ? rateServices.reduce((a: any, b: any) => Number(a.rate) <= Number(b.rate) ? a : b)
+          : matchedServices[0]
+        const minValues = matchedServices.map((svc: any) => Number(svc.min_quantity || 0)).filter((n: number) => n > 0)
+        const maxValues = matchedServices.map((svc: any) => Number(svc.max_quantity || 0)).filter((n: number) => n > 0)
+        const providerMin = minValues.length > 0 ? Math.min(...minValues) : Math.max(PROVIDER_MINIMUMS[eng.type] || 0, getServiceConfig(eng.type).defaultMinQty)
+        const providerMax = maxValues.length > 0 ? Math.max(...maxValues) : 0
+
+        if (providerMin && qty < providerMin) {
+          return new Response(JSON.stringify({ error: `${eng.type} quantity below provider minimum ${providerMin}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        if (providerMax && qty > providerMax) {
+          return new Response(JSON.stringify({ error: `${eng.type} quantity above provider maximum ${providerMax}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+
+        const userPrice = cheapest ? (qty / 1000) * Number(cheapest.rate || 0) : 0
+        eng.quantity = qty
+        eng.price = Math.round(userPrice * 10000) / 10000
+        eng.service_id = null
+        eng.user_bundle_item_id = bundleItem.id
+        eng.user_service_id = cheapest?.id || eng.user_service_id || null
+        eng.user_provider_account_id = providerMappings[0]?.user_provider_account_id || null
+        eng.provider_mappings = providerMappings
+        eng.provider_min_quantity = providerMin
+        serverTotal += eng.price
       }
-      if (svc.min_quantity && qty < svc.min_quantity) {
-        return new Response(JSON.stringify({ error: `Quantity below minimum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    } else {
+      const serviceIds = [...new Set(engagements.map((e: any) => e.service_id).filter(Boolean))]
+      const { data: svcRows, error: svcErr } = await supabase
+        .from('services')
+        .select('id, price, min_quantity, max_quantity, is_active')
+        .in('id', serviceIds)
+      if (svcErr || !svcRows || svcRows.length !== serviceIds.length) {
+        return new Response(JSON.stringify({ error: 'Invalid service in engagements' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      if (svc.max_quantity && qty > svc.max_quantity) {
-        return new Response(JSON.stringify({ error: `Quantity above maximum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const svcMap = new Map(svcRows.map((s: any) => [s.id, s]))
+      const { data: ps } = await supabase.from('platform_settings').select('global_markup_percent').limit(1).maybeSingle()
+      const markupPct = Number(ps?.global_markup_percent ?? 0)
+      const markupMul = 1 + (markupPct / 100)
+
+      const bundleItemPriceMap = new Map<string, number>()
+      if (bundle_id) {
+        const { data: biRows } = await supabase
+          .from('bundle_items')
+          .select('service_id, engagement_type, price_per_k')
+          .eq('bundle_id', bundle_id)
+        if (Array.isArray(biRows)) {
+          for (const bi of biRows) {
+            const ppk = Number(bi.price_per_k) || 0
+            if (bi.service_id && ppk > 0) bundleItemPriceMap.set(bi.service_id as string, ppk)
+          }
+        }
       }
-      // Use admin-set bundle price_per_k when available, else fall back to service price.
-      // Global markup is still applied on top for backward compatibility (currently 0).
-      const effectivePricePerK = bundleItemPriceMap.get(eng.service_id) ?? Number(svc.price)
-      const userPrice = (qty / 1000) * effectivePricePerK * markupMul
-      eng.quantity = qty
-      eng.price = Math.round(userPrice * 10000) / 10000
-      serverTotal += eng.price
+
+      for (const eng of engagements) {
+        const svc = svcMap.get(eng.service_id) as any
+        if (!svc || svc.is_active === false) {
+          return new Response(JSON.stringify({ error: `Service unavailable: ${eng.service_id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        const qty = Math.max(0, Math.floor(Number(eng.quantity) || 0))
+        if (qty <= 0) {
+          return new Response(JSON.stringify({ error: 'Invalid quantity' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        if (svc.min_quantity && qty < svc.min_quantity) {
+          return new Response(JSON.stringify({ error: `Quantity below minimum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        if (svc.max_quantity && qty > svc.max_quantity) {
+          return new Response(JSON.stringify({ error: `Quantity above maximum for ${svc.id}` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        const effectivePricePerK = bundleItemPriceMap.get(eng.service_id) ?? Number(svc.price)
+        const userPrice = (qty / 1000) * effectivePricePerK * markupMul
+        eng.quantity = qty
+        eng.price = Math.round(userPrice * 10000) / 10000
+        serverTotal += eng.price
+      }
     }
     serverTotal = Math.round(serverTotal * 10000) / 10000
 
