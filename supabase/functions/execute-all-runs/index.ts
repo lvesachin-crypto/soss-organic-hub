@@ -12,6 +12,14 @@ const MAX_RUN_RETRIES = 9999
 const ACTIVE_ORDER_RETRY_MS = 5 * 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
 
+function getRunProviderAccountId(run: any): string | null {
+  return run?.provider_account_id || run?.user_provider_account_id || null
+}
+
+function getRunProviderAccountName(run: any): string | null {
+  return run?.provider_account_name || run?.user_provider_account_name || null
+}
+
 // Inline status-check cache for this execution (avoids re-polling same account row).
 const inlineProviderAccountCache = new Map<string, { api_key: string; api_url: string } | null>()
 const TERMINAL_PROVIDER_STATUSES = new Set([
@@ -20,22 +28,39 @@ const TERMINAL_PROVIDER_STATUSES = new Set([
 
 async function inlineRefreshRunStatus(supabase: SupabaseClient, run: any): Promise<any> {
   try {
-    if (!run?.provider_order_id || !run?.provider_account_id) return run
+    const effectiveAccountId = getRunProviderAccountId(run)
+    if (!run?.provider_order_id || !effectiveAccountId) return run
     const lastCheck = run.last_status_check ? new Date(run.last_status_check).getTime() : 0
     // Only re-poll if we haven't checked in the last 25s (cron is every 1-2min, this is the inline safety net)
     if (Date.now() - lastCheck < 25_000) return run
     const curStatus = (run.provider_status || '').toLowerCase()
     if (TERMINAL_PROVIDER_STATUSES.has(curStatus)) return run
 
-    let acct = inlineProviderAccountCache.get(run.provider_account_id)
+    const isUserOwned = !!run.user_provider_account_id
+    const cacheKey = `${isUserOwned ? 'user' : 'admin'}:${effectiveAccountId}`
+    let acct = inlineProviderAccountCache.get(cacheKey)
     if (acct === undefined) {
-      const { data } = await supabase
-        .from('provider_accounts')
-        .select('api_key, api_url')
-        .eq('id', run.provider_account_id)
-        .maybeSingle()
-      acct = data && data.api_key && data.api_url ? { api_key: data.api_key, api_url: data.api_url } : null
-      inlineProviderAccountCache.set(run.provider_account_id, acct)
+      if (isUserOwned) {
+        const { data } = await supabase
+          .from('user_provider_accounts')
+          .select('id, api_key_ciphertext, api_url')
+          .eq('id', effectiveAccountId)
+          .maybeSingle()
+        if (data?.api_key_ciphertext && data?.api_url) {
+          const apiKey = await getUserProviderKey(data.id, data.api_key_ciphertext)
+          acct = { api_key: apiKey, api_url: data.api_url }
+        } else {
+          acct = null
+        }
+      } else {
+        const { data } = await supabase
+          .from('provider_accounts')
+          .select('api_key, api_url')
+          .eq('id', effectiveAccountId)
+          .maybeSingle()
+        acct = data && data.api_key && data.api_url ? { api_key: data.api_key, api_url: data.api_url } : null
+      }
+      inlineProviderAccountCache.set(cacheKey, acct)
     }
     if (!acct) return run
 
