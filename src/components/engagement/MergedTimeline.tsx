@@ -492,7 +492,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                           {providerStatus === 'pending' && !hasProviderOrder && (
                             <span className="flex items-center gap-2">
                               <Clock className="h-3.5 w-3.5" />
-                              ⏳ Queued at provider, starting soon...
+                              ⏳ All providers busy — will auto-assign as soon as one is free
                             </span>
                           )}
                           {/* Auto-completed = Order IS placed, delivery continues at provider */}
