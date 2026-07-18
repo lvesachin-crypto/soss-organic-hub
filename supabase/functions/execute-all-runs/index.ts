@@ -1175,7 +1175,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         
         if (!stuck.provider_order_id) {
           return supabase.from('organic_run_schedule').update({
-            status: 'pending', started_at: null, provider_account_id: null,
+            status: 'pending', started_at: null, provider_account_id: null, user_provider_account_id: null,
+            provider_account_name: null, user_provider_account_name: null,
             error_message: `Ghost run reverted after ${ageMin}min`,
           }).eq('id', stuck.id)
         } else {
