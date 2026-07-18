@@ -197,10 +197,13 @@ export default function MassOrder() {
 
         if (!engagements.length) { fail++; continue; }
 
-        const { error } = await supabase.functions.invoke('process-engagement-order', {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        const { data, error } = await supabase.functions.invoke('process-engagement-order', {
           body: {
             user_id: user!.id,
-            bundle_id: bundleId,
+            user_bundle_id: bundleId,
+            bundle_id: null,
             link: r.link,
             base_quantity: r.base_quantity,
             total_price: perRowCost(r),
@@ -208,8 +211,9 @@ export default function MassOrder() {
             notes: campaign ? `Mass Order: ${campaign}` : 'Mass Order',
             engagements,
           },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
-        if (error) fail++; else ok++;
+        if (error || (data as any)?.error) { console.error('Mass order row failed:', error || (data as any)?.error, r.link); fail++; } else ok++;
       }
       toast[ok ? 'success' : 'error'](`Submitted ${ok}/${rows.length} orders${fail ? ` (${fail} failed)` : ''}`);
       if (ok) { setRows([]); setRaw(''); setCampaign(''); }
