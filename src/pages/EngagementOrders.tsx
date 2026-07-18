@@ -77,9 +77,10 @@ export default function EngagementOrders() {
       return data;
     },
     enabled: !!user,
-    staleTime: 15000, // Cache for 15s
+    staleTime: 30000,
     refetchOnWindowFocus: false,
-    refetchInterval: 15000, // Refresh every 15s (was 5s)
+    refetchInterval: 30000, // Refresh every 30s
+
   });
 
   // Filter orders based on search query
