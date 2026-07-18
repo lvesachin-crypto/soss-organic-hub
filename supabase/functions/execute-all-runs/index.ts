@@ -1131,7 +1131,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // 2. Stuck runs for cleanup
       supabase
         .from('organic_run_schedule')
-        .select('id, run_number, started_at, provider_account_id, provider_status, provider_order_id, provider_remains, provider_start_count, quantity_to_send, retry_count')
+        .select('id, run_number, started_at, provider_account_id, provider_account_name, user_provider_account_id, user_provider_account_name, provider_status, provider_order_id, provider_remains, provider_start_count, quantity_to_send, retry_count')
         .eq('status', 'started')
         .or(`started_at.lt.${tenMinAgo},started_at.is.null`),
       // 3. Pending engagement runs
@@ -1158,7 +1158,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // 5. Recently busy runs (for cooldown)
       supabase
         .from('organic_run_schedule')
-        .select(`provider_account_id, error_message, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))`)
+        .select(`provider_account_id, user_provider_account_id, error_message, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))`)
         .eq('status', 'pending')
         .gte('last_status_check', fifteenMinAgo),
     ])
@@ -1303,13 +1303,14 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const recentlyBusyByLinkType = new Map<string, Set<string>>()
     if (recentlyBusyRuns && recentlyBusyRuns.length > 0) {
       for (const rbr of recentlyBusyRuns) {
-        if (!rbr.provider_account_id) continue
+        const rbrAccountId = getRunProviderAccountId(rbr)
+        if (!rbrAccountId) continue
         if (isActiveOrderErrorMsg(rbr.error_message)) {
           const rbrLink = normalizeLink(getNestedEngagementOrderLink(rbr.engagement_order_item))
           const rbrType = (rbr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
           const busyKey = `${rbrLink}|${rbrType}`
           if (!recentlyBusyByLinkType.has(busyKey)) recentlyBusyByLinkType.set(busyKey, new Set())
-          recentlyBusyByLinkType.get(busyKey)!.add(rbr.provider_account_id)
+          recentlyBusyByLinkType.get(busyKey)!.add(rbrAccountId)
         }
       }
     }
