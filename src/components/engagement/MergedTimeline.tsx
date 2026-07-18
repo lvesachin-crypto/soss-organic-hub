@@ -297,7 +297,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
               if (isCancelled) return 'CANCELLED';
               if (isFailed) return 'FAILED';
               if (isPending && isUpcoming) return 'Scheduled';
-              if (isPending) return 'Queued';
+              if (isPending) return 'All providers busy — auto-assigning when free';
               if (isCompleted) return 'Completed';
               return run.status.toUpperCase();
             };
@@ -492,7 +492,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
                           {providerStatus === 'pending' && !hasProviderOrder && (
                             <span className="flex items-center gap-2">
                               <Clock className="h-3.5 w-3.5" />
-                              ⏳ Queued at provider, starting soon...
+                              ⏳ All providers busy — will auto-assign as soon as one is free
                             </span>
                           )}
                           {/* Auto-completed = Order IS placed, delivery continues at provider */}
