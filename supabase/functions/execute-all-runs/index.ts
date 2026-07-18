@@ -1980,6 +1980,45 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           }).eq('id', run.id).eq('status', 'started')
         }
 
+        // RACE GUARD: another cron invocation may have claimed a different run
+        // for this same provider/link/type between our pre-check and this claim.
+        // Re-check AFTER this run is locked as started, before sending to provider.
+        // If busy, keep this run claimed only long enough to rotate to the next
+        // provider in this loop; if no provider works, the final retry update below
+        // returns it to queued/pending without creating a duplicate external order.
+        {
+          const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          const { data: postClaimRuns } = await supabase
+            .from('organic_run_schedule')
+            .select('id, status, provider_status, provider_order_id, provider_account_id, user_provider_account_id, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
+            .or(`provider_account_id.eq.${selectedAccount.id},user_provider_account_id.eq.${selectedAccount.id}`)
+            .gte('started_at', lookbackIso)
+            .order('started_at', { ascending: false })
+            .limit(100)
+
+          const postClaimConflict = (postClaimRuns || []).find((pr: any) => {
+            if (pr.id === run.id) return false
+            if (getRunProviderAccountId(pr) !== selectedAccount.id) return false
+            const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
+            const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
+            if (prLink !== sameLink || prType !== currentTypeNormalized) return false
+            if (pr.status === 'started' && !isTerminalProviderStatus(pr.provider_status)) return true
+            if (isActiveProviderStatus(pr.provider_status)) return true
+            return false
+          })
+
+          if (postClaimConflict) {
+            if (!busyAccountIds.includes(selectedAccount.id)) busyAccountIds.push(selectedAccount.id)
+            lastError = `${selectedAccount.name} already has an active order on this link+${currentTypeNormalized} — trying next provider`
+            console.log(`🔒 Race guard: run #${run.run_number} will not send to ${selectedAccount.name}; provider already busy on same link+type`)
+            await supabase.from('organic_run_schedule').update({
+              error_message: `[Queued] ${selectedAccount.name} busy on this link+${currentTypeNormalized}, trying next provider`,
+              last_status_check: new Date().toISOString(),
+            }).eq('id', run.id).eq('status', 'started')
+            continue
+          }
+        }
+
         try {
           const formData = new URLSearchParams()
           formData.append('key', selectedAccount.api_key)
