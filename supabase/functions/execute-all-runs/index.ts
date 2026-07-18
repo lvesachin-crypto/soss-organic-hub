@@ -1902,7 +1902,6 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           const { data: priorRuns } = await supabase
             .from('organic_run_schedule')
             .select('id, status, provider_status, provider_order_id, provider_account_id, provider_account_name, user_provider_account_id, user_provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
-            .not('provider_order_id', 'is', null)
             .or(`provider_account_id.eq.${selectedAccount.id},user_provider_account_id.eq.${selectedAccount.id}`)
             .gte('started_at', lookbackIso)
             .order('started_at', { ascending: false })
