@@ -297,7 +297,7 @@ export function MergedTimeline({ runs, onEditRun, nextRun, onRefresh, typeTarget
               if (isCancelled) return 'CANCELLED';
               if (isFailed) return 'FAILED';
               if (isPending && isUpcoming) return 'Scheduled';
-              if (isPending) return 'Queued';
+              if (isPending) return 'All providers busy — auto-assigning when free';
               if (isCompleted) return 'Completed';
               return run.status.toUpperCase();
             };
