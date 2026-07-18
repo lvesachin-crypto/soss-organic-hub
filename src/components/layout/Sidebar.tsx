@@ -53,18 +53,21 @@ export function Sidebar({ onClose }: SidebarProps) {
         .from('user_provider_accounts_safe')
         .select('balance_cached, balance_currency, is_active');
       const rows = (data || []) as any[];
-      const totals: Record<string, number> = {};
+      const INR_PER_USD = 90;
+      let totalUsd = 0;
       for (const r of rows) {
         const cur = (r.balance_currency || 'USD').toUpperCase();
-        totals[cur] = (totals[cur] || 0) + (Number(r.balance_cached) || 0);
+        const amt = Number(r.balance_cached) || 0;
+        totalUsd += cur === 'INR' ? amt / INR_PER_USD : amt;
       }
       return {
         count: rows.length,
         active: rows.filter(r => r.is_active).length,
-        totals,
+        totalUsd,
       };
     },
   });
+
 
 
   const renderItem = (item: any) => {
@@ -164,14 +167,11 @@ export function Sidebar({ onClose }: SidebarProps) {
             style={{ background: C.cream, border: `1px solid ${C.line}` }}
           >
             <p className="text-[9px] font-black tracking-[0.18em] mb-1" style={{ color: C.pink }}>:PROVIDER BALANCE</p>
-            <div className="space-y-0.5">
-              {Object.entries(providerStats.totals).map(([cur, amt]) => (
-                <p key={cur} className="text-[15px] font-black tracking-tight leading-tight" style={{ color: C.navy }}>
-                  {amt.toFixed(2)} <span className="text-[10px] font-bold" style={{ color: C.ink }}>{cur}</span>
-                </p>
-              ))}
-            </div>
-            <p className="text-[10px] font-semibold mt-1" style={{ color: C.ink }}>{providerStats.active}/{providerStats.count} panels active</p>
+            <p className="text-[17px] font-black tracking-tight" style={{ color: C.navy }}>
+              {providerStats.totalUsd.toFixed(2)} <span className="text-[10px] font-bold" style={{ color: C.ink }}>USD</span>
+            </p>
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: C.ink }}>{providerStats.active}/{providerStats.count} panels active</p>
+
           </div>
 
         )}
