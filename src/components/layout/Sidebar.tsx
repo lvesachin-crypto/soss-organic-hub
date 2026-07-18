@@ -53,18 +53,21 @@ export function Sidebar({ onClose }: SidebarProps) {
         .from('user_provider_accounts_safe')
         .select('balance_cached, balance_currency, is_active');
       const rows = (data || []) as any[];
-      const totals: Record<string, number> = {};
+      const INR_PER_USD = 90;
+      let totalUsd = 0;
       for (const r of rows) {
         const cur = (r.balance_currency || 'USD').toUpperCase();
-        totals[cur] = (totals[cur] || 0) + (Number(r.balance_cached) || 0);
+        const amt = Number(r.balance_cached) || 0;
+        totalUsd += cur === 'INR' ? amt / INR_PER_USD : amt;
       }
       return {
         count: rows.length,
         active: rows.filter(r => r.is_active).length,
-        totals,
+        totalUsd,
       };
     },
   });
+
 
 
   const renderItem = (item: any) => {
