@@ -53,14 +53,19 @@ export function Sidebar({ onClose }: SidebarProps) {
         .from('user_provider_accounts_safe')
         .select('balance_cached, balance_currency, is_active');
       const rows = (data || []) as any[];
+      const totals: Record<string, number> = {};
+      for (const r of rows) {
+        const cur = (r.balance_currency || 'USD').toUpperCase();
+        totals[cur] = (totals[cur] || 0) + (Number(r.balance_cached) || 0);
+      }
       return {
         count: rows.length,
         active: rows.filter(r => r.is_active).length,
-        total: rows.reduce((s, r) => s + (Number(r.balance_cached) || 0), 0),
-        currency: rows.find(r => r.balance_currency)?.balance_currency || 'USD',
+        totals,
       };
     },
   });
+
 
   const renderItem = (item: any) => {
     const isActive = location.pathname === item.path
