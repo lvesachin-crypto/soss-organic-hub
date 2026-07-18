@@ -12,6 +12,14 @@ const MAX_RUN_RETRIES = 9999
 const ACTIVE_ORDER_RETRY_MS = 5 * 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
 
+function getRunProviderAccountId(run: any): string | null {
+  return run?.provider_account_id || run?.user_provider_account_id || null
+}
+
+function getRunProviderAccountName(run: any): string | null {
+  return run?.provider_account_name || run?.user_provider_account_name || null
+}
+
 // Inline status-check cache for this execution (avoids re-polling same account row).
 const inlineProviderAccountCache = new Map<string, { api_key: string; api_url: string } | null>()
 const TERMINAL_PROVIDER_STATUSES = new Set([
@@ -20,22 +28,39 @@ const TERMINAL_PROVIDER_STATUSES = new Set([
 
 async function inlineRefreshRunStatus(supabase: SupabaseClient, run: any): Promise<any> {
   try {
-    if (!run?.provider_order_id || !run?.provider_account_id) return run
+    const effectiveAccountId = getRunProviderAccountId(run)
+    if (!run?.provider_order_id || !effectiveAccountId) return run
     const lastCheck = run.last_status_check ? new Date(run.last_status_check).getTime() : 0
     // Only re-poll if we haven't checked in the last 25s (cron is every 1-2min, this is the inline safety net)
     if (Date.now() - lastCheck < 25_000) return run
     const curStatus = (run.provider_status || '').toLowerCase()
     if (TERMINAL_PROVIDER_STATUSES.has(curStatus)) return run
 
-    let acct = inlineProviderAccountCache.get(run.provider_account_id)
+    const isUserOwned = !!run.user_provider_account_id
+    const cacheKey = `${isUserOwned ? 'user' : 'admin'}:${effectiveAccountId}`
+    let acct = inlineProviderAccountCache.get(cacheKey)
     if (acct === undefined) {
-      const { data } = await supabase
-        .from('provider_accounts')
-        .select('api_key, api_url')
-        .eq('id', run.provider_account_id)
-        .maybeSingle()
-      acct = data && data.api_key && data.api_url ? { api_key: data.api_key, api_url: data.api_url } : null
-      inlineProviderAccountCache.set(run.provider_account_id, acct)
+      if (isUserOwned) {
+        const { data } = await supabase
+          .from('user_provider_accounts')
+          .select('id, api_key_ciphertext, api_url')
+          .eq('id', effectiveAccountId)
+          .maybeSingle()
+        if (data?.api_key_ciphertext && data?.api_url) {
+          const apiKey = await getUserProviderKey(data.id, data.api_key_ciphertext)
+          acct = { api_key: apiKey, api_url: data.api_url }
+        } else {
+          acct = null
+        }
+      } else {
+        const { data } = await supabase
+          .from('provider_accounts')
+          .select('api_key, api_url')
+          .eq('id', effectiveAccountId)
+          .maybeSingle()
+        acct = data && data.api_key && data.api_url ? { api_key: data.api_key, api_url: data.api_url } : null
+      }
+      inlineProviderAccountCache.set(cacheKey, acct)
     }
     if (!acct) return run
 
@@ -1106,7 +1131,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // 2. Stuck runs for cleanup
       supabase
         .from('organic_run_schedule')
-        .select('id, run_number, started_at, provider_account_id, provider_status, provider_order_id, provider_remains, provider_start_count, quantity_to_send, retry_count')
+        .select('id, run_number, started_at, provider_account_id, provider_account_name, user_provider_account_id, user_provider_account_name, provider_status, provider_order_id, provider_remains, provider_start_count, quantity_to_send, retry_count')
         .eq('status', 'started')
         .or(`started_at.lt.${tenMinAgo},started_at.is.null`),
       // 3. Pending engagement runs
@@ -1133,7 +1158,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // 5. Recently busy runs (for cooldown)
       supabase
         .from('organic_run_schedule')
-        .select(`provider_account_id, error_message, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))`)
+        .select(`provider_account_id, user_provider_account_id, error_message, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))`)
         .eq('status', 'pending')
         .gte('last_status_check', fifteenMinAgo),
     ])
@@ -1150,7 +1175,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         
         if (!stuck.provider_order_id) {
           return supabase.from('organic_run_schedule').update({
-            status: 'pending', started_at: null, provider_account_id: null,
+            status: 'pending', started_at: null, provider_account_id: null, user_provider_account_id: null,
+            provider_account_name: null, user_provider_account_name: null,
             error_message: `Ghost run reverted after ${ageMin}min`,
           }).eq('id', stuck.id)
         } else {
@@ -1278,13 +1304,14 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const recentlyBusyByLinkType = new Map<string, Set<string>>()
     if (recentlyBusyRuns && recentlyBusyRuns.length > 0) {
       for (const rbr of recentlyBusyRuns) {
-        if (!rbr.provider_account_id) continue
+        const rbrAccountId = getRunProviderAccountId(rbr)
+        if (!rbrAccountId) continue
         if (isActiveOrderErrorMsg(rbr.error_message)) {
           const rbrLink = normalizeLink(getNestedEngagementOrderLink(rbr.engagement_order_item))
           const rbrType = (rbr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
           const busyKey = `${rbrLink}|${rbrType}`
           if (!recentlyBusyByLinkType.has(busyKey)) recentlyBusyByLinkType.set(busyKey, new Set())
-          recentlyBusyByLinkType.get(busyKey)!.add(rbr.provider_account_id)
+          recentlyBusyByLinkType.get(busyKey)!.add(rbrAccountId)
         }
       }
     }
@@ -1510,10 +1537,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
       // FALLBACK: If this run already failed/cancelled on a provider, exclude it on retry
       // so the system tries a backup provider instead of repeating the same one.
-      if (isRetry && run.provider_account_id) {
-        if (!busyAccountIds.includes(run.provider_account_id)) {
-          busyAccountIds.push(run.provider_account_id)
-          console.log(`🔁 Retry run #${run.run_number}: excluding previous provider ${run.provider_account_name || run.provider_account_id} (failed/cancelled), will try backup`)
+      if (isRetry && getRunProviderAccountId(run)) {
+        const previousAccountId = getRunProviderAccountId(run)
+        if (previousAccountId && !busyAccountIds.includes(previousAccountId)) {
+          busyAccountIds.push(previousAccountId)
+          console.log(`🔁 Retry run #${run.run_number}: excluding previous provider ${getRunProviderAccountName(run) || previousAccountId} (failed/cancelled), will try backup`)
         }
       }
 
@@ -1542,10 +1570,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       try {
         const { data: priorFailedForItem } = await supabase
           .from('organic_run_schedule')
-          .select('id, provider_account_id, error_message, provider_status, status')
+          .select('id, provider_account_id, user_provider_account_id, error_message, provider_status, status')
           .eq('engagement_order_item_id', item.id)
           .in('status', ['failed', 'cancelled'])
-          .not('provider_account_id', 'is', null)
           .limit(200)
         if (priorFailedForItem) {
           for (const pr of priorFailedForItem as any[]) {
@@ -1556,8 +1583,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             const wasCancelled =
               ps.includes('cancel') || ps.includes('refund') ||
               em.includes('cancel') || em.includes('refund')
-            if (wasCancelled && pr.id !== run.id && pr.provider_account_id && !busyAccountIds.includes(pr.provider_account_id)) {
-              busyAccountIds.push(pr.provider_account_id)
+            const priorAccountId = getRunProviderAccountId(pr)
+            if (wasCancelled && pr.id !== run.id && priorAccountId && !busyAccountIds.includes(priorAccountId)) {
+              busyAccountIds.push(priorAccountId)
             }
           }
         }
@@ -1574,28 +1602,6 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const runType = (r.engagement_order_item?.engagement_type || '').toLowerCase()
         return runLink === sameLink && runType === currentTypeNormalized
       })
-      
-      // ROUND-ROBIN: Prefer a different provider after a recent completion,
-      // but do NOT hard-block the just-used provider.
-      // Otherwise next run can get stuck even after the previous one is completed.
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-      const { data: recentCompletedRuns } = await supabase
-        .from('organic_run_schedule')
-        .select('provider_account_id, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
-        .eq('status', 'completed')
-        .not('provider_account_id', 'is', null)
-        .gte('completed_at', fiveMinAgo)
-      
-      const recentCompletedAccountIds = new Set<string>()
-      if (recentCompletedRuns) {
-        for (const rcr of recentCompletedRuns) {
-          const rcrLink = normalizeLink(getNestedEngagementOrderLink(rcr.engagement_order_item))
-          const rcrType = (rcr.engagement_order_item?.engagement_type || '').toLowerCase()
-          if (rcrLink === sameLink && rcrType === currentTypeNormalized && rcr.provider_account_id) {
-            recentCompletedAccountIds.add(rcr.provider_account_id)
-          }
-        }
-      }
       
       if (startedRunsForLink && startedRunsForLink.length > 0) {
         for (let stuckRun of startedRunsForLink) {
@@ -1631,7 +1637,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
                   : `Auto-completed (status: ${stuckRun.provider_status})`,
               }).eq('id', stuckRun.id)
             }
-          } else if (stuckRun.provider_account_id) {
+          } else if (getRunProviderAccountId(stuckRun)) {
+            const stuckAccountId = getRunProviderAccountId(stuckRun)!
             if (hasUncertainDispatch(stuckRun)) {
               console.log(`🛑 Holding run #${stuckRun.run_number}: provider dispatch uncertain, skipping resend until manual/provider confirmation`)
               skipped++
@@ -1647,14 +1654,14 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             }
             
             if (!stuckRun.provider_order_id && runAge <= 60) {
-              if (!busyAccountIds.includes(stuckRun.provider_account_id)) {
-                busyAccountIds.push(stuckRun.provider_account_id)
+              if (!busyAccountIds.includes(stuckAccountId)) {
+                busyAccountIds.push(stuckAccountId)
               }
               continue
             }
             
-            if (!busyAccountIds.includes(stuckRun.provider_account_id)) {
-              busyAccountIds.push(stuckRun.provider_account_id)
+            if (!busyAccountIds.includes(stuckAccountId)) {
+              busyAccountIds.push(stuckAccountId)
             }
           }
         }
@@ -1894,16 +1901,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: priorRuns } = await supabase
             .from('organic_run_schedule')
-            .select('id, status, provider_status, provider_order_id, provider_account_id, provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
-            .not('provider_order_id', 'is', null)
-            .eq('provider_account_id', selectedAccount.id)
+            .select('id, status, provider_status, provider_order_id, provider_account_id, provider_account_name, user_provider_account_id, user_provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
+            .or(`provider_account_id.eq.${selectedAccount.id},user_provider_account_id.eq.${selectedAccount.id}`)
             .gte('started_at', lookbackIso)
             .order('started_at', { ascending: false })
             .limit(100)
 
           const conflictingRun = (priorRuns || []).find((pr: any) => {
             if (pr.id === run.id) return false
-            if (pr.provider_account_id !== selectedAccount.id) return false
+            if (getRunProviderAccountId(pr) !== selectedAccount.id) return false
             const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
             const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
             if (prLink !== sameLink || prType !== currentTypeNormalized) return false
@@ -1972,6 +1978,45 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_response: null,
             last_status_check: new Date().toISOString(),
           }).eq('id', run.id).eq('status', 'started')
+        }
+
+        // RACE GUARD: another cron invocation may have claimed a different run
+        // for this same provider/link/type between our pre-check and this claim.
+        // Re-check AFTER this run is locked as started, before sending to provider.
+        // If busy, keep this run claimed only long enough to rotate to the next
+        // provider in this loop; if no provider works, the final retry update below
+        // returns it to queued/pending without creating a duplicate external order.
+        {
+          const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          const { data: postClaimRuns } = await supabase
+            .from('organic_run_schedule')
+            .select('id, status, provider_status, provider_order_id, provider_account_id, user_provider_account_id, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
+            .or(`provider_account_id.eq.${selectedAccount.id},user_provider_account_id.eq.${selectedAccount.id}`)
+            .gte('started_at', lookbackIso)
+            .order('started_at', { ascending: false })
+            .limit(100)
+
+          const postClaimConflict = (postClaimRuns || []).find((pr: any) => {
+            if (pr.id === run.id) return false
+            if (getRunProviderAccountId(pr) !== selectedAccount.id) return false
+            const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
+            const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
+            if (prLink !== sameLink || prType !== currentTypeNormalized) return false
+            if (pr.status === 'started' && !isTerminalProviderStatus(pr.provider_status)) return true
+            if (isActiveProviderStatus(pr.provider_status)) return true
+            return false
+          })
+
+          if (postClaimConflict) {
+            if (!busyAccountIds.includes(selectedAccount.id)) busyAccountIds.push(selectedAccount.id)
+            lastError = `${selectedAccount.name} already has an active order on this link+${currentTypeNormalized} — trying next provider`
+            console.log(`🔒 Race guard: run #${run.run_number} will not send to ${selectedAccount.name}; provider already busy on same link+type`)
+            await supabase.from('organic_run_schedule').update({
+              error_message: `[Queued] ${selectedAccount.name} busy on this link+${currentTypeNormalized}, trying next provider`,
+              last_status_check: new Date().toISOString(),
+            }).eq('id', run.id).eq('status', 'started')
+            continue
+          }
         }
 
         try {
