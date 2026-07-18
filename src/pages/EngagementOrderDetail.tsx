@@ -143,14 +143,15 @@ export default function EngagementOrderDetail() {
     );
     
     if (hasActiveRuns) {
-      setRefetchInterval(5000); // 5s for orders with active runs
+      setRefetchInterval(15000); // 15s when runs are actively executing (realtime handles instant updates)
     } else if (isActive) {
-      setRefetchInterval(10000); // 10s for pending/processing
+      setRefetchInterval(30000); // 30s for pending/processing
     } else if (order.status === 'completed') {
       setRefetchInterval(false); // Stop polling for completed orders
     } else {
-      setRefetchInterval(15000); // 15s for other states
+      setRefetchInterval(45000); // 45s for other states
     }
+
   }, [order?.status, order?.items?.length]);
 
   // Real-time subscription — ONLY listen for this order's changes (filtered)
