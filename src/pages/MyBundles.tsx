@@ -357,6 +357,19 @@ function ProvidersPanel({
         if (!data?.ok) { toast.error(`${accounts.find(x=>x.id===c.accountId)?.name}: ${data?.error || 'Invalid Service ID'}`); return; }
       }
 
+      // Pre-pass: park existing rows at temporary negative priorities to avoid
+      // the partial-unique-index collision when users swap priorities.
+      let tmp = -1;
+      for (const c of changed) {
+        if (c.existing) {
+          const { error } = await supabase
+            .from('user_bundle_item_providers')
+            .update({ priority: tmp-- })
+            .eq('id', c.existing.id);
+          if (error) { toast.error(error.message); return; }
+        }
+      }
+
       // Persist changes
       for (const c of changed) {
         const sid = c.draft.provider_service_id.trim();
@@ -378,6 +391,7 @@ function ProvidersPanel({
           if (error) { toast.error(error.message); return; }
         }
       }
+
 
       toast.success(`Saved ${changed.length} change${changed.length > 1 ? 's' : ''}`);
       await qc.invalidateQueries({ queryKey: ['ubi-providers', itemId] });
