@@ -1537,9 +1537,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // FALLBACK: If this run already failed/cancelled on a provider, exclude it on retry
       // so the system tries a backup provider instead of repeating the same one.
       if (isRetry && run.provider_account_id) {
-        if (!busyAccountIds.includes(run.provider_account_id)) {
-          busyAccountIds.push(run.provider_account_id)
-          console.log(`🔁 Retry run #${run.run_number}: excluding previous provider ${run.provider_account_name || run.provider_account_id} (failed/cancelled), will try backup`)
+        const previousAccountId = getRunProviderAccountId(run)
+        if (previousAccountId && !busyAccountIds.includes(previousAccountId)) {
+          busyAccountIds.push(previousAccountId)
+          console.log(`🔁 Retry run #${run.run_number}: excluding previous provider ${getRunProviderAccountName(run) || previousAccountId} (failed/cancelled), will try backup`)
         }
       }
 
@@ -1568,10 +1569,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       try {
         const { data: priorFailedForItem } = await supabase
           .from('organic_run_schedule')
-          .select('id, provider_account_id, error_message, provider_status, status')
+          .select('id, provider_account_id, user_provider_account_id, error_message, provider_status, status')
           .eq('engagement_order_item_id', item.id)
           .in('status', ['failed', 'cancelled'])
-          .not('provider_account_id', 'is', null)
           .limit(200)
         if (priorFailedForItem) {
           for (const pr of priorFailedForItem as any[]) {
@@ -1582,8 +1582,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             const wasCancelled =
               ps.includes('cancel') || ps.includes('refund') ||
               em.includes('cancel') || em.includes('refund')
-            if (wasCancelled && pr.id !== run.id && pr.provider_account_id && !busyAccountIds.includes(pr.provider_account_id)) {
-              busyAccountIds.push(pr.provider_account_id)
+            const priorAccountId = getRunProviderAccountId(pr)
+            if (wasCancelled && pr.id !== run.id && priorAccountId && !busyAccountIds.includes(priorAccountId)) {
+              busyAccountIds.push(priorAccountId)
             }
           }
         }
@@ -1657,7 +1658,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
                   : `Auto-completed (status: ${stuckRun.provider_status})`,
               }).eq('id', stuckRun.id)
             }
-          } else if (stuckRun.provider_account_id) {
+          } else if (getRunProviderAccountId(stuckRun)) {
+            const stuckAccountId = getRunProviderAccountId(stuckRun)!
             if (hasUncertainDispatch(stuckRun)) {
               console.log(`🛑 Holding run #${stuckRun.run_number}: provider dispatch uncertain, skipping resend until manual/provider confirmation`)
               skipped++
@@ -1673,14 +1675,14 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             }
             
             if (!stuckRun.provider_order_id && runAge <= 60) {
-              if (!busyAccountIds.includes(stuckRun.provider_account_id)) {
-                busyAccountIds.push(stuckRun.provider_account_id)
+              if (!busyAccountIds.includes(stuckAccountId)) {
+                busyAccountIds.push(stuckAccountId)
               }
               continue
             }
             
-            if (!busyAccountIds.includes(stuckRun.provider_account_id)) {
-              busyAccountIds.push(stuckRun.provider_account_id)
+            if (!busyAccountIds.includes(stuckAccountId)) {
+              busyAccountIds.push(stuckAccountId)
             }
           }
         }
