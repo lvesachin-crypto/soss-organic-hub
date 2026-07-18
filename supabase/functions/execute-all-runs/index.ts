@@ -1536,7 +1536,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
       // FALLBACK: If this run already failed/cancelled on a provider, exclude it on retry
       // so the system tries a backup provider instead of repeating the same one.
-      if (isRetry && run.provider_account_id) {
+      if (isRetry && getRunProviderAccountId(run)) {
         const previousAccountId = getRunProviderAccountId(run)
         if (previousAccountId && !busyAccountIds.includes(previousAccountId)) {
           busyAccountIds.push(previousAccountId)
@@ -1922,16 +1922,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           const lookbackIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
           const { data: priorRuns } = await supabase
             .from('organic_run_schedule')
-            .select('id, status, provider_status, provider_order_id, provider_account_id, provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
+            .select('id, status, provider_status, provider_order_id, provider_account_id, provider_account_name, user_provider_account_id, user_provider_account_name, started_at, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))')
             .not('provider_order_id', 'is', null)
-            .eq('provider_account_id', selectedAccount.id)
             .gte('started_at', lookbackIso)
             .order('started_at', { ascending: false })
             .limit(100)
 
           const conflictingRun = (priorRuns || []).find((pr: any) => {
             if (pr.id === run.id) return false
-            if (pr.provider_account_id !== selectedAccount.id) return false
+            if (getRunProviderAccountId(pr) !== selectedAccount.id) return false
             const prLink = normalizeLink(getNestedEngagementOrderLink(pr.engagement_order_item))
             const prType = (pr.engagement_order_item?.engagement_type || '').toLowerCase().trim()
             if (prLink !== sameLink || prType !== currentTypeNormalized) return false
