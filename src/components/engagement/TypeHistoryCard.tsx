@@ -428,7 +428,7 @@ export function TypeHistoryCard({
                   if (run.status === 'cancelled') return isAutoCompletedCancel ? 'Completed' : 'CANCELLED';
                   if (isFailed) return 'FAILED';
                   if (isUpcoming) return 'Scheduled';
-                  if (isPending) return 'Queued';
+                  if (isPending) return 'All providers busy — auto-assigning when free';
                   if (isCompleted) return 'Completed';
                   return run.status.toUpperCase();
                 };
