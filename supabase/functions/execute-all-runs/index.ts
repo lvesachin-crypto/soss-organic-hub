@@ -1262,8 +1262,6 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     // of slowly sending only one scheduled run per minute.
     const itemRunCount = new Map<string, number>()
     const executionProviderMap = new Map<string, Set<string>>()
-    // Track link+type combos where ALL providers returned "active order" — only skip same type
-    const activeOrderLinkTypes = new Set<string>()
     // Track stuck runs already handled in THIS invocation so we don't re-poll or re-complete
     // the same provider status hundreds of times (was starving fresh dispatch).
     const handledStuckRunIds = new Set<string>()
@@ -2352,18 +2350,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         await supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
         skipped++
 
-        // BATCH QUEUE: If active order error, mark link+type and queue same-type runs for this link
-        if (isActiveOrderError && sameLink) {
-          const linkTypeKey = `${sameLink}|${currentTypeNormalized}`
-          activeOrderLinkTypes.add(linkTypeKey)
-          const batchCount = await batchPostponeEngagementRunsForLink(
-            supabase,
-            sameLink,
-            currentTypeNormalized,
-            `[Batch queued] Active order on link for ${currentTypeNormalized}`,
-          )
-          console.log(`⏸️ Link+type batch-queued: ${batchCount} matching ${currentTypeNormalized} runs (active order)`)
-        }
+        // Do not batch-queue the whole link/type when one provider says "active order".
+        // Only the current run waits briefly; the next run can still try other free
+        // priority providers in the same cron tick.
         results.push({ run_id: run.id, type: item.engagement_type, run_number: run.run_number, 
           success: false, error: lastError, will_retry: true, retry_attempt: retryCount, postponed_min: postponeMs / 60000 })
       }
