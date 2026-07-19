@@ -1262,6 +1262,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const executionProviderMap = new Map<string, Set<string>>()
     // Track link+type combos where ALL providers returned "active order" — only skip same type
     const activeOrderLinkTypes = new Set<string>()
+    // Track stuck runs already handled in THIS invocation so we don't re-poll or re-complete
+    // the same provider status hundreds of times (was starving fresh dispatch).
+    const handledStuckRunIds = new Set<string>()
+    const inlineRefreshCache = new Map<string, any>()
 
     const pendingRunsLimitedPerItem = activeEngagementRuns.filter((run: any) => {
       const itemId = run.engagement_order_item_id
