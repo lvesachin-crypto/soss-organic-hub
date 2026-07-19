@@ -492,6 +492,7 @@ export type Database = {
           scheduled_at: string
           started_at: string | null
           status: string | null
+          updated_at: string | null
           user_provider_account_id: string | null
           user_provider_account_name: string | null
           variance_applied: number | null
@@ -521,6 +522,7 @@ export type Database = {
           scheduled_at: string
           started_at?: string | null
           status?: string | null
+          updated_at?: string | null
           user_provider_account_id?: string | null
           user_provider_account_name?: string | null
           variance_applied?: number | null
@@ -550,6 +552,7 @@ export type Database = {
           scheduled_at?: string
           started_at?: string | null
           status?: string | null
+          updated_at?: string | null
           user_provider_account_id?: string | null
           user_provider_account_name?: string | null
           variance_applied?: number | null
