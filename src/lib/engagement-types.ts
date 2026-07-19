@@ -139,16 +139,16 @@ export const PLATFORM_CONFIG = {
 
 // Engagement type icons and colors - Muted deep colors
 export const ENGAGEMENT_CONFIG = {
-  views: { icon: 'Eye', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Views', emoji: '👁️' },
-  likes: { icon: 'Heart', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Likes', emoji: '❤️' },
-  comments: { icon: 'MessageCircle', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Comments', emoji: '💬' },
-  saves: { icon: 'Bookmark', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Saves', emoji: '📥' },
-  shares: { icon: 'Share2', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Shares', emoji: '📤' },
-  followers: { icon: 'UserPlus', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Followers', emoji: '👥' },
-  subscribers: { icon: 'Bell', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Subscribers', emoji: '🔔' },
-  watch_hours: { icon: 'Clock', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Watch Hours', emoji: '⏱️' },
-  retweets: { icon: 'Repeat', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Retweets', emoji: '🔁' },
-  reposts: { icon: 'Repeat2', color: 'text-[#E8308A]', bgColor: 'bg-[#E8308A]/10', borderColor: 'border-[#E8308A]/20', label: 'Reposts', emoji: '🔁' },
+  views: { icon: 'Eye', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Views', emoji: '👁️' },
+  likes: { icon: 'Heart', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Likes', emoji: '❤️' },
+  comments: { icon: 'MessageCircle', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Comments', emoji: '💬' },
+  saves: { icon: 'Bookmark', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Saves', emoji: '📥' },
+  shares: { icon: 'Share2', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Shares', emoji: '📤' },
+  followers: { icon: 'UserPlus', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Followers', emoji: '👥' },
+  subscribers: { icon: 'Bell', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Subscribers', emoji: '🔔' },
+  watch_hours: { icon: 'Clock', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Watch Hours', emoji: '⏱️' },
+  retweets: { icon: 'Repeat', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Retweets', emoji: '🔁' },
+  reposts: { icon: 'Repeat2', color: 'text-[#1D5CFF]', bgColor: 'bg-[#1D5CFF]/10', borderColor: 'border-[#1D5CFF]/20', label: 'Reposts', emoji: '🔁' },
 
 
 } as const;

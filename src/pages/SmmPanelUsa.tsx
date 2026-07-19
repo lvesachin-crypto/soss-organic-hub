@@ -8,7 +8,7 @@ import {
 
 const C = {
   navy: '#0E1B4D',
-  pink: '#E8308A',
+  pink: '#1D5CFF',
   cream: '#FFF6EC',
   white: '#FFFFFF',
   ink: '#111827',

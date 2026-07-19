@@ -14,7 +14,7 @@ interface SidebarProps { onClose?: () => void; }
 // Landing-page palette
 const C = {
   navy:  '#0E1B4D',
-  pink:  '#E8308A',
+  pink:  '#1D5CFF',
   pink2: '#F94E9C',
   white: '#FFFFFF',
   cream: '#FFF6EC',
