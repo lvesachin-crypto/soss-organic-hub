@@ -15,7 +15,7 @@ interface SidebarProps { onClose?: () => void; }
 const C = {
   navy:  '#0E1B4D',
   pink:  '#1D5CFF',
-  pink2: '#F94E9C',
+  pink2: '#4B84FF',
   white: '#FFFFFF',
   cream: '#FFF6EC',
   ink:   '#5A5F7A',

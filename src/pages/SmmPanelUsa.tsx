@@ -71,7 +71,7 @@ export default function SmmPanelUsa() {
       <section className="relative overflow-hidden" style={{ background: `linear-gradient(180deg, ${C.cream} 0%, ${C.white} 100%)` }}>
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-14 md:py-20">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-6"
-            style={{ background: 'rgba(232,48,138,0.08)', color: C.pink }}>
+            style={{ background: 'rgba(29,92,255,0.08)', color: C.pink }}>
             <MapPin className="w-3.5 h-3.5" /> USA · United States
           </div>
           <h1 className="text-4xl md:text-6xl font-black leading-[1.05] tracking-tight" style={{ color: C.navy }}>
@@ -85,7 +85,7 @@ export default function SmmPanelUsa() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/auth" className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white shadow-lg"
-              style={{ background: C.pink, boxShadow: '0 12px 30px -12px rgba(232,48,138,0.5)' }}>
+              style={{ background: C.pink, boxShadow: '0 12px 30px -12px rgba(29,92,255,0.5)' }}>
               Create free US account <ArrowRight className="w-4 h-4" />
             </Link>
             <Link to="/#pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold border"
@@ -133,7 +133,7 @@ export default function SmmPanelUsa() {
               <div key={i} className="rounded-2xl p-6 border transition-all hover:-translate-y-1"
                 style={{ borderColor: 'rgba(14,27,77,0.08)', background: C.white, boxShadow: '0 8px 24px -12px rgba(14,27,77,0.08)' }}>
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                  style={{ background: 'rgba(232,48,138,0.1)' }}>
+                  style={{ background: 'rgba(29,92,255,0.1)' }}>
                   <p.icon className="w-5 h-5" style={{ color: C.pink }} />
                 </div>
                 <div className="font-extrabold text-lg" style={{ color: C.navy }}>{p.name}</div>
@@ -281,7 +281,7 @@ export default function SmmPanelUsa() {
             Join 12,000+ American creators using Boostly Pro to grow real, organic audiences.
           </p>
           <Link to="/auth" className="mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-white text-lg shadow-xl"
-            style={{ background: C.pink, boxShadow: '0 20px 40px -15px rgba(232,48,138,0.5)' }}>
+            style={{ background: C.pink, boxShadow: '0 20px 40px -15px rgba(29,92,255,0.5)' }}>
             Create your free US account <ArrowRight className="w-5 h-5" />
           </Link>
           <div className="mt-4 text-xs" style={{ color: C.muted }}>
