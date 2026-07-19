@@ -135,8 +135,11 @@ async function syncObservedOverdeliveryGuard(supabase: any, itemId?: string | nu
   const reservedOrDelivered = Math.max(askedSent, actualDelivered)
   if (reservedOrDelivered < orderedQty) return
 
+  // Do not move pending schedules here. This function only checks provider
+  // status; changing scheduled_at makes manually back-dated runs jump to
+  // "in 5 minutes" in order history. The dispatch scheduler uses
+  // last_status_check/error_message for cooldown/visibility.
   await supabase.from('organic_run_schedule').update({
-    scheduled_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     error_message: `Delivery reserved (asked=${askedSent}, observed=${observedByRuns}, public_delta=${publicCountDelta}, target=${orderedQty}) — awaiting live target count`,
     last_status_check: new Date().toISOString(),
   }).eq('engagement_order_item_id', itemId).eq('status', 'pending')
