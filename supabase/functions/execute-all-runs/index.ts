@@ -1122,6 +1122,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       { data: pendingEngagementRuns, error: engagementRunsError },
       { data: failedEngagementRuns },
       { data: recentlyBusyRuns },
+      { data: recentPendingEngagementRuns },
     ] = await Promise.all([
       // 1. Active runs for conflict detection
       supabase
@@ -1141,8 +1142,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .eq('status', 'pending')
         .not('engagement_order_item_id', 'is', null)
         .lte('scheduled_at', nowWithBuffer)
-        .not('engagement_order_item.status', 'in', '("paused","cancelled")')
-        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled")')
+        .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
+        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .order('scheduled_at', { ascending: true })
         .limit(1000),
@@ -1153,6 +1154,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .eq('status', 'failed')
         .lt('retry_count', 99)
         .not('engagement_order_item_id', 'is', null)
+        .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
+        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .order('completed_at', { ascending: true })
         .limit(50),
       // 5. Recently busy runs (for cooldown)
@@ -1161,6 +1164,17 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .select(`provider_account_id, user_provider_account_id, error_message, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))`)
         .eq('status', 'pending')
         .gte('last_status_check', fifteenMinAgo),
+      // 6. Newest due pending engagement runs so old backlog cannot starve fresh user orders
+      supabase
+        .from('organic_run_schedule')
+        .select(`*, engagement_order_item:engagement_order_items!organic_run_schedule_engagement_order_item_id_fkey!inner(*, service:services(*), engagement_order:engagement_orders!inner(*))`)
+        .eq('status', 'pending')
+        .not('engagement_order_item_id', 'is', null)
+        .lte('scheduled_at', nowWithBuffer)
+        .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
+        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
+        .order('scheduled_at', { ascending: false })
+        .limit(500),
     ])
 
     // ==========================================
@@ -1178,6 +1192,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             status: 'pending', started_at: null, provider_account_id: null, user_provider_account_id: null,
             provider_account_name: null, user_provider_account_name: null,
             error_message: `Ghost run reverted after ${ageMin}min`,
+            rotation_lock_key: null,
           }).eq('id', stuck.id)
         } else {
           // SCAM GUARD: if provider didn't deliver anything (remains == full qty, or start_count null & remains == qty),
@@ -1198,6 +1213,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             return supabase.from('organic_run_schedule').update({
               status: 'failed', completed_at: new Date().toISOString(),
               error_message: `Auto-retry after ${ageMin}min: provider returned ${stuck.provider_status || 'unknown'} with 0 delivered (remains=${remains}/${qty})`,
+              rotation_lock_key: null,
             }).eq('id', stuck.id)
           }
 
@@ -1223,14 +1239,20 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
     }
-    console.log(`📥 Fetched ${pendingEngagementRuns?.length || 0} raw pending engagement runs from DB`)
+    const pendingById = new Map<string, any>()
+    for (const pendingRun of [...(pendingEngagementRuns || []), ...(recentPendingEngagementRuns || [])]) {
+      if (pendingRun?.id && !pendingById.has(pendingRun.id)) pendingById.set(pendingRun.id, pendingRun)
+    }
+    const mergedPendingEngagementRuns = [...pendingById.values()]
 
-    // PRE-FILTER: Remove paused/cancelled
-    const activeEngagementRuns = (pendingEngagementRuns || []).filter((run: any) => {
+    console.log(`📥 Fetched ${mergedPendingEngagementRuns.length} raw pending engagement runs from DB (${pendingEngagementRuns?.length || 0} oldest + ${recentPendingEngagementRuns?.length || 0} newest)`)
+
+    // PRE-FILTER: Remove paused/cancelled/completed
+    const activeEngagementRuns = mergedPendingEngagementRuns.filter((run: any) => {
       const orderStatus = run.engagement_order_item?.engagement_order?.status
       const itemStatus = run.engagement_order_item?.status
-      if (orderStatus === 'paused' || orderStatus === 'cancelled') return false
-      if (itemStatus === 'paused' || itemStatus === 'cancelled') return false
+      if (orderStatus === 'paused' || orderStatus === 'cancelled' || orderStatus === 'completed') return false
+      if (itemStatus === 'paused' || itemStatus === 'cancelled' || itemStatus === 'completed') return false
       return true
     })
 
@@ -1255,8 +1277,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const activeFailedRuns = (failedEngagementRuns || []).filter((run: any) => {
       const orderStatus = run.engagement_order_item?.engagement_order?.status
       const itemStatus = run.engagement_order_item?.status
-      if (orderStatus === 'cancelled' || orderStatus === 'paused') return false
-      if (itemStatus === 'cancelled' || itemStatus === 'paused') return false
+      if (orderStatus === 'cancelled' || orderStatus === 'paused' || orderStatus === 'completed') return false
+      if (itemStatus === 'cancelled' || itemStatus === 'paused' || itemStatus === 'completed') return false
       return true
     })
 
@@ -1293,6 +1315,17 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       const aBusy = isDeprioritizedBusyRun(a) ? 1 : 0
       const bBusy = isDeprioritizedBusyRun(b) ? 1 : 0
       if (aBusy !== bBusy) return aBusy - bBusy
+
+      // Fresh runs (never checked) should not wait behind a huge old backlog.
+      const aAlreadyChecked = a.last_status_check ? 1 : 0
+      const bAlreadyChecked = b.last_status_check ? 1 : 0
+      if (aAlreadyChecked !== bAlreadyChecked) return aAlreadyChecked - bAlreadyChecked
+
+      if (aAlreadyChecked === 0 && bAlreadyChecked === 0) {
+        const aOrderCreated = new Date(a.engagement_order_item?.engagement_order?.created_at || 0).getTime()
+        const bOrderCreated = new Date(b.engagement_order_item?.engagement_order?.created_at || 0).getTime()
+        if (aOrderCreated !== bOrderCreated) return bOrderCreated - aOrderCreated
+      }
 
       const aTime = new Date(a.scheduled_at || 0).getTime()
       const bTime = new Date(b.scheduled_at || 0).getTime()
@@ -1359,6 +1392,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         await supabase.from('organic_run_schedule').update({
           status: 'cancelled', error_message: 'Order cancelled by user',
           completed_at: new Date().toISOString(),
+          rotation_lock_key: null,
         }).eq('id', run.id)
         skipped++
         continue
@@ -1367,6 +1401,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         await supabase.from('organic_run_schedule').update({
           status: 'cancelled', error_message: 'Item cancelled by user',
           completed_at: new Date().toISOString(),
+          rotation_lock_key: null,
         }).eq('id', run.id)
         skipped++
         continue
@@ -1382,6 +1417,26 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // Some providers over-deliver on the public post even when our scheduled qty is lower,
       // so we must stop future runs based on observed public delivery too.
       try {
+        const knownTarget = Number(item.target_count || 0)
+        const knownCurrent = Number(item.current_count || 0)
+        if (knownTarget > 0 && knownCurrent >= knownTarget) {
+          await supabase.from('engagement_order_items').update({
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+          }).eq('id', item.id).neq('status', 'completed')
+          await supabase.from('organic_run_schedule').update({
+            status: 'cancelled',
+            completed_at: new Date().toISOString(),
+            error_message: `Target count reached (${knownCurrent}/${knownTarget}) — cancelling remaining runs`,
+            last_status_check: new Date().toISOString(),
+            rotation_lock_key: null,
+          }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
+          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
+          skipped++
+          console.log(`🎯 Item ${item.id} already at target (${knownCurrent}/${knownTarget}); pending runs cancelled and item completed.`)
+          continue
+        }
+
         const tracking = await syncEngagementItemTracking(supabase, item.id)
         if (tracking?.targetReached) {
           await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
@@ -1946,6 +2001,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               provider_account_name: selectedAccount.name,
               user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
               user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
+              rotation_lock_key: `${sameLinkNormalized}|${currentTypeNormalized}|${selectedAccount.id}`,
               last_status_check: new Date().toISOString(),
 
             },
@@ -1972,6 +2028,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_account_name: selectedAccount.name,
             user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
             user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
+            rotation_lock_key: `${sameLinkNormalized}|${currentTypeNormalized}|${selectedAccount.id}`,
             provider_order_id: null,
 
             provider_status: null,
@@ -2189,6 +2246,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_account_name: successAccount.name,
             user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
             user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
+            rotation_lock_key: null,
             provider_status: verifiedStatus,
             error_message: `Order cancelled during send — provider order ${providerOrderId} may need manual cancellation`,
             completed_at: new Date().toISOString(), last_status_check: new Date().toISOString(),
@@ -2210,6 +2268,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_account_name: successAccount.name,
             user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
             user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
+            rotation_lock_key: providerIsTerminal ? null : `${sameLinkNormalized}|${currentTypeNormalized}|${successAccount.id}`,
             provider_status: verifiedStatus,
             provider_start_count: verifiedStartCount, provider_remains: verifiedRemains,
             provider_charge: verifiedCharge,
@@ -2271,6 +2330,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           provider_account_name: null,
           user_provider_account_id: null,
           user_provider_account_name: null,
+          rotation_lock_key: null,
 
           provider_order_id: null,
           provider_status: null,
