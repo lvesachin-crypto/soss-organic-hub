@@ -1,61 +1,42 @@
-## Warning — this is destructive
+## Problem
 
-"Full replacement" ka matlab hai current system ka bada hissa hatana. Please confirm karo before I run migrations.
+Full Engagement page (`/full-engagement`) abhi bhi purane **admin bundles** (`engagement_bundles` + `bundle_items` + `services`) se data pull kar raha hai. Isliye jab user ki apni "My Bundles" empty hai, tab bhi Views/Likes/Shares/Reposts wagerah cards dikh jaate hain (admin ke create kiye bundles ki wajah se).
 
-### Kya hatega (data + code loss)
+Aap chahte ho: **jo items user ke apne bundle mein honge, sirf wahi dikhein**. Empty bundle = empty breakdown.
 
-**Data (migrations me DROP)**
-- `user_provider_accounts` (users ne apni API keys add ki hain — sab loss)
-- `user_bundles`, `user_bundle_items`, `user_bundle_item_providers`
-- `user_services`
-- `engagement_orders`, `engagement_order_items`, `organic_run_schedule` (saari user order history)
-- `subscription_payments`, `subscription_requests`, `subscriptions`, `subscription_plans`
-- `wallets`, `transactions`, `deposits`, `oxapay_deposits`, `zapupi_deposits`, related webhook events
-- Related triggers: subscription enforce, wallet credit trail, run lock triggers
+## Fix
 
-**Frontend pages/components to delete**
-- `MyProviders.tsx`, `MyBundles.tsx`, `MyServices` refs
-- `EngagementOrder.tsx`, `EngagementOrderDetail.tsx`, `EngagementOrders.tsx`, `MassOrder.tsx`
-- `Subscription.tsx`, `Wallet.tsx` (already gone), subscription gates
-- `AIIntelligence.tsx` if it depends on removed tables
-- Sidebar entries pointing to above
+`src/pages/EngagementOrder.tsx` ko `user_bundles` + `user_bundle_items` + `user_services` par shift karna hai.
 
-**Edge functions to delete**
-- `execute-all-runs`, `check-order-status`, `process-engagement-order`, `user-provider-manage`
-- `oxapay-*`, `zapupi-*`, subscription webhooks
-- `cleanup-*` crons referencing removed tables
+### Changes
 
-### Kya banega (spec ke hisab se)
+1. **Bundle fetch** — `engagement_bundles` ki jagah:
+   ```
+   user_bundles (where user_id = auth.uid, is_active = true)
+   └── user_bundle_items (engagement_type, quantity, user_service_id)
+       └── user_services (rate, min_quantity, max_quantity)
+   ```
 
-**New tables**
-- `providers` (admin-owned, name/api_url/api_key/is_active)
-- `services` (name/category/price/min/max, legacy provider_id kept but ignored)
-- `service_provider_mapping` (service↔provider, priority, provider_service_id, min/max, is_active)
-- `orders` (order_number, user_id, service_id, link, quantity, price, status, provider_order_id, provider_used, tried_providers uuid[], start_count, remains, retry_count, next_retry_at, error_message)
-- All with RLS + GRANTs
+2. **Available platforms** — sirf wahi platforms selector mein dikhein jinke liye user ne bundle banaya ho (aur usme kam se kam 1 item ho). Agar zero bundles → empty state: "Aap ne abhi tak koi bundle nahi banaya. `My Bundles` mein jaake create karo."
 
-**New edge functions**
-- `dispatch-orders` — cron every 1 min. Strict priority walk, 15s per-request timeout, 110s wall budget, pool of 6. On all-busy → status='queued', next_retry_at=+60s, tried_providers reset to `{}`.
-- `check-order-status` — cron every 5 min. Polls provider status, updates remains/start_count/status.
-- `cancel-order` — user-callable. Provider cancel + wallet refund (needs wallet table — see below).
+3. **Active engagement types** — user ke selected bundle ke `user_bundle_items[].engagement_type` se derive honge. Bundle empty → koi card render nahi hoga.
 
-**Cron setup** via pg_cron + pg_net.
+4. **Pricing** — har type ka rate `user_services.rate` (USD per 1000) se aayega, `bundle_items.price_per_k` fallback nahi. Min/max bhi `user_services` se.
 
-**New admin UI**
-- Provider list (add/edit URL+key, active toggle, balance check button)
-- Service↔Provider mapping page (drag-reorder priority, per-row min/max, active toggle, bulk upsert save)
-- Queue health widget (queued count, oldest age, per-provider 24h success rate)
-- Order detail with `tried_providers` history
+5. **Realtime sync** — realtime subscription channels ko `user_bundles`, `user_bundle_items`, `user_services` par point karo (purane `bundle_items` / `engagement_bundles` / `services` channels hata do).
 
-**New user UI**
-- Simple order-place form (pick service, paste link, enter qty → creates order in `pending`)
-- Order list + detail showing status/remains
+6. **Order submit path** — submit flow already `user-provider-manage` edge function use karta hai (My Bundles ke through), toh submission ko us edge function ke through hi route karna hai user's `user_service_id` ke saath. Purane admin-provider path ka reliance hata do.
 
-### Open decisions I need before I code
+7. **Empty state UI** — jab user ke paas koi active bundle nahi:
+   - Platform selector chhupao
+   - Big empty card: box icon + "No bundles yet" + CTA button → `/my-bundles`
 
-1. **Wallet + payments** — spec says `cancel-order` refunds wallet. Do you want me to rebuild a wallet + a payments flow (ZapUPI/OxaPay), or skip payments entirely (orders are placed without charging, admin-only test system)?
-2. **Subscription gating** — remove entirely, ya keep for order placement?
-3. **User signup flow** — keep email/password auth as-is?
-4. **Existing `admin@gmail.com` superadmin** — preserve, right?
+### Files touched
 
-Reply "confirm + answers to 1-4" aur main sab migrations + code likh dunga ek go me. Otherwise, safer options — "Extract principles, patch existing" — abhi bhi available hai.
+- `src/pages/EngagementOrder.tsx` (main refactor — queries, memos, submit)
+- Koi DB migration nahi chahiye; tables already exist.
+
+## Out of scope
+
+- Admin bundles (`engagement_bundles`) DB se delete nahi kar rahe (data preserve, sirf UI unhook).
+- Mass Order / AI Intelligence pages already user-scoped bundles use karti hain.

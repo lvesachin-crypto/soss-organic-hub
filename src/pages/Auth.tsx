@@ -34,18 +34,11 @@ export default function Auth() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { user, isLoading } = useAuth();
-  const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
-  const signUp = (email: string, password: string, fullName: string) =>
-    supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard`, data: { full_name: fullName } },
-    });
+  const { signIn, signUp, user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && user) navigate('/dashboard');
+    if (!isLoading && user) navigate('/engagement-order');
   }, [user, isLoading, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -78,7 +71,7 @@ export default function Auth() {
           else setError('Login failed.');
           setIsSubmitting(false); return;
         }
-        navigate('/dashboard', { replace: true });
+        navigate('/engagement-order', { replace: true });
       } else {
         const v = signupSchema.safeParse({ email, password, fullName });
         if (!v.success) { setError(v.error.errors[0].message); setIsSubmitting(false); return; }
