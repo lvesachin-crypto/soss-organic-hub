@@ -1120,6 +1120,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     // PRE-FETCH ALL DATA IN PARALLEL (batch queries)
     // ==========================================
     const nowWithBuffer = new Date(Date.now() + 2000).toISOString()
+    const busyRetryCooldownBefore = new Date(Date.now() - ACTIVE_ORDER_RETRY_MS).toISOString()
     const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
     const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
 
@@ -1151,6 +1152,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .lte('scheduled_at', nowWithBuffer)
         .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
         .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
+        .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .order('scheduled_at', { ascending: true })
         .limit(1000),
@@ -1180,6 +1182,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .lte('scheduled_at', nowWithBuffer)
         .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
         .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
+        .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('scheduled_at', { ascending: false })
         .limit(500),
     ])
@@ -2356,12 +2359,24 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
         let postponeMs = 0
         postponeMs = isActiveOrderError ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
-        retryUpdate.scheduled_at = new Date(Date.now() + postponeMs).toISOString()
 
-        await supabase.from('organic_run_schedule')
+        // Provider-busy / active-order is a queue state, not a real reschedule.
+        // Keep the user's/manual scheduled_at exactly as-is (including past dates)
+        // so order history does not jump from "15 days ago" to "in 1 minute".
+        // last_status_check + the fetch cooldown above prevents hammering providers.
+        if (!isActiveOrderError) {
+          retryUpdate.scheduled_at = new Date(Date.now() + postponeMs).toISOString()
+        }
+
+        let retryQuery = supabase.from('organic_run_schedule')
           .update(retryUpdate)
           .eq('id', run.id)
-          .lt('scheduled_at', retryUpdate.scheduled_at)
+
+        if (retryUpdate.scheduled_at) {
+          retryQuery = retryQuery.lt('scheduled_at', retryUpdate.scheduled_at)
+        }
+
+        await retryQuery
         skipped++
 
         // Do not batch-queue the whole link/type when one provider says "active order".
