@@ -230,6 +230,166 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ═══════ SETUP DIAGRAM — HOW TO ADD API KEY ═══════ */}
+      <section id="setup" className="px-4 py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-center mb-6">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.14em] uppercase px-4 py-1.5 rounded-full"
+              style={{ background: C.card, color: C.blue, boxShadow:`0 4px 14px -8px rgba(29,92,255,.4)` }}>
+              <Sparkles className="w-3.5 h-3.5"/> Provider setup
+            </span>
+          </div>
+          <h3 className="bp-serif text-center text-[30px] sm:text-[46px]" style={{ color: C.ink }}>
+            Add your provider in under a minute.
+          </h3>
+          <p className="text-center mt-4 text-[14.5px] max-w-2xl mx-auto" style={{ color: C.mute }}>
+            Grab your API key from any SMM panel, paste it into Boostly Pro, map service IDs — done. Here's exactly how it flows.
+          </p>
+
+          <div className="mt-12 rounded-3xl p-4 sm:p-8"
+            style={{ background: C.card, border:`1px solid ${C.line}`, boxShadow:'0 20px 50px -30px rgba(14,27,77,.25)' }}>
+            <svg viewBox="0 0 900 520" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill={C.blue} />
+                </marker>
+                <style>{`
+                  .lbl2{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;fill:${C.ink}}
+                  .sub2{font-family:'Inter',sans-serif;font-size:11px;fill:${C.mute}}
+                  .ttl2{font-family:'Fraunces',serif;font-size:17px;font-weight:600;fill:${C.ink}}
+                  .num2{font-family:'Inter',sans-serif;font-size:13px;font-weight:800;fill:#fff}
+                  .code2{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;fill:${C.navy}}
+                  .flow2{stroke:${C.blue};stroke-width:2;fill:none;stroke-dasharray:6 5;animation:bpdash 1.6s linear infinite}
+                `}</style>
+              </defs>
+
+              {/* STEP 1 — SMM PANEL */}
+              <g>
+                <rect x="30" y="60" width="240" height="180" rx="18" fill="#fff" stroke={C.blue} strokeWidth="2"/>
+                <circle cx="55" cy="85" r="14" fill={C.blue}/>
+                <text x="55" y="89" textAnchor="middle" className="num2">1</text>
+                <text x="80" y="90" className="ttl2">Any SMM Panel</text>
+                <text x="45" y="115" className="sub2">Login → API section</text>
+
+                {/* browser card */}
+                <rect x="50" y="128" width="200" height="96" rx="10" fill={C.bg1} stroke={C.line}/>
+                <circle cx="62" cy="140" r="3" fill="#EF4444"/>
+                <circle cx="72" cy="140" r="3" fill="#F59E0B"/>
+                <circle cx="82" cy="140" r="3" fill="#10B981"/>
+                <text x="60" y="165" className="sub2">Your API Key</text>
+                <rect x="60" y="172" width="180" height="20" rx="4" fill="#fff" stroke={C.blue}/>
+                <text x="68" y="186" className="code2">a3f9•••••••b2c8•••••••</text>
+                <rect x="60" y="198" width="60" height="18" rx="4" fill={C.blue}/>
+                <text x="90" y="210" textAnchor="middle" className="sub2" style={{fill:'#fff',fontWeight:700}}>Copy</text>
+              </g>
+
+              {/* arrow 1 → 2 */}
+              <path className="flow2" d="M270 150 C 305 150, 315 150, 340 150" markerEnd="url(#ah2)"/>
+
+              {/* STEP 2 — PASTE IN BOOSTLY */}
+              <g>
+                <rect x="340" y="60" width="240" height="180" rx="18" fill={C.blueSoft} stroke={C.blue} strokeWidth="2"/>
+                <circle cx="365" cy="85" r="14" fill={C.blue}/>
+                <text x="365" y="89" textAnchor="middle" className="num2">2</text>
+                <text x="390" y="90" className="ttl2">Boostly → My Providers</text>
+                <text x="355" y="115" className="sub2">Paste key + API URL</text>
+
+                {/* form card */}
+                <rect x="360" y="128" width="200" height="96" rx="10" fill="#fff" stroke={C.line}/>
+                <text x="370" y="146" className="sub2">Provider name</text>
+                <rect x="370" y="150" width="180" height="16" rx="3" fill={C.bg2}/>
+                <text x="376" y="162" className="code2">MySMM</text>
+                <text x="370" y="180" className="sub2">API URL</text>
+                <rect x="370" y="184" width="180" height="16" rx="3" fill={C.bg2}/>
+                <text x="376" y="196" className="code2">https://panel.com/api/v2</text>
+                <text x="370" y="214" className="sub2">API Key ✓ pasted</text>
+              </g>
+
+              {/* arrow 2 → 3 */}
+              <path className="flow2" d="M580 150 C 615 150, 625 150, 650 150" markerEnd="url(#ah2)"/>
+
+              {/* STEP 3 — MAP SERVICES */}
+              <g>
+                <rect x="650" y="60" width="220" height="180" rx="18" fill="#fff" stroke={C.blue} strokeWidth="2"/>
+                <circle cx="675" cy="85" r="14" fill={C.blue}/>
+                <text x="675" y="89" textAnchor="middle" className="num2">3</text>
+                <text x="700" y="90" className="ttl2">Map Service IDs</text>
+                <text x="665" y="115" className="sub2">Paste each Service ID</text>
+
+                <rect x="665" y="128" width="190" height="24" rx="6" fill={C.bg2}/>
+                <text x="675" y="144" className="code2">▶ Instagram Views · 1421</text>
+                <rect x="665" y="156" width="190" height="24" rx="6" fill={C.bg2}/>
+                <text x="675" y="172" className="code2">▶ Instagram Likes · 883</text>
+                <rect x="665" y="184" width="190" height="24" rx="6" fill={C.bg2}/>
+                <text x="675" y="200" className="code2">▶ YouTube Views · 2094</text>
+                <rect x="665" y="212" width="190" height="20" rx="6" fill="#DCFCE7"/>
+                <text x="760" y="226" textAnchor="middle" className="sub2" style={{fill:'#166534',fontWeight:700}}>✓ Saved</text>
+              </g>
+
+              {/* down connectors */}
+              <path className="flow2" d="M150 240 L 150 300" markerEnd="url(#ah2)"/>
+              <path className="flow2" d="M460 240 L 460 300" markerEnd="url(#ah2)"/>
+              <path className="flow2" d="M760 240 L 760 300" markerEnd="url(#ah2)"/>
+
+              {/* STEP 4 — CREATE BUNDLE */}
+              <g>
+                <rect x="30" y="310" width="840" height="150" rx="20" fill={C.ink}/>
+                <circle cx="60" cy="345" r="16" fill={C.blue}/>
+                <text x="60" y="349" textAnchor="middle" className="num2">4</text>
+                <text x="88" y="350" className="ttl2" style={{fill:'#fff'}}>Create a Bundle → attach providers with priority</text>
+                <text x="88" y="372" className="sub2" style={{fill:'#cbd5ff'}}>One bundle = one engagement type + multiple providers ranked 1, 2, 3…</text>
+
+                {/* three provider chips */}
+                <g transform="translate(60, 390)">
+                  <rect x="0" y="0" width="240" height="52" rx="12" fill="#fff"/>
+                  <circle cx="24" cy="26" r="12" fill={C.blue}/>
+                  <text x="24" y="30" textAnchor="middle" className="num2">1</text>
+                  <text x="46" y="24" className="lbl2">Provider A</text>
+                  <text x="46" y="40" className="sub2">Instagram Views · Priority 1</text>
+
+                  <rect x="270" y="0" width="240" height="52" rx="12" fill="#fff" opacity=".85"/>
+                  <circle cx="294" cy="26" r="12" fill={C.navy}/>
+                  <text x="294" y="30" textAnchor="middle" className="num2">2</text>
+                  <text x="316" y="24" className="lbl2">Provider B</text>
+                  <text x="316" y="40" className="sub2">Backup · Priority 2</text>
+
+                  <rect x="540" y="0" width="240" height="52" rx="12" fill="#fff" opacity=".7"/>
+                  <circle cx="564" cy="26" r="12" fill={C.navy}/>
+                  <text x="564" y="30" textAnchor="middle" className="num2">3</text>
+                  <text x="586" y="24" className="lbl2">Provider C</text>
+                  <text x="586" y="40" className="sub2">Failover · Priority 3</text>
+                </g>
+              </g>
+
+              {/* STEP 5 — READY */}
+              <g transform="translate(0, 470)">
+                <rect x="30" y="0" width="840" height="40" rx="12" fill={C.blueSoft} stroke={C.blue}/>
+                <circle cx="55" cy="20" r="12" fill={C.blue}/>
+                <text x="55" y="24" textAnchor="middle" className="num2">5</text>
+                <text x="80" y="25" className="lbl2">Done! Orders now auto-dispatch through your providers in strict priority order.</text>
+              </g>
+            </svg>
+
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { n:'1', t:'Copy API key',    d:'From any SMM panel — Account → API section. Also grab the API URL.' },
+                { n:'2', t:'Add in Boostly',  d:'My Providers → Add Provider. Paste name, URL & key. Save.' },
+                { n:'3', t:'Map service IDs', d:'For every engagement type, paste the exact Service ID from the panel.' },
+                { n:'4', t:'Build a bundle',  d:'My Bundles → attach 1 or more providers with priority 1, 2, 3…' },
+              ].map((s,i)=>(
+                <div key={i} className="rounded-2xl p-4" style={{ background: C.bg2, border:`1px solid ${C.line}` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-[13px]" style={{ background: C.blue }}>{s.n}</div>
+                    <div className="bp-serif text-[16px]" style={{ color: C.ink }}>{s.t}</div>
+                  </div>
+                  <p className="mt-2 text-[13px]" style={{ color: C.mute }}>{s.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════ PROVIDER FLOW DIAGRAM ═══════ */}
       <section id="provider-flow" className="px-4 py-16 sm:py-24">
         <div className="max-w-6xl mx-auto">
