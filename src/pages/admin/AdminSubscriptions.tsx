@@ -22,10 +22,14 @@ export default function AdminSubscriptions() {
     queryFn: async () => {
       const { data } = await supabase
         .from('subscriptions')
-        .select('*, profile:profiles!subscriptions_user_id_fkey(email, full_name)')
+        .select('*')
         .order('updated_at', { ascending: false })
         .limit(500);
-      return data ?? [];
+      if (!data) return [];
+      const ids = data.map(s => s.user_id);
+      const { data: profs } = await supabase.from('profiles').select('user_id, email, full_name').in('user_id', ids);
+      const pm = new Map((profs ?? []).map(p => [p.user_id, p]));
+      return data.map(s => ({ ...s, _profile: pm.get(s.user_id) ?? null }));
     },
   });
 
