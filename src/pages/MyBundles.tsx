@@ -450,9 +450,11 @@ function ProvidersPanel({
                     type="number"
                     min={1}
                     value={d.priority}
+                    onFocus={(e) => e.currentTarget.select()}
                     onChange={(e) => updateDraft(a.id, { priority: Math.max(1, Number(e.target.value) || 1) })}
                     className="h-9 w-20 sm:ml-auto text-right"
                   />
+
                 </div>
               </div>
             );
