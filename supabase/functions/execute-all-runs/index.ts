@@ -1764,13 +1764,13 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // If #1 is free → use #1. If #1 is busy → try #2. If both busy → #3.
       // If ALL busy → the run stays queued and picks up as soon as anyone
       // finishes on the next cron tick (handled below).
+      // STRICT: priority ASC only. No health-score / recency / min-qty reorder.
+      // The try-loop below skips providers whose min > effectiveQty, so priority
+      // is preserved (#1 free → #1, else #2, etc.).
       // ==========================================
-      accountsToTry.sort((a, b) => {
-        const aUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(a.account.name) ? 1 : 0
-        const bUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(b.account.name) ? 1 : 0
-        if (aUnhealthy !== bUnhealthy) return aUnhealthy - bUnhealthy
-        return (a.sortOrder || 999) - (b.sortOrder || 999)
-      })
+      accountsToTry.sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999))
+      void zeroDeliveryRetry
+
 
       
       if (accountsToTry.length === 0) {
