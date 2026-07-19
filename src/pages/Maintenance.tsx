@@ -17,17 +17,6 @@ const Maintenance = () => {
           Boostly Pro is currently undergoing scheduled maintenance to bring you a faster, smoother experience.
           All your data, providers, and orders are safe.
         </p>
-        <p className="text-sm text-slate-500">
-          Need help? Contact us on Telegram:{" "}
-          <a
-            href="https://t.me/boostlypro_support"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#E8308A] font-semibold hover:underline"
-          >
-            @boostlypro_support
-          </a>
-        </p>
       </div>
     </div>
   );
