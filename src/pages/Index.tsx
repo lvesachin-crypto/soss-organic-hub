@@ -107,6 +107,7 @@ const Index = () => {
               { href:'#how',      label:'How it works' },
               { href:'#setup',    label:'Setup' },
               { href:'#guide',    label:'Guide' },
+              { href:'#pricing',  label:'Pricing' },
               { href:'#why',      label:'Why us' },
             ].map(l => (
               <a key={l.href} href={l.href} className="bp-nav-link px-3 py-1.5 rounded-full hover:text-[color:var(--tw)] transition"
@@ -157,6 +158,7 @@ const Index = () => {
                 { href:'#how',      label:'How it works' },
                 { href:'#setup',    label:'Provider setup' },
                 { href:'#guide',    label:'How to use' },
+                { href:'#pricing',  label:'Pricing' },
                 { href:'#why',      label:'Why us' },
               ].map(l => (
                 <a key={l.href} href={l.href} onClick={()=>setMenuOpen(false)}
@@ -655,6 +657,94 @@ const Index = () => {
               Free to start · Ready in 60 seconds
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ═══════ PRICING ═══════ */}
+      <section id="pricing" className="px-4 py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 max-w-[40px]" style={{ background: C.line }} />
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: C.blue }}>Pricing</span>
+          </div>
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight mb-3" style={{ fontFamily: "'Fraunces', serif", color: C.navy, letterSpacing: '-0.03em' }}>
+            Simple, honest pricing.
+          </h2>
+          <p className="text-base sm:text-lg mb-12 max-w-2xl" style={{ color: C.mute }}>
+            One subscription unlocks unlimited providers, bundles, and orders. No per-order fees, no hidden costs.
+          </p>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {/* Monthly */}
+            <div className="rounded-2xl p-7 flex flex-col" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+              <div className="text-[11px] font-bold uppercase tracking-[0.15em] mb-4" style={{ color: C.soft }}>Monthly</div>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <span className="text-5xl font-black tracking-tight" style={{ fontFamily: "'Fraunces', serif", color: C.ink }}>$39</span>
+                <span className="text-sm font-medium" style={{ color: C.soft }}>/ month</span>
+              </div>
+              <p className="text-sm mb-6" style={{ color: C.mute }}>Flexible month-to-month access.</p>
+              <ul className="space-y-2.5 mb-8 text-sm flex-1" style={{ color: C.mute }}>
+                {['Unlimited providers','Unlimited bundles','Priority rotation','Standard support'].map(f => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.blue }} />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/subscription" className="w-full h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 transition-colors" style={{ border: `1px solid ${C.ink}`, color: C.ink }}>
+                Get started <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {/* Yearly - featured */}
+            <div className="rounded-2xl p-7 flex flex-col relative overflow-hidden" style={{ background: C.navy, color: '#fff' }}>
+              <div className="absolute top-5 right-5 text-[10px] font-bold uppercase tracking-[0.15em] px-2.5 py-1 rounded-full" style={{ background: C.blue, color: '#fff' }}>
+                Most popular
+              </div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.15em] mb-4" style={{ color: '#8FB0FF' }}>Yearly</div>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <span className="text-5xl font-black tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>$99</span>
+                <span className="text-sm font-medium" style={{ color: '#8FB0FF' }}>/ year</span>
+              </div>
+              <p className="text-sm mb-6" style={{ color: '#B8C7EE' }}>Save 79% vs monthly. Best value.</p>
+              <ul className="space-y-2.5 mb-8 text-sm flex-1" style={{ color: '#D6DEF5' }}>
+                {['Everything in Monthly','Priority support','Advanced AI insights','Early feature access'].map(f => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#8FB0FF' }} />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/subscription" className="w-full h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2" style={{ background: C.blue, color: '#fff' }}>
+                Choose yearly <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {/* Lifetime */}
+            <div className="rounded-2xl p-7 flex flex-col" style={{ background: C.card, border: `1px solid ${C.line}` }}>
+              <div className="text-[11px] font-bold uppercase tracking-[0.15em] mb-4" style={{ color: C.blue }}>Lifetime</div>
+              <div className="flex items-baseline gap-1.5 mb-1">
+                <span className="text-5xl font-black tracking-tight" style={{ fontFamily: "'Fraunces', serif", color: C.ink }}>$199</span>
+                <span className="text-sm font-medium" style={{ color: C.soft }}>/ once</span>
+              </div>
+              <p className="text-sm mb-6" style={{ color: C.mute }}>Pay once, use forever.</p>
+              <ul className="space-y-2.5 mb-8 text-sm flex-1" style={{ color: C.mute }}>
+                {['Everything in Yearly','Lifetime updates','VIP support channel','No recurring fees'].map(f => (
+                  <li key={f} className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: C.blue }} />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link to="/subscription" className="w-full h-11 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2" style={{ border: `1px solid ${C.ink}`, color: C.ink }}>
+                Go lifetime <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <p className="text-center text-xs mt-8" style={{ color: C.soft }}>
+            All plans include unlimited orders · Cancel anytime · Secure crypto & UPI payments
+          </p>
         </div>
       </section>
 
