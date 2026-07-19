@@ -172,7 +172,7 @@ export default function AdminSubscriptions() {
           activated_at: new Date().toISOString(),
           expires_at: expiresAt,
           activated_by: user?.id,
-        }, { onConflict: 'user_id' });
+        } as any, { onConflict: 'user_id' });
 
       if (subError) throw subError;
 
@@ -270,7 +270,7 @@ export default function AdminSubscriptions() {
             activated_at: new Date().toISOString(),
             expires_at: expiresAt,
             activated_by: user?.id,
-          }, { onConflict: 'user_id' });
+          } as any, { onConflict: 'user_id' });
 
         if (subError) throw subError;
       }
