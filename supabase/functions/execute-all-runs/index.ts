@@ -1363,20 +1363,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         break
       }
 
-      // FAST SKIP: If we already know this link+type has "active order" on all providers, skip immediately
       const runLink = normalizeLink(run.engagement_order_item?.engagement_order?.link)
       const runType = (run.engagement_order_item?.engagement_type || '').toLowerCase()
       const linkTypeKey = `${runLink}|${runType}`
-      if (runLink && activeOrderLinkTypes.has(linkTypeKey)) {
-        await supabase.from('organic_run_schedule').update({
-          status: 'pending',
-          error_message: `[Queued] Active order on link for ${runType}`,
-          scheduled_at: new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString(),
-          last_status_check: new Date().toISOString(),
-        }).eq('id', run.id)
-        skipped++
-        continue
-      }
 
       const isRetry = run.status === 'failed'
       const item = run.engagement_order_item
