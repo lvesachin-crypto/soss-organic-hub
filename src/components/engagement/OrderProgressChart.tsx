@@ -41,7 +41,7 @@ const TYPE_COLORS: Record<string, string> = {
   subscribers: "#ef4444", // Red - Strong contrast
   watch_hours: "#f97316", // Orange - Warm, energetic
   retweets: "#14b8a6",   // Teal - Cool, calm
-  reposts: "#a855f7",    // Purple - Rich, distinct
+  reposts: "#1D5CFF",    // Purple - Rich, distinct
 };
 
 export function OrderProgressChart({ runs, perType }: OrderProgressChartProps) {
