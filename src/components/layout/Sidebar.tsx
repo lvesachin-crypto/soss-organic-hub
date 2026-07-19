@@ -81,7 +81,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-semibold mb-1 transition-all"
         style={
           isActive
-            ? { background: 'rgba(232,48,138,0.10)', color: C.navy, boxShadow: `inset 0 0 0 1px rgba(232,48,138,0.35)` }
+            ? { background: 'rgba(29,92,255,0.10)', color: C.navy, boxShadow: `inset 0 0 0 1px rgba(29,92,255,0.35)` }
             : { color: C.ink }
         }
       >
@@ -96,7 +96,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             className="text-[9.5px] font-black px-1.5 py-0.5 rounded tracking-wider"
             style={
               item.tag === 'NEW'
-                ? { background: 'rgba(232,48,138,0.10)', color: C.pink, border: `1px solid ${C.pink}55` }
+                ? { background: 'rgba(29,92,255,0.10)', color: C.pink, border: `1px solid ${C.pink}55` }
                 : { background: C.cream, color: '#B4741A', border: `1px solid #E9BE7A` }
             }
           >{item.tag}</span>
@@ -190,7 +190,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-semibold mb-1"
                   style={
                     isActive
-                      ? { background: 'rgba(232,48,138,0.10)', color: C.navy, boxShadow: `inset 0 0 0 1px rgba(232,48,138,0.35)` }
+                      ? { background: 'rgba(29,92,255,0.10)', color: C.navy, boxShadow: `inset 0 0 0 1px rgba(29,92,255,0.35)` }
                       : { color: C.ink }
                   }
                 >
@@ -223,7 +223,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           onClick={() => signOut()}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-semibold transition-colors"
           style={{ color: C.ink }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = C.pink; e.currentTarget.style.background = 'rgba(232,48,138,0.08)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = C.pink; e.currentTarget.style.background = 'rgba(29,92,255,0.08)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = C.ink; e.currentTarget.style.background = 'transparent'; }}
         >
           <LogOut className="w-4 h-4" />
