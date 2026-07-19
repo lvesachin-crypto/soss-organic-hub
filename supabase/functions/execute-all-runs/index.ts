@@ -1865,7 +1865,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             scheduled_at: postponeUntil,
             error_message: `[Waiting for merge] Scheduled ${originalQty} below provider min ${smallestAccountMin}`,
             last_status_check: new Date().toISOString(),
-          }).eq('id', run.id)
+          }).eq('id', run.id).lt('scheduled_at', postponeUntil)
           skipped++
           console.log(`⏳ Run #${run.run_number} postponed: ${originalQty} below provider min ${smallestAccountMin} and no mergeable future runs yet`)
           continue
