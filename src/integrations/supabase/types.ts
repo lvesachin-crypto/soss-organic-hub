@@ -775,6 +775,7 @@ export type Database = {
         Row: {
           api_key: string
           api_url: string
+          balance: number | null
           balance_cached: number | null
           balance_currency: string | null
           created_at: string
@@ -791,6 +792,7 @@ export type Database = {
         Insert: {
           api_key: string
           api_url: string
+          balance?: number | null
           balance_cached?: number | null
           balance_currency?: string | null
           created_at?: string
@@ -807,6 +809,7 @@ export type Database = {
         Update: {
           api_key?: string
           api_url?: string
+          balance?: number | null
           balance_cached?: number | null
           balance_currency?: string | null
           created_at?: string
@@ -866,11 +869,11 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
-          max_quantity: number
-          min_quantity: number
-          priority: number
+          max_quantity: number | null
+          min_quantity: number | null
+          priority: number | null
           provider_account_id: string | null
-          provider_id: string
+          provider_id: string | null
           provider_service_id: string
           service_id: string
           sort_order: number
@@ -880,11 +883,11 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          max_quantity?: number
-          min_quantity?: number
-          priority?: number
+          max_quantity?: number | null
+          min_quantity?: number | null
+          priority?: number | null
           provider_account_id?: string | null
-          provider_id: string
+          provider_id?: string | null
           provider_service_id: string
           service_id: string
           sort_order?: number
@@ -894,11 +897,11 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
-          max_quantity?: number
-          min_quantity?: number
-          priority?: number
+          max_quantity?: number | null
+          min_quantity?: number | null
+          priority?: number | null
           provider_account_id?: string | null
-          provider_id?: string
+          provider_id?: string | null
           provider_service_id?: string
           service_id?: string
           sort_order?: number
@@ -933,6 +936,7 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          drip_feed_enabled: boolean
           id: string
           is_active: boolean
           max_quantity: number
@@ -940,12 +944,16 @@ export type Database = {
           name: string
           price: number
           provider_id: string | null
+          provider_service_id: string
+          quality: string | null
+          speed: string | null
           updated_at: string
         }
         Insert: {
           category: string
           created_at?: string
           description?: string | null
+          drip_feed_enabled?: boolean
           id?: string
           is_active?: boolean
           max_quantity?: number
@@ -953,12 +961,16 @@ export type Database = {
           name: string
           price?: number
           provider_id?: string | null
+          provider_service_id: string
+          quality?: string | null
+          speed?: string | null
           updated_at?: string
         }
         Update: {
           category?: string
           created_at?: string
           description?: string | null
+          drip_feed_enabled?: boolean
           id?: string
           is_active?: boolean
           max_quantity?: number
@@ -966,6 +978,9 @@ export type Database = {
           name?: string
           price?: number
           provider_id?: string | null
+          provider_service_id?: string
+          quality?: string | null
+          speed?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1024,27 +1039,39 @@ export type Database = {
           duration_days: number | null
           id: string
           is_active: boolean
+          label: string | null
           name: string
           plan_type: string
           price: number
+          price_inr: number | null
+          price_usd: number | null
+          sort_order: number | null
         }
         Insert: {
           created_at?: string
           duration_days?: number | null
           id?: string
           is_active?: boolean
+          label?: string | null
           name: string
           plan_type: string
           price: number
+          price_inr?: number | null
+          price_usd?: number | null
+          sort_order?: number | null
         }
         Update: {
           created_at?: string
           duration_days?: number | null
           id?: string
           is_active?: boolean
+          label?: string | null
           name?: string
           plan_type?: string
           price?: number
+          price_inr?: number | null
+          price_usd?: number | null
+          sort_order?: number | null
         }
         Relationships: []
       }
@@ -1631,6 +1658,19 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
+      get_provider_topup_breakdown: {
+        Args: never
+        Returns: {
+          pending_quantity: number
+          pending_runs: number
+          pending_user_usd: number
+          provider_id: string
+          provider_name: string
+          service_category: string
+          service_id: string
+          service_name: string
+        }[]
+      }
       get_provider_topup_plan: {
         Args: never
         Returns: {
@@ -1642,6 +1682,19 @@ export type Database = {
         }[]
       }
       get_queue_health: { Args: never; Returns: Json }
+      get_top_pending_users: {
+        Args: { p_limit?: number }
+        Returns: {
+          email: string
+          full_name: string
+          pending_orders: number
+          pending_value_usd: number
+          total_deposited: number
+          total_spent: number
+          user_id: string
+          wallet_balance: number
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1655,6 +1708,10 @@ export type Database = {
         Returns: boolean
       }
       is_maintenance_mode: { Args: never; Returns: boolean }
+      reschedule_organic_run: {
+        Args: { p_delay_minutes?: number; p_run_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
