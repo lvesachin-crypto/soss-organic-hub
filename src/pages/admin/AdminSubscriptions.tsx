@@ -95,7 +95,7 @@ export default function AdminSubscriptions() {
                 <tbody>
                   {subs?.map(s => (
                     <tr key={s.id} className="border-t border-border">
-                      <td className="p-3">{(s.profile as any)?.email ?? s.user_id.slice(0, 8)}</td>
+                      <td className="p-3">{(s._profile as any)?.email ?? s.user_id.slice(0, 8)}</td>
                       <td className="p-3 capitalize">{s.plan_type}</td>
                       <td className="p-3"><Badge variant={s.status === 'active' ? 'default' : 'secondary'}>{s.status}</Badge></td>
                       <td className="p-3">{s.expires_at ? new Date(s.expires_at).toLocaleDateString() : '—'}</td>
