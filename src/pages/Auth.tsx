@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, Lock, User, Loader2, ArrowLeft, Shield, Zap, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/boostly-logo.png';
 import { PageMeta } from '@/components/seo/PageMeta';
 
 
@@ -91,10 +91,10 @@ export default function Auth() {
     } finally { setIsSubmitting(false); }
   };
 
-  const inputClass = "h-12 rounded-xl border-[#e5e5e5] bg-white focus:border-[#1a1a2e] focus:ring-1 focus:ring-[#1a1a2e] text-[#1a1a2e] font-medium px-4 placeholder:text-[#bbb] transition-all";
+  const inputClass = "h-12 rounded-xl border-[#dbe4f5] bg-white focus:border-[#1D5CFF] focus:ring-2 focus:ring-[#1D5CFF]/20 text-[#0B1220] font-medium px-4 placeholder:text-[#8892AB] transition-all";
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ background: 'linear-gradient(180deg, #fff 0%, #fdf2f8 50%, #fbcfe8 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center px-6 py-12" style={{ background: 'linear-gradient(180deg, #EAF1FF 0%, #F4F7FF 60%, #DCE7FF 100%)' }}>
       <PageMeta
         title={isLogin ? 'Sign in — Boostly Pro' : 'Create your account — Boostly Pro'}
         description="Sign in or create your free Boostly Pro account to launch organic Instagram, YouTube and TikTok growth campaigns. No credit card required."
@@ -105,8 +105,8 @@ export default function Auth() {
           <div className="flex items-center justify-center gap-2.5 mb-10">
             <img src={logo} alt="Boostly Pro platform logo" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <div className="flex flex-col">
-              <span className="text-[16px] font-bold tracking-tight" style={{ color: '#1a1a2e' }}>Boostly Pro</span>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ background: 'linear-gradient(90deg, #2563eb, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>✦ Updated Version</span>
+              <span className="text-[16px] font-bold tracking-tight" style={{ color: '#0E1B4D' }}>Boostly Pro</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.15em]" style={{ color: '#1D5CFF' }}>✦ Updated Version</span>
             </div>
           </div>
 
