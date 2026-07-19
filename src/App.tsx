@@ -125,6 +125,11 @@ const App = () => {
               <BrowserRouter>
                 <ScrollToTop />
                 <Suspense fallback={<PageFallback />}>
+                  {MAINTENANCE_MODE && !isAdminBypass() ? (
+                    <Routes>
+                      <Route path="*" element={<Maintenance />} />
+                    </Routes>
+                  ) : (
                   <Routes>
                     {/* User pages */}
                     <Route path="/" element={<Index />} />
