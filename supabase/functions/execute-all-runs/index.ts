@@ -1441,13 +1441,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           continue
         }
 
-        const tracking = await syncEngagementItemTracking(supabase, item.id)
-        if (tracking?.targetReached) {
-          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
-          skipped++
-          console.log(`🎯 Item ${item.id} target reached by live count (${tracking.current}/${tracking.target}); pending runs cancelled and item completed.`)
-          continue
-        }
+        // PERFORMANCE: Skip live tracking sync in the hot dispatch path — it does 3+ DB
+        // queries per candidate and starves fresh orders. The check-order-status cron
+        // maintains current_count/target_count. The DB-values check above already
+        // handles the "target already reached" case.
+        const tracking: any = null
 
         const orderedQty = Number(item.quantity || 0)
         if (orderedQty > 0) {
