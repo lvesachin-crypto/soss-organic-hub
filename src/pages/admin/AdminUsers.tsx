@@ -66,7 +66,7 @@ export default function AdminUsers() {
                 <thead className="bg-muted/50"><tr className="text-left"><th className="p-3">User</th><th className="p-3">Plan</th><th className="p-3">Role</th><th className="p-3">Joined</th><th></th></tr></thead>
                 <tbody>
                   {filtered?.map(u => {
-                    const isAdmin = (u.roles as any[])?.some(r => r.role === 'admin');
+                    const isAdmin = (u._roles ?? []).includes('admin');
                     const sub = Array.isArray(u.subscription) ? u.subscription[0] : (u.subscription as any);
                     return (
                       <tr key={u.user_id} className="border-t border-border">
