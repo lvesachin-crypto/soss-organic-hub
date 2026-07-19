@@ -1133,6 +1133,7 @@ export type Database = {
       subscriptions: {
         Row: {
           activated_at: string | null
+          activated_by: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -1143,6 +1144,7 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
+          activated_by?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -1153,6 +1155,7 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
+          activated_by?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -1665,6 +1668,31 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
+      get_admin_users_summary: {
+        Args: never
+        Returns: {
+          active_engagement_orders: number
+          active_single_orders: number
+          balance: number
+          banned_at: string
+          banned_reason: string
+          created_at: string
+          currency: string
+          email: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          paused_engagement_orders: number
+          paused_single_orders: number
+          plan_type: string
+          role: string
+          subscription_expires: string
+          subscription_status: string
+          total_deposited: number
+          total_spent: number
+          user_id: string
+        }[]
+      }
       get_provider_topup_breakdown: {
         Args: never
         Returns: {
