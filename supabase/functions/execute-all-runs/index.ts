@@ -222,13 +222,12 @@ class MappingCache {
         this.cache.set(serviceId, [])
       } else {
         const sorted = [...mappings].sort((a: any, b: any) => {
+          // STRICT priority ASC only — no last_used_at / health tiebreak.
           const aPriority = a.sort_order || 0
           const bPriority = b.sort_order || 0
-          if (aPriority !== bPriority) return aPriority - bPriority
-          const aTime = a.provider_account?.last_used_at ? new Date(a.provider_account.last_used_at).getTime() : 0
-          const bTime = b.provider_account?.last_used_at ? new Date(b.provider_account.last_used_at).getTime() : 0
-          return aTime - bTime
+          return aPriority - bPriority
         })
+
         
         // Fetch each provider-service min_quantity from services table (by provider_service_id + provider_id)
         const providerServiceIds = sorted
@@ -1764,13 +1763,13 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // If #1 is free → use #1. If #1 is busy → try #2. If both busy → #3.
       // If ALL busy → the run stays queued and picks up as soon as anyone
       // finishes on the next cron tick (handled below).
+      // STRICT: priority ASC only. No health-score / recency / min-qty reorder.
+      // The try-loop below skips providers whose min > effectiveQty, so priority
+      // is preserved (#1 free → #1, else #2, etc.).
       // ==========================================
-      accountsToTry.sort((a, b) => {
-        const aUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(a.account.name) ? 1 : 0
-        const bUnhealthy = zeroDeliveryRetry && providerNameLooksUnhealthy(b.account.name) ? 1 : 0
-        if (aUnhealthy !== bUnhealthy) return aUnhealthy - bUnhealthy
-        return (a.sortOrder || 999) - (b.sortOrder || 999)
-      })
+      accountsToTry.sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999))
+      void zeroDeliveryRetry
+
 
       
       if (accountsToTry.length === 0) {
@@ -1816,12 +1815,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // pending runs of the same item so shares/saves do not get stuck forever.
       const originalQty = run.quantity_to_send
       let effectiveQty = originalQty
-      accountsToTry.sort((a, b) => {
-        const aFits = (a.minQuantity || 0) <= effectiveQty ? 0 : 1
-        const bFits = (b.minQuantity || 0) <= effectiveQty ? 0 : 1
-        if (aFits !== bFits) return aFits - bFits
-        return (a.minQuantity || 0) - (b.minQuantity || 0)
-      })
+      // STRICT PRIORITY: do NOT re-sort by minQuantity. Try-loop below skips
+      // providers whose min exceeds effectiveQty, so #1 stays #1.
+
       const smallestAccountMin = accountsToTry.reduce((min, entry) => {
         const candidateMin = Number(entry.minQuantity || 0)
         if (candidateMin <= 0) return min
@@ -1866,12 +1862,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           quantityToSend = combinedQty
           run.quantity_to_send = combinedQty
           run.base_quantity = combinedQty
-          accountsToTry.sort((a, b) => {
-            const aFits = (a.minQuantity || 0) <= effectiveQty ? 0 : 1
-            const bFits = (b.minQuantity || 0) <= effectiveQty ? 0 : 1
-            if (aFits !== bFits) return aFits - bFits
-            return (a.minQuantity || 0) - (b.minQuantity || 0)
-          })
+          // Keep strict priority order after merge — no re-sort.
+
           console.log(`🧩 Run #${run.run_number} merged to ${combinedQty} for ${item.engagement_type} to satisfy provider min ${smallestAccountMin}`)
         } else {
           const postponeUntil = new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString()
