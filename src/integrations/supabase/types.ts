@@ -1743,10 +1743,19 @@ export type Database = {
         Returns: boolean
       }
       is_maintenance_mode: { Args: never; Returns: boolean }
-      reschedule_organic_run: {
-        Args: { p_delay_minutes?: number; p_run_id: string }
-        Returns: Json
-      }
+      reschedule_organic_run:
+        | {
+            Args: { p_delay_minutes?: number; p_run_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_quantity: number
+              p_run_id: string
+              p_scheduled_at: string
+            }
+            Returns: Json
+          }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
