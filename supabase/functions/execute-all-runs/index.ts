@@ -2590,7 +2590,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           if (!isActiveOrder) {
             retryUpdate.scheduled_at = new Date(Date.now() + TEMPORARY_RETRY_MS).toISOString()
           }
-          await supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
+          let retryQuery = supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
+          if (retryUpdate.scheduled_at) {
+            retryQuery = retryQuery.lt('scheduled_at', retryUpdate.scheduled_at)
+          }
+          await retryQuery
           skipped++
         } else {
           await supabase.from('organic_run_schedule').update({
