@@ -9,8 +9,9 @@ const corsHeaders = {
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 2000
 const MAX_RUN_RETRIES = 9999
-const ACTIVE_ORDER_RETRY_MS = 5 * 60 * 1000
+const ACTIVE_ORDER_RETRY_MS = 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
+const MAX_RUNS_PER_ITEM_PER_INVOCATION = 10
 
 function getRunProviderAccountId(run: any): string | null {
   return run?.provider_account_id || run?.user_provider_account_id || null
@@ -1255,9 +1256,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       return true
     })
 
-    // Fairness: give each item's earliest due run a chance before taking more runs from the same item
+    // Fairness: give each item multiple due runs per invocation. The per-provider
+    // link/type lock below still guarantees max parallelism = mapped providers,
+    // but this lets a 5-provider bundle fill all 5 slots in one cron tick instead
+    // of slowly sending only one scheduled run per minute.
     const itemRunCount = new Map<string, number>()
-    const MAX_CONCURRENT_PER_ITEM = 1
     const executionProviderMap = new Map<string, Set<string>>()
     // Track link+type combos where ALL providers returned "active order" — only skip same type
     const activeOrderLinkTypes = new Set<string>()
@@ -1269,7 +1272,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const pendingRunsLimitedPerItem = activeEngagementRuns.filter((run: any) => {
       const itemId = run.engagement_order_item_id
       const count = itemRunCount.get(itemId) || 0
-      if (count < MAX_CONCURRENT_PER_ITEM) {
+      if (count < MAX_RUNS_PER_ITEM_PER_INVOCATION) {
         itemRunCount.set(itemId, count + 1)
         return true
       }
@@ -1297,7 +1300,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const retryRunsLimitedPerItem = retryableFailedRuns.filter((run: any) => {
       const itemId = run.engagement_order_item_id
       const count = itemRunCount.get(itemId) || 0
-      if (count < MAX_CONCURRENT_PER_ITEM) {
+      if (count < MAX_RUNS_PER_ITEM_PER_INVOCATION) {
         itemRunCount.set(itemId, count + 1)
         return true
       }
@@ -1315,8 +1318,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     }
 
     const allEngagementRuns = [...pendingRunsLimitedPerItem, ...retryRunsLimitedPerItem].sort((a: any, b: any) => {
-      const aBusy = isDeprioritizedBusyRun(a) ? 1 : 0
-      const bBusy = isDeprioritizedBusyRun(b) ? 1 : 0
+        const aBusy = isDeprioritizedBusyRun(a) ? 0 : 0
+        const bBusy = isDeprioritizedBusyRun(b) ? 0 : 0
       if (aBusy !== bBusy) return aBusy - bBusy
 
       // Fresh runs (never checked) should not wait behind a huge old backlog.
@@ -1370,6 +1373,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         await supabase.from('organic_run_schedule').update({
           status: 'pending',
           error_message: `[Queued] Active order on link for ${runType}`,
+          scheduled_at: new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString(),
           last_status_check: new Date().toISOString(),
         }).eq('id', run.id)
         skipped++
@@ -1995,6 +1999,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             updates: {
               status: 'started',
               started_at: new Date().toISOString(),
+              completed_at: null,
               error_message: `Trying ${selectedAccount.name}...`,
               retry_count: (run.retry_count || 0) + (isRetry ? 1 : 0),
               provider_order_id: null,
@@ -2321,7 +2326,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         const isActiveOrderError = isActiveOrderErrorMsg(lastErr)
 
         const retryUpdate: any = {
-          status: 'pending', started_at: null,
+          status: 'pending', started_at: null, completed_at: null,
           error_message: isActiveOrderError
             ? `[Queued #${retryCount}] All ${accountsToTry.length} accounts busy for this link: ${lastError}`
             : `[Auto-retry #${retryCount}] Temporary provider error: ${lastError}`,
@@ -2341,10 +2346,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         }
 
         let postponeMs = 0
-        if (!isActiveOrderError) {
-          postponeMs = TEMPORARY_RETRY_MS
-          retryUpdate.scheduled_at = new Date(Date.now() + postponeMs).toISOString()
-        }
+        postponeMs = isActiveOrderError ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
+        retryUpdate.scheduled_at = new Date(Date.now() + postponeMs).toISOString()
 
         await supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
         skipped++
