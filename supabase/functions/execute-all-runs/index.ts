@@ -1793,7 +1793,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             scheduled_at: newScheduledAt,
             error_message: waitMsg,
             last_status_check: new Date().toISOString(),
-          }).eq('id', run.id)
+          }).eq('id', run.id).lt('scheduled_at', newScheduledAt)
 
           skipped++
           console.log(`⏸️ Run #${run.run_number} waiting — no provider mapping configured for service ${item.service.id}`)
