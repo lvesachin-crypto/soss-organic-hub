@@ -126,63 +126,10 @@ const App = () => {
               <BrowserRouter>
                 <ScrollToTop />
                 <Suspense fallback={<PageFallback />}>
-                  {MAINTENANCE_MODE && !isAdminBypass() ? (
-                    <Routes>
-                      <Route path="*" element={<Maintenance />} />
-                    </Routes>
-                  ) : (
-                  <Routes>
-                    {/* User pages */}
-                    <Route path="/" element={<Index />} />
-                    <Route path="/smm-panel-usa" element={<SmmPanelUsa />} />
-                    <Route path="*" element={<NotFound />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/orders" element={<Orders />} />
-                    
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/support" element={<Support />} />
-                    <Route path="/api-access" element={<ApiAccess />} />
-                    <Route path="/my-providers" element={<MyProviders />} />
-                    <Route path="/my-services" element={<MyServices />} />
-                    <Route path="/my-bundles" element={<MyBundles />} />
-                    <Route path="/mass-order" element={<MassOrder />} />
-                    <Route path="/ai-intelligence" element={<AIIntelligence />} />
-                    <Route path="/subscription" element={<Subscription />} />
-                    <Route path="/admin/subscriptions" element={<AdminGuard><AdminSubscriptions /></AdminGuard>} />
-
-                    {/* Engagement */}
-                    <Route path="/engagement-order" element={<EngagementOrder />} />
-                    <Route path="/engagement-orders" element={<EngagementOrders />} />
-                    <Route path="/engagement-orders/:orderNumber" element={<EngagementOrderDetail />} />
-
-                    {/* Admin — server-verified guard */}
-                    <Route path="/admin" element={<AdminGuard><Admin /></AdminGuard>} />
-                    <Route path="/admin/services" element={<NotFound />} />
-                    <Route path="/admin/users" element={<AdminGuard><AdminUsers /></AdminGuard>} />
-                    <Route path="/admin/bundles" element={<AdminGuard><AdminBundles /></AdminGuard>} />
-                    <Route path="/admin/cron-monitor" element={<AdminGuard><AdminCronMonitor /></AdminGuard>} />
-                    <Route path="/admin/chat" element={<NotFound />} />
-                    <Route path="/admin/deposits" element={<AdminGuard><AdminDeposits /></AdminGuard>} />
-                    <Route path="/admin/provider-accounts" element={<AdminGuard><AdminProviderAccounts /></AdminGuard>} />
-                    <Route path="/admin/service-provider-mapping" element={<AdminGuard><AdminServiceProviderMapping /></AdminGuard>} />
-                    <Route path="/admin/audit-log" element={<AdminGuard><AdminAuditLog /></AdminGuard>} />
-                    <Route path="/admin/oxapay-events" element={<AdminGuard><AdminOxaPayEvents /></AdminGuard>} />
-                    <Route path="/admin/popup-ad" element={<AdminGuard><AdminPopupAd /></AdminGuard>} />
-                    <Route path="/admin/topup-plan" element={<AdminGuard><AdminTopupPlan /></AdminGuard>} />
-
-                    {/* Legal */}
-                    <Route path="/terms" element={<TermsOfService />} />
-                    <Route path="/privacy" element={<PrivacyPolicy />} />
-                    <Route path="/refund" element={<RefundPolicy />} />
-                    <Route path="/cookies" element={<CookiePolicy />} />
-                    <Route path="/contact" element={<ContactUs />} />
-                    <Route path="/about" element={<AboutUs />} />
-                    <Route path="/shipping" element={<ShippingPolicy />} />
-                  </Routes>
-                  )}
+                  <AppRoutes />
                 </Suspense>
               </BrowserRouter>
+
             </AppErrorBoundary>
           </TooltipProvider>
         </CurrencyProvider>
