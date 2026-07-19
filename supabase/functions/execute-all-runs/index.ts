@@ -461,13 +461,20 @@ async function claimRunLock(params: {
   supabase: any
   runId: string
   expectedStatus: 'pending' | 'failed'
+  maxScheduledAt?: string
   updates: Record<string, any>
 }) {
-  const { data, error } = await params.supabase
+  let query = params.supabase
     .from('organic_run_schedule')
     .update(params.updates)
     .eq('id', params.runId)
     .eq('status', params.expectedStatus)
+
+  if (params.maxScheduledAt) {
+    query = query.lte('scheduled_at', params.maxScheduledAt)
+  }
+
+  const { data, error } = await query
     .select('id, status')
     .maybeSingle()
 
@@ -1363,6 +1370,18 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         break
       }
 
+      const { data: freshRunState } = await supabase
+        .from('organic_run_schedule')
+        .select('id, status, scheduled_at')
+        .eq('id', run.id)
+        .maybeSingle()
+
+      if (!freshRunState || freshRunState.status !== run.status || new Date(freshRunState.scheduled_at).getTime() > new Date(nowWithBuffer).getTime()) {
+        skipped++
+        console.log(`⏭️ Run #${run.run_number} skipped because it was manually changed after this scheduler cycle loaded it`)
+        continue
+      }
+
       const runLink = normalizeLink(run.engagement_order_item?.engagement_order?.link)
       const runType = (run.engagement_order_item?.engagement_type || '').toLowerCase()
       const linkTypeKey = `${runLink}|${runType}`
@@ -1985,6 +2004,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             supabase,
             runId: run.id,
             expectedStatus: currentStatus,
+            maxScheduledAt: nowWithBuffer,
             updates: {
               status: 'started',
               started_at: new Date().toISOString(),
@@ -2338,7 +2358,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         postponeMs = isActiveOrderError ? ACTIVE_ORDER_RETRY_MS : TEMPORARY_RETRY_MS
         retryUpdate.scheduled_at = new Date(Date.now() + postponeMs).toISOString()
 
-        await supabase.from('organic_run_schedule').update(retryUpdate).eq('id', run.id)
+        await supabase.from('organic_run_schedule')
+          .update(retryUpdate)
+          .eq('id', run.id)
+          .lt('scheduled_at', retryUpdate.scheduled_at)
         skipped++
 
         // Do not batch-queue the whole link/type when one provider says "active order".
