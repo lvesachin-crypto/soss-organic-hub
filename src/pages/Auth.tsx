@@ -34,7 +34,14 @@ export default function Auth() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { signIn, signUp, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
+  const signIn = (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
+  const signUp = (email: string, password: string, fullName: string) =>
+    supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard`, data: { full_name: fullName } },
+    });
   const navigate = useNavigate();
 
   useEffect(() => {
