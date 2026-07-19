@@ -230,6 +230,138 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ═══════ PROVIDER FLOW DIAGRAM ═══════ */}
+      <section id="provider-flow" className="px-4 py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-center mb-6">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.14em] uppercase px-4 py-1.5 rounded-full"
+              style={{ background: C.card, color: C.blue, boxShadow:`0 4px 14px -8px rgba(29,92,255,.4)` }}>
+              <Shuffle className="w-3.5 h-3.5"/> How providers work
+            </span>
+          </div>
+          <h3 className="bp-serif text-center text-[30px] sm:text-[46px]" style={{ color: C.ink }}>
+            Your bundle. Your providers. Smart rotation.
+          </h3>
+          <p className="text-center mt-4 text-[14.5px] max-w-2xl mx-auto" style={{ color: C.mute }}>
+            You add multiple provider accounts to a bundle and set priority. The engine dispatches every order in strict order — 1 → 2 → 3. If one is busy, the next one picks it up instantly.
+          </p>
+
+          <div className="mt-12 rounded-3xl p-4 sm:p-8"
+            style={{ background: C.card, border:`1px solid ${C.line}`, boxShadow:'0 20px 50px -30px rgba(14,27,77,.25)' }}>
+            <svg viewBox="0 0 900 460" className="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 z" fill={C.blue} />
+                </marker>
+                <linearGradient id="pipe" x1="0" x2="1">
+                  <stop offset="0%" stopColor={C.blue} stopOpacity="0.15"/>
+                  <stop offset="100%" stopColor={C.blue} stopOpacity="0.55"/>
+                </linearGradient>
+                <style>{`
+                  .lbl{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;fill:${C.ink}}
+                  .sub{font-family:'Inter',sans-serif;font-size:11px;fill:${C.mute}}
+                  .ttl{font-family:'Fraunces',serif;font-size:16px;font-weight:600;fill:${C.ink}}
+                  .pri{font-family:'Inter',sans-serif;font-size:11px;font-weight:800;fill:#fff}
+                  .flow{stroke:${C.blue};stroke-width:2;fill:none;stroke-dasharray:6 5}
+                  @keyframes bpdash{to{stroke-dashoffset:-44}}
+                  .flow{animation:bpdash 1.6s linear infinite}
+                `}</style>
+              </defs>
+
+              {/* USER */}
+              <g>
+                <rect x="30" y="180" width="150" height="100" rx="16" fill={C.blueSoft} stroke={C.blue} strokeWidth="1.5"/>
+                <circle cx="105" cy="215" r="14" fill={C.blue}/>
+                <text x="105" y="250" textAnchor="middle" className="ttl">You</text>
+                <text x="105" y="268" textAnchor="middle" className="sub">Drop 1 link + type</text>
+              </g>
+
+              {/* BUNDLE */}
+              <g>
+                <rect x="230" y="150" width="180" height="160" rx="18" fill="#fff" stroke={C.blue} strokeWidth="2"/>
+                <text x="320" y="180" textAnchor="middle" className="ttl">Your Bundle</text>
+                <text x="320" y="198" textAnchor="middle" className="sub">Instagram · Views</text>
+                <rect x="248" y="212" width="144" height="26" rx="8" fill={C.blueSoft}/>
+                <text x="258" y="229" className="lbl">🔗 3 providers mapped</text>
+                <rect x="248" y="244" width="144" height="26" rx="8" fill={C.blueSoft}/>
+                <text x="258" y="261" className="lbl">⚡ Priority rotation</text>
+                <rect x="248" y="276" width="144" height="26" rx="8" fill={C.blueSoft}/>
+                <text x="258" y="293" className="lbl">🔒 Auto failover</text>
+              </g>
+
+              {/* PROVIDERS */}
+              <g>
+                {/* P1 */}
+                <rect x="480" y="60" width="200" height="90" rx="14" fill="#fff" stroke={C.blue} strokeWidth="2"/>
+                <circle cx="505" cy="90" r="14" fill={C.blue}/>
+                <text x="505" y="94" textAnchor="middle" className="pri">1</text>
+                <text x="530" y="88" className="ttl">Provider A</text>
+                <text x="530" y="106" className="sub">Fastest · Cheapest</text>
+                <rect x="530" y="118" width="70" height="20" rx="6" fill="#DCFCE7"/>
+                <text x="565" y="132" textAnchor="middle" className="sub" style={{fill:'#166534'}}>● Active</text>
+
+                {/* P2 */}
+                <rect x="480" y="190" width="200" height="90" rx="14" fill="#fff" stroke={C.line} strokeWidth="1.5"/>
+                <circle cx="505" cy="220" r="14" fill={C.navy}/>
+                <text x="505" y="224" textAnchor="middle" className="pri">2</text>
+                <text x="530" y="218" className="ttl">Provider B</text>
+                <text x="530" y="236" className="sub">Backup · Standard</text>
+                <rect x="530" y="248" width="80" height="20" rx="6" fill="#FEF3C7"/>
+                <text x="570" y="262" textAnchor="middle" className="sub" style={{fill:'#92400E'}}>◐ On standby</text>
+
+                {/* P3 */}
+                <rect x="480" y="320" width="200" height="90" rx="14" fill="#fff" stroke={C.line} strokeWidth="1.5"/>
+                <circle cx="505" cy="350" r="14" fill={C.navy}/>
+                <text x="505" y="354" textAnchor="middle" className="pri">3</text>
+                <text x="530" y="348" className="ttl">Provider C</text>
+                <text x="530" y="366" className="sub">Last resort</text>
+                <rect x="530" y="378" width="80" height="20" rx="6" fill="#FEE2E2"/>
+                <text x="570" y="392" textAnchor="middle" className="sub" style={{fill:'#991B1B'}}>✕ Busy · skip</text>
+              </g>
+
+              {/* PLATFORM */}
+              <g>
+                <rect x="740" y="180" width="140" height="100" rx="16" fill={C.ink}/>
+                <text x="810" y="220" textAnchor="middle" className="ttl" style={{fill:'#fff'}}>Platform</text>
+                <text x="810" y="242" textAnchor="middle" className="sub" style={{fill:'#cbd5ff'}}>IG · YT · TikTok</text>
+                <text x="810" y="262" textAnchor="middle" className="sub" style={{fill:'#cbd5ff'}}>Delivery live ✓</text>
+              </g>
+
+              {/* FLOWS */}
+              <path className="flow" d="M180 230 C 200 230, 210 230, 230 230" markerEnd="url(#ah)"/>
+              <path className="flow" d="M410 200 C 440 200, 450 105, 480 105" markerEnd="url(#ah)"/>
+              <path className="flow" d="M410 230 C 440 230, 450 235, 480 235" markerEnd="url(#ah)" style={{opacity:.35}}/>
+              <path className="flow" d="M410 260 C 440 260, 450 365, 480 365" markerEnd="url(#ah)" style={{opacity:.2}}/>
+              <path className="flow" d="M680 105 C 720 105, 730 200, 740 220" markerEnd="url(#ah)"/>
+
+              {/* Legend */}
+              <g transform="translate(30,410)">
+                <circle cx="8" cy="8" r="5" fill={C.blue}/>
+                <text x="22" y="12" className="sub">Solid arrow = active dispatch path</text>
+                <circle cx="290" cy="8" r="5" fill={C.blue} opacity=".3"/>
+                <text x="304" y="12" className="sub">Faded = standby (kicks in if #1 busy)</text>
+              </g>
+            </svg>
+
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { n:'1', t:'Order lands',   d:'Engine picks your bundle for that link + engagement type.' },
+                { n:'2', t:'Priority check', d:'Tries Provider #1 first. Busy or same-link conflict? Jumps to #2, then #3.' },
+                { n:'3', t:'Sent & tracked', d:'Provider ID logged, live status polled, retries auto-handled.' },
+              ].map((s,i)=>(
+                <div key={i} className="rounded-2xl p-4" style={{ background: C.bg2, border:`1px solid ${C.line}` }}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-[13px]" style={{ background: C.blue }}>{s.n}</div>
+                    <div className="bp-serif text-[17px]" style={{ color: C.ink }}>{s.t}</div>
+                  </div>
+                  <p className="mt-2 text-[13px]" style={{ color: C.mute }}>{s.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ═══════ SIMPLE GUIDE ═══════ */}
       <section id="guide" className="px-4 py-16 sm:py-24">
         <div className="max-w-4xl mx-auto">
