@@ -179,6 +179,7 @@ const App = () => {
                     <Route path="/about" element={<AboutUs />} />
                     <Route path="/shipping" element={<ShippingPolicy />} />
                   </Routes>
+                  )}
                 </Suspense>
               </BrowserRouter>
             </AppErrorBoundary>
