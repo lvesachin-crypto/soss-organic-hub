@@ -2464,11 +2464,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         // No mapping configured — wait until admin maps a provider in
         // Admin → Service Provider Mapping. Do NOT fall back to service.provider_id.
         const postponeMs = 5 * 60 * 1000
+        const postponeUntil = new Date(Date.now() + postponeMs).toISOString()
         await supabase.from('organic_run_schedule').update({
-          scheduled_at: new Date(Date.now() + postponeMs).toISOString(),
+          scheduled_at: postponeUntil,
           error_message: '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping',
           last_status_check: new Date().toISOString(),
-        }).eq('id', run.id)
+        }).eq('id', run.id).lt('scheduled_at', postponeUntil)
         skipped++
         continue
       }
