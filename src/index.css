@@ -42,10 +42,10 @@ textarea::placeholder {
     --muted: 35 60% 96%;
     --muted-foreground: 230 15% 40%;
 
-    --accent: 329 79% 55%;
+    --accent: 224 100% 56%;
     --accent-foreground: 0 0% 100%;
 
-    --success: 329 79% 55%;
+    --success: 152 62% 40%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
@@ -54,17 +54,17 @@ textarea::placeholder {
     --destructive: 358 72% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 30% 88%;
+    --border: 224 40% 88%;
     --input: 0 0% 100%;
-    --ring: 329 79% 55%;
+    --ring: 224 100% 56%;
 
     --radius: 0.9rem;
 
-    --shadow-soft: 0 8px 32px rgba(20, 30, 60, 0.08);
-    --shadow-glow: 0 0 40px rgba(80, 120, 255, 0.18);
+    --shadow-soft: 0 8px 32px rgba(14, 27, 77, 0.08);
+    --shadow-glow: 0 0 40px rgba(29, 92, 255, 0.22);
 
-    --gradient-luxury: linear-gradient(135deg, hsl(224 82% 56%), hsl(260 78% 62%));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 25% 97%));
+    --gradient-luxury: linear-gradient(135deg, hsl(230 71% 18%), hsl(224 100% 56%));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(224 40% 97%));
   }
 }
 
@@ -78,8 +78,8 @@ html { font-size: 16px; }
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background:
-      radial-gradient(1200px 600px at 10% -10%, hsl(224 90% 80% / 0.22), transparent 60%),
-      radial-gradient(1000px 500px at 110% 20%, hsl(260 80% 82% / 0.20), transparent 60%),
+      radial-gradient(1200px 600px at 10% -10%, hsl(224 100% 80% / 0.22), transparent 60%),
+      radial-gradient(1000px 500px at 110% 20%, hsl(230 71% 30% / 0.14), transparent 60%),
       hsl(var(--background));
 
     -webkit-font-smoothing: antialiased;
