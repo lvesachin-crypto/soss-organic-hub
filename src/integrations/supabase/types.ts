@@ -570,6 +570,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "organic_run_schedule_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "organic_run_schedule_user_provider_account_id_fkey"
             columns: ["user_provider_account_id"]
             isOneToOne: false
