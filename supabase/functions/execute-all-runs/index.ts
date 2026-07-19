@@ -1816,12 +1816,9 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // pending runs of the same item so shares/saves do not get stuck forever.
       const originalQty = run.quantity_to_send
       let effectiveQty = originalQty
-      accountsToTry.sort((a, b) => {
-        const aFits = (a.minQuantity || 0) <= effectiveQty ? 0 : 1
-        const bFits = (b.minQuantity || 0) <= effectiveQty ? 0 : 1
-        if (aFits !== bFits) return aFits - bFits
-        return (a.minQuantity || 0) - (b.minQuantity || 0)
-      })
+      // STRICT PRIORITY: do NOT re-sort by minQuantity. Try-loop below skips
+      // providers whose min exceeds effectiveQty, so #1 stays #1.
+
       const smallestAccountMin = accountsToTry.reduce((min, entry) => {
         const candidateMin = Number(entry.minQuantity || 0)
         if (candidateMin <= 0) return min
