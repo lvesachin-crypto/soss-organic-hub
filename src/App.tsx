@@ -34,7 +34,7 @@ const Subscription = lazy(() => import("./pages/Subscription"));
 const Maintenance = lazy(() => import("./pages/Maintenance"));
 
 // 🔧 Maintenance mode toggle — set to false to bring the site back online
-const MAINTENANCE_MODE = false;
+const MAINTENANCE_MODE = true;
 // Admin bypass: visit /?admin-bypass=1 once to set localStorage flag
 const isAdminBypass = () => {
   try {
