@@ -222,13 +222,12 @@ class MappingCache {
         this.cache.set(serviceId, [])
       } else {
         const sorted = [...mappings].sort((a: any, b: any) => {
+          // STRICT priority ASC only — no last_used_at / health tiebreak.
           const aPriority = a.sort_order || 0
           const bPriority = b.sort_order || 0
-          if (aPriority !== bPriority) return aPriority - bPriority
-          const aTime = a.provider_account?.last_used_at ? new Date(a.provider_account.last_used_at).getTime() : 0
-          const bTime = b.provider_account?.last_used_at ? new Date(b.provider_account.last_used_at).getTime() : 0
-          return aTime - bTime
+          return aPriority - bPriority
         })
+
         
         // Fetch each provider-service min_quantity from services table (by provider_service_id + provider_id)
         const providerServiceIds = sorted
