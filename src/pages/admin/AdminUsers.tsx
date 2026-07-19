@@ -18,10 +18,18 @@ export default function AdminUsers() {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('user_id, email, full_name, created_at, is_banned, roles:user_roles(role), subscription:subscriptions(plan_type, status, expires_at)')
+        .select('user_id, email, full_name, created_at, is_banned, subscription:subscriptions(plan_type, status, expires_at)')
         .order('created_at', { ascending: false })
         .limit(500);
-      return data ?? [];
+      if (!data) return [];
+      const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+      const roleMap = new Map<string, string[]>();
+      (roles ?? []).forEach(r => {
+        const arr = roleMap.get(r.user_id) ?? [];
+        arr.push(r.role);
+        roleMap.set(r.user_id, arr);
+      });
+      return data.map(u => ({ ...u, _roles: roleMap.get(u.user_id) ?? [] }));
     },
   });
 
