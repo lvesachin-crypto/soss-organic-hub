@@ -1275,8 +1275,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const activeFailedRuns = (failedEngagementRuns || []).filter((run: any) => {
       const orderStatus = run.engagement_order_item?.engagement_order?.status
       const itemStatus = run.engagement_order_item?.status
-      if (orderStatus === 'cancelled' || orderStatus === 'paused') return false
-      if (itemStatus === 'cancelled' || itemStatus === 'paused') return false
+      if (orderStatus === 'cancelled' || orderStatus === 'paused' || orderStatus === 'completed') return false
+      if (itemStatus === 'cancelled' || itemStatus === 'paused' || itemStatus === 'completed') return false
       return true
     })
 
@@ -1313,6 +1313,17 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       const aBusy = isDeprioritizedBusyRun(a) ? 1 : 0
       const bBusy = isDeprioritizedBusyRun(b) ? 1 : 0
       if (aBusy !== bBusy) return aBusy - bBusy
+
+      // Fresh runs (never checked) should not wait behind a huge old backlog.
+      const aAlreadyChecked = a.last_status_check ? 1 : 0
+      const bAlreadyChecked = b.last_status_check ? 1 : 0
+      if (aAlreadyChecked !== bAlreadyChecked) return aAlreadyChecked - bAlreadyChecked
+
+      if (aAlreadyChecked === 0 && bAlreadyChecked === 0) {
+        const aOrderCreated = new Date(a.engagement_order_item?.engagement_order?.created_at || 0).getTime()
+        const bOrderCreated = new Date(b.engagement_order_item?.engagement_order?.created_at || 0).getTime()
+        if (aOrderCreated !== bOrderCreated) return bOrderCreated - aOrderCreated
+      }
 
       const aTime = new Date(a.scheduled_at || 0).getTime()
       const bTime = new Date(b.scheduled_at || 0).getTime()
@@ -1379,6 +1390,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         await supabase.from('organic_run_schedule').update({
           status: 'cancelled', error_message: 'Order cancelled by user',
           completed_at: new Date().toISOString(),
+          rotation_lock_key: null,
         }).eq('id', run.id)
         skipped++
         continue
@@ -1387,6 +1399,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         await supabase.from('organic_run_schedule').update({
           status: 'cancelled', error_message: 'Item cancelled by user',
           completed_at: new Date().toISOString(),
+          rotation_lock_key: null,
         }).eq('id', run.id)
         skipped++
         continue
@@ -1402,6 +1415,26 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       // Some providers over-deliver on the public post even when our scheduled qty is lower,
       // so we must stop future runs based on observed public delivery too.
       try {
+        const knownTarget = Number(item.target_count || 0)
+        const knownCurrent = Number(item.current_count || 0)
+        if (knownTarget > 0 && knownCurrent >= knownTarget) {
+          await supabase.from('engagement_order_items').update({
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+          }).eq('id', item.id).neq('status', 'completed')
+          await supabase.from('organic_run_schedule').update({
+            status: 'cancelled',
+            completed_at: new Date().toISOString(),
+            error_message: `Target count reached (${knownCurrent}/${knownTarget}) — cancelling remaining runs`,
+            last_status_check: new Date().toISOString(),
+            rotation_lock_key: null,
+          }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
+          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
+          skipped++
+          console.log(`🎯 Item ${item.id} already at target (${knownCurrent}/${knownTarget}); pending runs cancelled and item completed.`)
+          continue
+        }
+
         const tracking = await syncEngagementItemTracking(supabase, item.id)
         if (tracking?.targetReached) {
           await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
