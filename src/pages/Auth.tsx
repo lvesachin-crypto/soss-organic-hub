@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, Lock, User, Loader2, ArrowLeft, Shield, Zap, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { z } from 'zod';
-import logo from '@/assets/boostly-logo.png';
+import logo from '@/assets/logo.png';
 import { PageMeta } from '@/components/seo/PageMeta';
 
 
