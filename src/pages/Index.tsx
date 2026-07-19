@@ -107,6 +107,7 @@ const Index = () => {
               { href:'#how',      label:'How it works' },
               { href:'#setup',    label:'Setup' },
               { href:'#guide',    label:'Guide' },
+              { href:'#pricing',  label:'Pricing' },
               { href:'#why',      label:'Why us' },
             ].map(l => (
               <a key={l.href} href={l.href} className="bp-nav-link px-3 py-1.5 rounded-full hover:text-[color:var(--tw)] transition"
@@ -157,6 +158,7 @@ const Index = () => {
                 { href:'#how',      label:'How it works' },
                 { href:'#setup',    label:'Provider setup' },
                 { href:'#guide',    label:'How to use' },
+                { href:'#pricing',  label:'Pricing' },
                 { href:'#why',      label:'Why us' },
               ].map(l => (
                 <a key={l.href} href={l.href} onClick={()=>setMenuOpen(false)}
