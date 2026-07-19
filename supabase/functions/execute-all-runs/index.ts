@@ -1192,6 +1192,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             status: 'pending', started_at: null, provider_account_id: null, user_provider_account_id: null,
             provider_account_name: null, user_provider_account_name: null,
             error_message: `Ghost run reverted after ${ageMin}min`,
+            rotation_lock_key: null,
           }).eq('id', stuck.id)
         } else {
           // SCAM GUARD: if provider didn't deliver anything (remains == full qty, or start_count null & remains == qty),
@@ -1212,6 +1213,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             return supabase.from('organic_run_schedule').update({
               status: 'failed', completed_at: new Date().toISOString(),
               error_message: `Auto-retry after ${ageMin}min: provider returned ${stuck.provider_status || 'unknown'} with 0 delivered (remains=${remains}/${qty})`,
+              rotation_lock_key: null,
             }).eq('id', stuck.id)
           }
 
@@ -1999,6 +2001,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
               provider_account_name: selectedAccount.name,
               user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
               user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
+              rotation_lock_key: `${sameLinkNormalized}|${currentTypeNormalized}|${selectedAccount.id}`,
               last_status_check: new Date().toISOString(),
 
             },
@@ -2025,6 +2028,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_account_name: selectedAccount.name,
             user_provider_account_id: (selectedAccount as any).isUserOwned ? selectedAccount.id : null,
             user_provider_account_name: (selectedAccount as any).isUserOwned ? selectedAccount.name : null,
+            rotation_lock_key: `${sameLinkNormalized}|${currentTypeNormalized}|${selectedAccount.id}`,
             provider_order_id: null,
 
             provider_status: null,
@@ -2242,6 +2246,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_account_name: successAccount.name,
             user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
             user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
+            rotation_lock_key: null,
             provider_status: verifiedStatus,
             error_message: `Order cancelled during send — provider order ${providerOrderId} may need manual cancellation`,
             completed_at: new Date().toISOString(), last_status_check: new Date().toISOString(),
@@ -2263,6 +2268,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             provider_account_name: successAccount.name,
             user_provider_account_id: (successAccount as any).isUserOwned ? successAccount.id : null,
             user_provider_account_name: (successAccount as any).isUserOwned ? successAccount.name : null,
+            rotation_lock_key: providerIsTerminal ? null : `${sameLinkNormalized}|${currentTypeNormalized}|${successAccount.id}`,
             provider_status: verifiedStatus,
             provider_start_count: verifiedStartCount, provider_remains: verifiedRemains,
             provider_charge: verifiedCharge,
@@ -2324,6 +2330,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           provider_account_name: null,
           user_provider_account_id: null,
           user_provider_account_name: null,
+          rotation_lock_key: null,
 
           provider_order_id: null,
           provider_status: null,
