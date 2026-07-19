@@ -86,9 +86,10 @@ const Index = () => {
           {/* LOGO PILL */}
           <Link to="/" className="flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-full transition"
             style={{ background: 'transparent' }}>
-            <span className="relative inline-flex items-center justify-center w-10 h-10 rounded-2xl"
-              style={{ background: C.blue, boxShadow:'0 10px 22px -10px rgba(29,92,255,.7), inset 0 -2px 0 rgba(0,0,0,.12)' }}>
-              <Zap className="w-5 h-5 text-white" strokeWidth={2.6} fill="white"/>
+            <span className="relative inline-flex items-center justify-center w-10 h-10">
+              <img src={logo} alt="Boostly Pro" width={40} height={40}
+                className="w-10 h-10 rounded-2xl object-cover"
+                style={{ boxShadow:'0 10px 22px -10px rgba(29,92,255,.55)' }}/>
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 bp-live-dot" style={{ border:'2px solid #fff' }}/>
             </span>
             <span className="hidden xs:inline text-[18px] sm:text-[19px] font-extrabold tracking-tight" style={{ color: C.navy }}>
