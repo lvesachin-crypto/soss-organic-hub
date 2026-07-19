@@ -58,43 +58,122 @@ const Index = () => {
       `}</style>
 
       {/* ═══════ NAV ═══════ */}
-      <nav className="sticky top-4 z-50 px-4">
+      <style>{`
+        @keyframes bp-live { 0%,100%{box-shadow:0 0 0 0 rgba(29,92,255,.55)} 50%{box-shadow:0 0 0 6px rgba(29,92,255,0)} }
+        .bp-live-dot { animation: bp-live 1.6s ease-out infinite; }
+        .bp-nav-link { position:relative; }
+        .bp-nav-link::after { content:''; position:absolute; left:12px; right:12px; bottom:-6px; height:2px; background:${C.blue}; border-radius:2px; transform:scaleX(0); transform-origin:left; transition:transform .35s cubic-bezier(.6,.2,.1,1); }
+        .bp-nav-link:hover::after { transform:scaleX(1); }
+        .bp-cta { position:relative; overflow:hidden; }
+        .bp-cta::before { content:''; position:absolute; inset:0; background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%); transform:translateX(-120%); transition:transform .8s ease; }
+        .bp-cta:hover::before { transform:translateX(120%); }
+      `}</style>
+
+      <nav className="sticky top-3 sm:top-4 z-50 px-3 sm:px-4">
         <div
-          className="max-w-6xl mx-auto flex items-center justify-between h-16 px-3 sm:px-5"
+          className="max-w-6xl mx-auto flex items-center justify-between gap-2 h-[62px] pl-2 pr-2 sm:pl-3 sm:pr-2 transition-all duration-300"
           style={{
-            background: C.card,
+            background: scrolled ? 'rgba(255,255,255,0.82)' : C.card,
+            backdropFilter: 'saturate(160%) blur(14px)',
+            WebkitBackdropFilter: 'saturate(160%) blur(14px)',
             borderRadius: 999,
-            boxShadow: '0 8px 28px -14px rgba(14,27,77,0.18), 0 2px 6px rgba(14,27,77,0.04)',
+            border: `1px solid ${scrolled ? 'rgba(14,27,77,.09)' : 'rgba(14,27,77,.05)'}`,
+            boxShadow: scrolled
+              ? '0 14px 40px -18px rgba(14,27,77,0.28), 0 2px 6px rgba(14,27,77,0.05)'
+              : '0 8px 28px -14px rgba(14,27,77,0.18), 0 2px 6px rgba(14,27,77,0.04)',
           }}
         >
-          <Link to="/" className="flex items-center gap-2.5 pl-1">
-            <img src={logo} alt="Boostly Pro" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
-            <span className="text-[18px] sm:text-[19px] font-extrabold" style={{ color: C.navy }}>
-              Boostly Pro
+          {/* LOGO PILL */}
+          <Link to="/" className="flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-full transition"
+            style={{ background: 'transparent' }}>
+            <span className="relative inline-flex items-center justify-center w-10 h-10 rounded-2xl"
+              style={{ background: C.blue, boxShadow:'0 10px 22px -10px rgba(29,92,255,.7), inset 0 -2px 0 rgba(0,0,0,.12)' }}>
+              <Zap className="w-5 h-5 text-white" strokeWidth={2.6} fill="white"/>
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 bp-live-dot" style={{ border:'2px solid #fff' }}/>
             </span>
-            <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: C.blueSoft, color: C.blue }}>v2.0</span>
+            <span className="hidden xs:inline text-[18px] sm:text-[19px] font-extrabold tracking-tight" style={{ color: C.navy }}>
+              Boostly<span style={{ color: C.blue }}>.</span>Pro
+            </span>
+            <span className="hidden sm:inline ml-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: C.blueSoft, color: C.blue, letterSpacing:'.06em' }}>v2.0</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8 text-[14px] font-semibold" style={{ color: C.navy }}>
-            <a href="#features" className="hover:opacity-70">Features</a>
-            <a href="#how" className="hover:opacity-70">How it works</a>
-            <a href="#guide" className="hover:opacity-70">How to use</a>
-            <a href="#why" className="hover:opacity-70">Why</a>
+          {/* CENTER LINKS */}
+          <div className="hidden md:flex items-center gap-1 text-[13.5px] font-semibold px-2 py-1.5 rounded-full"
+            style={{ background: C.bg2, border:`1px solid ${C.line}`, color: C.navy }}>
+            {[
+              { href:'#features', label:'Features' },
+              { href:'#how',      label:'How it works' },
+              { href:'#setup',    label:'Setup' },
+              { href:'#guide',    label:'Guide' },
+              { href:'#why',      label:'Why us' },
+            ].map(l => (
+              <a key={l.href} href={l.href} className="bp-nav-link px-3 py-1.5 rounded-full hover:text-[color:var(--tw)] transition"
+                onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.color = C.blue; }}
+                onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.color = C.navy; }}>
+                {l.label}
+              </a>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2 pr-1">
-            <Link to="/auth" className="hidden sm:inline text-[14px] font-semibold px-3 py-2" style={{ color: C.navy }}>
+          {/* RIGHT CTA */}
+          <div className="flex items-center gap-1.5">
+            <Link to="/auth" className="hidden sm:inline-flex items-center text-[13.5px] font-semibold px-3.5 py-2 rounded-full hover:bg-[color:var(--h)]"
+              style={{ color: C.navy }}
+              onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.background = C.bg2; }}
+              onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
               Login
             </Link>
             <Link to="/auth"
-              className="text-[14px] font-bold text-white px-4 sm:px-5 py-2.5 rounded-full"
-              style={{ background: C.blue, boxShadow: '0 10px 24px -10px rgba(29,92,255,0.55)' }}>
-              Sign Up Free
+              className="bp-cta group inline-flex items-center gap-1.5 text-[13.5px] font-bold text-white pl-4 pr-1.5 py-1.5 rounded-full"
+              style={{ background: C.ink, boxShadow: '0 12px 26px -12px rgba(11,18,32,0.65)' }}>
+              <span>Sign Up Free</span>
+              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full transition-transform group-hover:translate-x-0.5"
+                style={{ background: C.blue }}>
+                <ArrowRight className="w-4 h-4" strokeWidth={2.6}/>
+              </span>
             </Link>
+
+            {/* MOBILE TOGGLE */}
+            <button
+              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full ml-0.5"
+              style={{ background: C.bg2, color: C.navy, border:`1px solid ${C.line}` }}
+              onClick={() => setMenuOpen(v => !v)}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <X className="w-5 h-5"/> : <Menu className="w-5 h-5"/>}
+            </button>
           </div>
         </div>
+
+        {/* MOBILE DROPDOWN */}
+        {menuOpen && (
+          <div className="md:hidden max-w-6xl mx-auto mt-2 rounded-3xl p-3"
+            style={{ background: C.card, border:`1px solid ${C.line}`, boxShadow:'0 20px 40px -20px rgba(14,27,77,.25)' }}>
+            <div className="flex flex-col text-[15px] font-semibold" style={{ color: C.navy }}>
+              {[
+                { href:'#features', label:'Features' },
+                { href:'#how',      label:'How it works' },
+                { href:'#setup',    label:'Provider setup' },
+                { href:'#guide',    label:'How to use' },
+                { href:'#why',      label:'Why us' },
+              ].map(l => (
+                <a key={l.href} href={l.href} onClick={()=>setMenuOpen(false)}
+                  className="px-4 py-3 rounded-2xl hover:opacity-80"
+                  style={{ borderBottom:`1px solid ${C.line}` }}>
+                  {l.label}
+                </a>
+              ))}
+              <Link to="/auth" onClick={()=>setMenuOpen(false)}
+                className="mt-2 flex items-center justify-center gap-2 text-white font-bold py-3 rounded-2xl"
+                style={{ background: C.blue }}>
+                Sign Up Free <ArrowRight className="w-4 h-4"/>
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
+
 
       {/* ═══════ HERO ═══════ */}
       <section className="px-4 pt-16 sm:pt-24 pb-10 sm:pb-16 text-center max-w-5xl mx-auto">
