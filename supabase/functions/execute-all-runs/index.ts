@@ -1863,12 +1863,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           quantityToSend = combinedQty
           run.quantity_to_send = combinedQty
           run.base_quantity = combinedQty
-          accountsToTry.sort((a, b) => {
-            const aFits = (a.minQuantity || 0) <= effectiveQty ? 0 : 1
-            const bFits = (b.minQuantity || 0) <= effectiveQty ? 0 : 1
-            if (aFits !== bFits) return aFits - bFits
-            return (a.minQuantity || 0) - (b.minQuantity || 0)
-          })
+          // Keep strict priority order after merge — no re-sort.
+
           console.log(`🧩 Run #${run.run_number} merged to ${combinedQty} for ${item.engagement_type} to satisfy provider min ${smallestAccountMin}`)
         } else {
           const postponeUntil = new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString()
