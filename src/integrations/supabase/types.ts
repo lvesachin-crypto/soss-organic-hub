@@ -74,6 +74,77 @@ export type Database = {
           },
         ]
       }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          status: string
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          status?: string
+          updated_at?: string
+          user_email: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          status?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          sender_id: string
+          sender_role: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          sender_id: string
+          sender_role: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          sender_id?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       engagement_bundles: {
         Row: {
           ai_organic_enabled: boolean | null
@@ -514,6 +585,123 @@ export type Database = {
           },
         ]
       }
+      oxapay_deposits: {
+        Row: {
+          amount_inr: number
+          amount_usd: number
+          created_at: string
+          credited: boolean
+          id: string
+          order_id: string
+          pay_currency: string | null
+          payment_url: string | null
+          raw_payload: Json | null
+          status: string
+          track_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_inr: number
+          amount_usd: number
+          created_at?: string
+          credited?: boolean
+          id?: string
+          order_id: string
+          pay_currency?: string | null
+          payment_url?: string | null
+          raw_payload?: Json | null
+          status?: string
+          track_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_inr?: number
+          amount_usd?: number
+          created_at?: string
+          credited?: boolean
+          id?: string
+          order_id?: string
+          pay_currency?: string | null
+          payment_url?: string | null
+          raw_payload?: Json | null
+          status?: string
+          track_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      oxapay_webhook_events: {
+        Row: {
+          credit_result: Json | null
+          event_hash: string
+          id: string
+          notes: string | null
+          order_id: string | null
+          payload: Json | null
+          processed: boolean
+          received_at: string
+          signature_valid: boolean
+          source_ip: string | null
+          status: string | null
+          track_id: string | null
+        }
+        Insert: {
+          credit_result?: Json | null
+          event_hash: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          received_at?: string
+          signature_valid?: boolean
+          source_ip?: string | null
+          status?: string | null
+          track_id?: string | null
+        }
+        Update: {
+          credit_result?: Json | null
+          event_hash?: string
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed?: boolean
+          received_at?: string
+          signature_valid?: boolean
+          source_ip?: string | null
+          status?: string | null
+          track_id?: string | null
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          global_markup_percent: number
+          id: string
+          maintenance_mode: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          global_markup_percent?: number
+          id?: string
+          maintenance_mode?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          global_markup_percent?: number
+          id?: string
+          maintenance_mode?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           api_key: string | null
@@ -583,6 +771,57 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_accounts: {
+        Row: {
+          api_key: string
+          api_url: string
+          balance_cached: number | null
+          balance_currency: string | null
+          created_at: string
+          delivery_multiplier: number | null
+          id: string
+          is_active: boolean
+          last_balance_check: string | null
+          last_used_at: string | null
+          name: string
+          priority: number
+          provider_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          api_url: string
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          delivery_multiplier?: number | null
+          id?: string
+          is_active?: boolean
+          last_balance_check?: string | null
+          last_used_at?: string | null
+          name: string
+          priority?: number
+          provider_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          api_url?: string
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          delivery_multiplier?: number | null
+          id?: string
+          is_active?: boolean
+          last_balance_check?: string | null
+          last_used_at?: string | null
+          name?: string
+          priority?: number
+          provider_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       providers: {
         Row: {
           api_key: string
@@ -630,9 +869,11 @@ export type Database = {
           max_quantity: number
           min_quantity: number
           priority: number
+          provider_account_id: string | null
           provider_id: string
           provider_service_id: string
           service_id: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
@@ -642,9 +883,11 @@ export type Database = {
           max_quantity?: number
           min_quantity?: number
           priority?: number
+          provider_account_id?: string | null
           provider_id: string
           provider_service_id: string
           service_id: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
@@ -654,12 +897,21 @@ export type Database = {
           max_quantity?: number
           min_quantity?: number
           priority?: number
+          provider_account_id?: string | null
           provider_id?: string
           provider_service_id?: string
           service_id?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_provider_mapping_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_provider_mapping_provider_id_fkey"
             columns: ["provider_id"]
@@ -718,6 +970,54 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_payments: {
+        Row: {
+          activated: boolean
+          amount_inr: number | null
+          amount_usd: number | null
+          created_at: string
+          id: string
+          order_id: string
+          payment_url: string | null
+          plan_type: string
+          provider: string
+          raw_payload: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated?: boolean
+          amount_inr?: number | null
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          order_id: string
+          payment_url?: string | null
+          plan_type: string
+          provider: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated?: boolean
+          amount_inr?: number | null
+          amount_usd?: number | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          payment_url?: string | null
+          plan_type?: string
+          provider?: string
+          raw_payload?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string
@@ -745,6 +1045,54 @@ export type Database = {
           name?: string
           plan_type?: string
           price?: number
+        }
+        Relationships: []
+      }
+      subscription_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          message: string | null
+          phone: string | null
+          plan_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          plan_type: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          plan_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -777,6 +1125,87 @@ export type Database = {
           plan_type?: string
           status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          message: string
+          order_id: string | null
+          priority: string | null
+          status: string | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          order_id?: string | null
+          priority?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          priority?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          status: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: string | null
+          type?: string
           user_id?: string
         }
         Relationships: []
@@ -1067,6 +1496,84 @@ export type Database = {
           },
         ]
       }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          total_deposited: number
+          total_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          total_deposited?: number
+          total_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          total_deposited?: number
+          total_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      zapupi_deposits: {
+        Row: {
+          amount_inr: number
+          amount_usd: number | null
+          created_at: string
+          credited: boolean
+          gateway_response: Json | null
+          id: string
+          order_id: string
+          payment_url: string | null
+          status: string
+          txn_id: string | null
+          updated_at: string
+          user_id: string
+          utr: string | null
+        }
+        Insert: {
+          amount_inr: number
+          amount_usd?: number | null
+          created_at?: string
+          credited?: boolean
+          gateway_response?: Json | null
+          id?: string
+          order_id: string
+          payment_url?: string | null
+          status?: string
+          txn_id?: string | null
+          updated_at?: string
+          user_id: string
+          utr?: string | null
+        }
+        Update: {
+          amount_inr?: number
+          amount_usd?: number | null
+          created_at?: string
+          credited?: boolean
+          gateway_response?: Json | null
+          id?: string
+          order_id?: string
+          payment_url?: string | null
+          status?: string
+          txn_id?: string | null
+          updated_at?: string
+          user_id?: string
+          utr?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       user_provider_accounts_safe: {
@@ -1119,6 +1626,10 @@ export type Database = {
       }
     }
     Functions: {
+      activate_subscription_from_payment: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
       get_provider_topup_plan: {
         Args: never
@@ -1143,6 +1654,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_maintenance_mode: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
