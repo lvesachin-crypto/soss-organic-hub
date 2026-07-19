@@ -1122,6 +1122,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       { data: pendingEngagementRuns, error: engagementRunsError },
       { data: failedEngagementRuns },
       { data: recentlyBusyRuns },
+      { data: recentPendingEngagementRuns },
     ] = await Promise.all([
       // 1. Active runs for conflict detection
       supabase
@@ -1141,8 +1142,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .eq('status', 'pending')
         .not('engagement_order_item_id', 'is', null)
         .lte('scheduled_at', nowWithBuffer)
-        .not('engagement_order_item.status', 'in', '("paused","cancelled")')
-        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled")')
+        .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
+        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .order('scheduled_at', { ascending: true })
         .limit(1000),
@@ -1153,6 +1154,8 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .eq('status', 'failed')
         .lt('retry_count', 99)
         .not('engagement_order_item_id', 'is', null)
+        .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
+        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .order('completed_at', { ascending: true })
         .limit(50),
       // 5. Recently busy runs (for cooldown)
@@ -1161,6 +1164,17 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .select(`provider_account_id, user_provider_account_id, error_message, engagement_order_item:engagement_order_items(engagement_type, engagement_order:engagement_orders(link))`)
         .eq('status', 'pending')
         .gte('last_status_check', fifteenMinAgo),
+      // 6. Newest due pending engagement runs so old backlog cannot starve fresh user orders
+      supabase
+        .from('organic_run_schedule')
+        .select(`*, engagement_order_item:engagement_order_items!organic_run_schedule_engagement_order_item_id_fkey!inner(*, service:services(*), engagement_order:engagement_orders!inner(*))`)
+        .eq('status', 'pending')
+        .not('engagement_order_item_id', 'is', null)
+        .lte('scheduled_at', nowWithBuffer)
+        .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
+        .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
+        .order('scheduled_at', { ascending: false })
+        .limit(500),
     ])
 
     // ==========================================
@@ -1223,14 +1237,20 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     if (engagementRunsError) {
       console.error('Error fetching engagement runs:', engagementRunsError)
     }
-    console.log(`📥 Fetched ${pendingEngagementRuns?.length || 0} raw pending engagement runs from DB`)
+    const pendingById = new Map<string, any>()
+    for (const pendingRun of [...(pendingEngagementRuns || []), ...(recentPendingEngagementRuns || [])]) {
+      if (pendingRun?.id && !pendingById.has(pendingRun.id)) pendingById.set(pendingRun.id, pendingRun)
+    }
+    const mergedPendingEngagementRuns = [...pendingById.values()]
 
-    // PRE-FILTER: Remove paused/cancelled
-    const activeEngagementRuns = (pendingEngagementRuns || []).filter((run: any) => {
+    console.log(`📥 Fetched ${mergedPendingEngagementRuns.length} raw pending engagement runs from DB (${pendingEngagementRuns?.length || 0} oldest + ${recentPendingEngagementRuns?.length || 0} newest)`)
+
+    // PRE-FILTER: Remove paused/cancelled/completed
+    const activeEngagementRuns = mergedPendingEngagementRuns.filter((run: any) => {
       const orderStatus = run.engagement_order_item?.engagement_order?.status
       const itemStatus = run.engagement_order_item?.status
-      if (orderStatus === 'paused' || orderStatus === 'cancelled') return false
-      if (itemStatus === 'paused' || itemStatus === 'cancelled') return false
+      if (orderStatus === 'paused' || orderStatus === 'cancelled' || orderStatus === 'completed') return false
+      if (itemStatus === 'paused' || itemStatus === 'cancelled' || itemStatus === 'completed') return false
       return true
     })
 
