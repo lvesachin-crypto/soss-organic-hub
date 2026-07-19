@@ -1262,6 +1262,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     const executionProviderMap = new Map<string, Set<string>>()
     // Track link+type combos where ALL providers returned "active order" — only skip same type
     const activeOrderLinkTypes = new Set<string>()
+    // Track stuck runs already handled in THIS invocation so we don't re-poll or re-complete
+    // the same provider status hundreds of times (was starving fresh dispatch).
+    const handledStuckRunIds = new Set<string>()
+    const inlineRefreshCache = new Map<string, any>()
 
     const pendingRunsLimitedPerItem = activeEngagementRuns.filter((run: any) => {
       const itemId = run.engagement_order_item_id
@@ -1437,13 +1441,11 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           continue
         }
 
-        const tracking = await syncEngagementItemTracking(supabase, item.id)
-        if (tracking?.targetReached) {
-          await updateEngagementOrderStatus(supabase, item.engagement_order_id, item.id)
-          skipped++
-          console.log(`🎯 Item ${item.id} target reached by live count (${tracking.current}/${tracking.target}); pending runs cancelled and item completed.`)
-          continue
-        }
+        // PERFORMANCE: Skip live tracking sync in the hot dispatch path — it does 3+ DB
+        // queries per candidate and starves fresh orders. The check-order-status cron
+        // maintains current_count/target_count. The DB-values check above already
+        // handles the "target already reached" case.
+        const tracking: any = null
 
         const orderedQty = Number(item.quantity || 0)
         if (orderedQty > 0) {
@@ -1653,6 +1655,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       
       // From active (started) runs for same link+type
       const startedRunsForLink = (activeRuns || []).filter((r: any) => {
+        if (handledStuckRunIds.has(r.id)) return false
         const runLink = normalizeLink(r.engagement_order_item?.engagement_order?.link)
         const runType = (r.engagement_order_item?.engagement_type || '').toLowerCase()
         return runLink === sameLink && runType === currentTypeNormalized
@@ -1660,9 +1663,15 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
       
       if (startedRunsForLink && startedRunsForLink.length > 0) {
         for (let stuckRun of startedRunsForLink) {
-          // INLINE STATUS REFRESH: don't trust stale DB status — re-poll provider live so we
-          // never block the next run just because check-order-status cron hasn't run yet.
-          stuckRun = await inlineRefreshRunStatus(supabase, stuckRun)
+          // INLINE STATUS REFRESH: cache per-invocation so we don't re-poll the same
+          // provider order for every candidate that shares the same link+type.
+          const cached = inlineRefreshCache.get(stuckRun.id)
+          if (cached) {
+            stuckRun = cached
+          } else {
+            stuckRun = await inlineRefreshRunStatus(supabase, stuckRun)
+            inlineRefreshCache.set(stuckRun.id, stuckRun)
+          }
           const terminalStatuses = ['Completed', 'Complete', 'Partial', 'Refunded', 'Canceled', 'Cancelled', 'Error', 'Failed', 'Success', 'Refund', 'Canscelled']
           const isTerminal = stuckRun.provider_status && terminalStatuses.includes(stuckRun.provider_status)
           const hasNoRemains = typeof stuckRun.provider_remains === 'number' && stuckRun.provider_remains <= 0 && !!stuckRun.provider_order_id
@@ -1683,6 +1692,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
                 status: 'failed', completed_at: new Date().toISOString(),
                 error_message: `Auto-retry: provider ${stuckRun.provider_status} with 0 delivered (remains=${remains}/${qty})`,
               }).eq('id', stuckRun.id)
+              handledStuckRunIds.add(stuckRun.id)
             } else {
               console.log(`🔄 Auto-completing run #${stuckRun.run_number} (${hasNoRemains ? 'no remains left' : `terminal: ${stuckRun.provider_status}`})`)
               await supabase.from('organic_run_schedule').update({
@@ -1691,6 +1701,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
                   ? `Auto-completed (provider remains reached 0)`
                   : `Auto-completed (status: ${stuckRun.provider_status})`,
               }).eq('id', stuckRun.id)
+              handledStuckRunIds.add(stuckRun.id)
             }
           } else if (getRunProviderAccountId(stuckRun)) {
             const stuckAccountId = getRunProviderAccountId(stuckRun)!
