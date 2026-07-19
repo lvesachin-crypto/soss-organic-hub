@@ -30,6 +30,21 @@ const MyBundles = lazy(() => import("./pages/MyBundles"));
 const MassOrder = lazy(() => import("./pages/MassOrder"));
 const AIIntelligence = lazy(() => import("./pages/AIIntelligence"));
 const Subscription = lazy(() => import("./pages/Subscription"));
+const Maintenance = lazy(() => import("./pages/Maintenance"));
+
+// 🔧 Maintenance mode toggle — set to false to bring the site back online
+const MAINTENANCE_MODE = true;
+// Admin bypass: visit /?admin-bypass=1 once to set localStorage flag
+const isAdminBypass = () => {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("admin-bypass") === "1") {
+      localStorage.setItem("bp_admin_bypass", "1");
+    }
+    return localStorage.getItem("bp_admin_bypass") === "1"
+      || window.location.pathname.startsWith("/admin");
+  } catch { return false; }
+};
 
 const EngagementOrder = lazy(() => import("./pages/EngagementOrder"));
 const EngagementOrders = lazy(() => import("./pages/EngagementOrders"));
@@ -110,6 +125,11 @@ const App = () => {
               <BrowserRouter>
                 <ScrollToTop />
                 <Suspense fallback={<PageFallback />}>
+                  {MAINTENANCE_MODE && !isAdminBypass() ? (
+                    <Routes>
+                      <Route path="*" element={<Maintenance />} />
+                    </Routes>
+                  ) : (
                   <Routes>
                     {/* User pages */}
                     <Route path="/" element={<Index />} />
@@ -159,6 +179,7 @@ const App = () => {
                     <Route path="/about" element={<AboutUs />} />
                     <Route path="/shipping" element={<ShippingPolicy />} />
                   </Routes>
+                  )}
                 </Suspense>
               </BrowserRouter>
             </AppErrorBoundary>
