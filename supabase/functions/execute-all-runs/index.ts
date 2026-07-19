@@ -1452,11 +1452,13 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           if (remaining <= 0) {
             // Enough quantity is already at providers, but live public count has not
             // reached target yet. Hold future runs instead of completing early.
+            const holdUntil = new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString()
+            // Only push scheduled_at forward — never override a user's manual future reschedule.
             await supabase.from('organic_run_schedule').update({
-              scheduled_at: new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString(),
+              scheduled_at: holdUntil,
               error_message: `Delivery reserved (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — awaiting live target count`,
               last_status_check: new Date().toISOString(),
-            }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
+            }).eq('engagement_order_item_id', item.id).eq('status', 'pending').lt('scheduled_at', holdUntil)
             if (actualDelivered >= orderedQty) {
               const finalTracking = await syncEngagementItemTracking(supabase, item.id)
               if (finalTracking?.targetReached) {
