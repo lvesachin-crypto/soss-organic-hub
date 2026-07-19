@@ -14,6 +14,306 @@ export type Database = {
   }
   public: {
     Tables: {
+      bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string | null
+          default_drip_interval: number | null
+          default_drip_interval_unit: string | null
+          default_drip_qty_per_run: number | null
+          engagement_type: string
+          id: string
+          is_base: boolean | null
+          price_per_k: number | null
+          ratio_percent: number | null
+          service_id: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string | null
+          default_drip_interval?: number | null
+          default_drip_interval_unit?: string | null
+          default_drip_qty_per_run?: number | null
+          engagement_type: string
+          id?: string
+          is_base?: boolean | null
+          price_per_k?: number | null
+          ratio_percent?: number | null
+          service_id?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string | null
+          default_drip_interval?: number | null
+          default_drip_interval_unit?: string | null
+          default_drip_qty_per_run?: number | null
+          engagement_type?: string
+          id?: string
+          is_base?: boolean | null
+          price_per_k?: number | null
+          ratio_percent?: number | null
+          service_id?: string | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "engagement_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_bundles: {
+        Row: {
+          ai_organic_enabled: boolean | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          platform: string
+          provider_id: string | null
+          sort_order: number | null
+          updated_at: string | null
+          use_custom_ratios: boolean | null
+        }
+        Insert: {
+          ai_organic_enabled?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          platform: string
+          provider_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          use_custom_ratios?: boolean | null
+        }
+        Update: {
+          ai_organic_enabled?: boolean | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          platform?: string
+          provider_id?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          use_custom_ratios?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_bundles_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_order_items: {
+        Row: {
+          created_at: string | null
+          delivered_count: number
+          drip_interval: number | null
+          drip_interval_unit: string | null
+          drip_qty_per_run: number | null
+          engagement_order_id: string
+          engagement_type: string
+          error_message: string | null
+          id: string
+          is_enabled: boolean | null
+          price: number
+          provider_mappings: Json | null
+          provider_order_id: string | null
+          quantity: number
+          service_id: string | null
+          speed_preset: string | null
+          status: string | null
+          updated_at: string | null
+          user_bundle_item_id: string | null
+          user_provider_account_id: string | null
+          user_service_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_count?: number
+          drip_interval?: number | null
+          drip_interval_unit?: string | null
+          drip_qty_per_run?: number | null
+          engagement_order_id: string
+          engagement_type: string
+          error_message?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          price?: number
+          provider_mappings?: Json | null
+          provider_order_id?: string | null
+          quantity: number
+          service_id?: string | null
+          speed_preset?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_bundle_item_id?: string | null
+          user_provider_account_id?: string | null
+          user_service_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          delivered_count?: number
+          drip_interval?: number | null
+          drip_interval_unit?: string | null
+          drip_qty_per_run?: number | null
+          engagement_order_id?: string
+          engagement_type?: string
+          error_message?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          price?: number
+          provider_mappings?: Json | null
+          provider_order_id?: string | null
+          quantity?: number
+          service_id?: string | null
+          speed_preset?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_bundle_item_id?: string | null
+          user_provider_account_id?: string | null
+          user_service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_order_items_engagement_order_id_fkey"
+            columns: ["engagement_order_id"]
+            isOneToOne: false
+            referencedRelation: "engagement_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_bundle_item_id_fkey"
+            columns: ["user_bundle_item_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundle_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_order_items_user_service_id_fkey"
+            columns: ["user_service_id"]
+            isOneToOne: false
+            referencedRelation: "user_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      engagement_orders: {
+        Row: {
+          base_quantity: number
+          bundle_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          is_organic_mode: boolean | null
+          link: string
+          order_number: number
+          peak_hours_enabled: boolean | null
+          status: string | null
+          total_price: number
+          updated_at: string | null
+          user_bundle_id: string | null
+          user_id: string
+          variance_percent: number | null
+        }
+        Insert: {
+          base_quantity: number
+          bundle_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_organic_mode?: boolean | null
+          link: string
+          order_number?: number
+          peak_hours_enabled?: boolean | null
+          status?: string | null
+          total_price?: number
+          updated_at?: string | null
+          user_bundle_id?: string | null
+          user_id: string
+          variance_percent?: number | null
+        }
+        Update: {
+          base_quantity?: number
+          bundle_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_organic_mode?: boolean | null
+          link?: string
+          order_number?: number
+          peak_hours_enabled?: boolean | null
+          status?: string | null
+          total_price?: number
+          updated_at?: string | null
+          user_bundle_id?: string | null
+          user_id?: string
+          variance_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagement_orders_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "engagement_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "engagement_orders_user_bundle_id_fkey"
+            columns: ["user_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string
@@ -91,6 +391,125 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organic_run_schedule: {
+        Row: {
+          base_quantity: number
+          completed_at: string | null
+          created_at: string | null
+          engagement_order_item_id: string | null
+          error_message: string | null
+          id: string
+          last_status_check: string | null
+          order_id: string | null
+          peak_multiplier: number | null
+          provider_account_id: string | null
+          provider_account_name: string | null
+          provider_charge: number | null
+          provider_order_id: string | null
+          provider_remains: number | null
+          provider_response: Json | null
+          provider_start_count: number | null
+          provider_status: string | null
+          quantity_to_send: number
+          retry_count: number
+          rotation_lock_key: string | null
+          run_number: number
+          scheduled_at: string
+          started_at: string | null
+          status: string | null
+          user_provider_account_id: string | null
+          user_provider_account_name: string | null
+          variance_applied: number | null
+        }
+        Insert: {
+          base_quantity: number
+          completed_at?: string | null
+          created_at?: string | null
+          engagement_order_item_id?: string | null
+          error_message?: string | null
+          id?: string
+          last_status_check?: string | null
+          order_id?: string | null
+          peak_multiplier?: number | null
+          provider_account_id?: string | null
+          provider_account_name?: string | null
+          provider_charge?: number | null
+          provider_order_id?: string | null
+          provider_remains?: number | null
+          provider_response?: Json | null
+          provider_start_count?: number | null
+          provider_status?: string | null
+          quantity_to_send: number
+          retry_count?: number
+          rotation_lock_key?: string | null
+          run_number: number
+          scheduled_at: string
+          started_at?: string | null
+          status?: string | null
+          user_provider_account_id?: string | null
+          user_provider_account_name?: string | null
+          variance_applied?: number | null
+        }
+        Update: {
+          base_quantity?: number
+          completed_at?: string | null
+          created_at?: string | null
+          engagement_order_item_id?: string | null
+          error_message?: string | null
+          id?: string
+          last_status_check?: string | null
+          order_id?: string | null
+          peak_multiplier?: number | null
+          provider_account_id?: string | null
+          provider_account_name?: string | null
+          provider_charge?: number | null
+          provider_order_id?: string | null
+          provider_remains?: number | null
+          provider_response?: Json | null
+          provider_start_count?: number | null
+          provider_status?: string | null
+          quantity_to_send?: number
+          retry_count?: number
+          rotation_lock_key?: string | null
+          run_number?: number
+          scheduled_at?: string
+          started_at?: string | null
+          status?: string | null
+          user_provider_account_id?: string | null
+          user_provider_account_name?: string | null
+          variance_applied?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organic_run_schedule_engagement_order_item_id_fkey"
+            columns: ["engagement_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "engagement_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organic_run_schedule_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organic_run_schedule_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organic_run_schedule_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -362,6 +781,199 @@ export type Database = {
         }
         Relationships: []
       }
+      user_bundle_item_providers: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          priority: number
+          provider_service_id: string | null
+          updated_at: string
+          user_bundle_item_id: string
+          user_id: string
+          user_provider_account_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          priority?: number
+          provider_service_id?: string | null
+          updated_at?: string
+          user_bundle_item_id: string
+          user_id: string
+          user_provider_account_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          priority?: number
+          provider_service_id?: string | null
+          updated_at?: string
+          user_bundle_item_id?: string
+          user_id?: string
+          user_provider_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bundle_item_providers_user_bundle_item_id_fkey"
+            columns: ["user_bundle_item_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundle_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bundle_item_providers_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bundle_item_providers_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_bundle_items: {
+        Row: {
+          created_at: string
+          engagement_type: string
+          id: string
+          priority: number
+          quantity: number
+          updated_at: string
+          user_bundle_id: string
+          user_id: string
+          user_service_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          engagement_type: string
+          id?: string
+          priority?: number
+          quantity?: number
+          updated_at?: string
+          user_bundle_id: string
+          user_id: string
+          user_service_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          engagement_type?: string
+          id?: string
+          priority?: number
+          quantity?: number
+          updated_at?: string
+          user_bundle_id?: string
+          user_id?: string
+          user_service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bundle_items_user_bundle_id_fkey"
+            columns: ["user_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "user_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bundle_items_user_service_id_fkey"
+            columns: ["user_service_id"]
+            isOneToOne: false
+            referencedRelation: "user_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_bundles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          platform: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          platform?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          platform?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_provider_accounts: {
+        Row: {
+          api_key_ciphertext: string
+          api_key_hint: string | null
+          api_url: string
+          balance_cached: number | null
+          balance_currency: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          last_test_error: string | null
+          last_test_ok: boolean | null
+          last_tested_at: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_ciphertext: string
+          api_key_hint?: string | null
+          api_url: string
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_ciphertext?: string
+          api_key_hint?: string | null
+          api_url?: string
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -383,11 +995,131 @@ export type Database = {
         }
         Relationships: []
       }
+      user_services: {
+        Row: {
+          cancel_allowed: boolean
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          max_quantity: number
+          min_quantity: number
+          name: string
+          provider_service_id: string
+          rate: number
+          raw: Json | null
+          refill: boolean
+          type: string | null
+          updated_at: string
+          user_id: string
+          user_provider_account_id: string
+        }
+        Insert: {
+          cancel_allowed?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          min_quantity?: number
+          name: string
+          provider_service_id: string
+          rate?: number
+          raw?: Json | null
+          refill?: boolean
+          type?: string | null
+          updated_at?: string
+          user_id: string
+          user_provider_account_id: string
+        }
+        Update: {
+          cancel_allowed?: boolean
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_quantity?: number
+          min_quantity?: number
+          name?: string
+          provider_service_id?: string
+          rate?: number
+          raw?: Json | null
+          refill?: boolean
+          type?: string | null
+          updated_at?: string
+          user_id?: string
+          user_provider_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_services_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_services_user_provider_account_id_fkey"
+            columns: ["user_provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "user_provider_accounts_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      user_provider_accounts_safe: {
+        Row: {
+          api_key_hint: string | null
+          api_url: string | null
+          balance_cached: number | null
+          balance_currency: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          last_test_error: string | null
+          last_test_ok: boolean | null
+          last_tested_at: string | null
+          name: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key_hint?: string | null
+          api_url?: string | null
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key_hint?: string | null
+          api_url?: string | null
+          balance_cached?: number | null
+          balance_currency?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          last_test_error?: string | null
+          last_test_ok?: boolean | null
+          last_tested_at?: string | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
       get_provider_topup_plan: {
         Args: never
         Returns: {
