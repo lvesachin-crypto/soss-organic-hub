@@ -1694,6 +1694,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
                 status: 'failed', completed_at: new Date().toISOString(),
                 error_message: `Auto-retry: provider ${stuckRun.provider_status} with 0 delivered (remains=${remains}/${qty})`,
               }).eq('id', stuckRun.id)
+              handledStuckRunIds.add(stuckRun.id)
             } else {
               console.log(`🔄 Auto-completing run #${stuckRun.run_number} (${hasNoRemains ? 'no remains left' : `terminal: ${stuckRun.provider_status}`})`)
               await supabase.from('organic_run_schedule').update({
@@ -1702,6 +1703,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
                   ? `Auto-completed (provider remains reached 0)`
                   : `Auto-completed (status: ${stuckRun.provider_status})`,
               }).eq('id', stuckRun.id)
+              handledStuckRunIds.add(stuckRun.id)
             }
           } else if (getRunProviderAccountId(stuckRun)) {
             const stuckAccountId = getRunProviderAccountId(stuckRun)!
