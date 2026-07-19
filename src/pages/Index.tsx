@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, TrendingUp, Shuffle, Clock, Moon, Timer, Eye,
-  Link2, Sparkles, Brain, CheckCircle2, XCircle, FileText,
+  Link2, Sparkles, Brain, CheckCircle2, XCircle, FileText, Menu, X, Zap,
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { PageMeta } from '@/components/seo/PageMeta';
