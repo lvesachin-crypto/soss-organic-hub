@@ -1452,11 +1452,13 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           if (remaining <= 0) {
             // Enough quantity is already at providers, but live public count has not
             // reached target yet. Hold future runs instead of completing early.
+            const holdUntil = new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString()
+            // Only push scheduled_at forward — never override a user's manual future reschedule.
             await supabase.from('organic_run_schedule').update({
-              scheduled_at: new Date(Date.now() + ACTIVE_ORDER_RETRY_MS).toISOString(),
+              scheduled_at: holdUntil,
               error_message: `Delivery reserved (asked=${observed.askedSent}, observed=${observed.observedByRuns}, public_delta=${observed.publicCountDelta}, public_delta_adj=${observed.adjustedPublicCountDelta}, buffer=${observed.publicDeltaBuffer}, target=${orderedQty}) — awaiting live target count`,
               last_status_check: new Date().toISOString(),
-            }).eq('engagement_order_item_id', item.id).eq('status', 'pending')
+            }).eq('engagement_order_item_id', item.id).eq('status', 'pending').lt('scheduled_at', holdUntil)
             if (actualDelivered >= orderedQty) {
               const finalTracking = await syncEngagementItemTracking(supabase, item.id)
               if (finalTracking?.targetReached) {
@@ -1791,7 +1793,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             scheduled_at: newScheduledAt,
             error_message: waitMsg,
             last_status_check: new Date().toISOString(),
-          }).eq('id', run.id)
+          }).eq('id', run.id).lt('scheduled_at', newScheduledAt)
 
           skipped++
           console.log(`⏸️ Run #${run.run_number} waiting — no provider mapping configured for service ${item.service.id}`)
@@ -1863,7 +1865,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
             scheduled_at: postponeUntil,
             error_message: `[Waiting for merge] Scheduled ${originalQty} below provider min ${smallestAccountMin}`,
             last_status_check: new Date().toISOString(),
-          }).eq('id', run.id)
+          }).eq('id', run.id).lt('scheduled_at', postponeUntil)
           skipped++
           console.log(`⏳ Run #${run.run_number} postponed: ${originalQty} below provider min ${smallestAccountMin} and no mergeable future runs yet`)
           continue
@@ -2462,11 +2464,12 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         // No mapping configured — wait until admin maps a provider in
         // Admin → Service Provider Mapping. Do NOT fall back to service.provider_id.
         const postponeMs = 5 * 60 * 1000
+        const postponeUntil = new Date(Date.now() + postponeMs).toISOString()
         await supabase.from('organic_run_schedule').update({
-          scheduled_at: new Date(Date.now() + postponeMs).toISOString(),
+          scheduled_at: postponeUntil,
           error_message: '[Waiting] No provider mapped for this service — add a mapping in Admin → Service Provider Mapping',
           last_status_check: new Date().toISOString(),
-        }).eq('id', run.id)
+        }).eq('id', run.id).lt('scheduled_at', postponeUntil)
         skipped++
         continue
       }
