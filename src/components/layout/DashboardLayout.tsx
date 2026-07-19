@@ -3,12 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Sidebar } from './Sidebar';
 import { MobileBottomNav } from './MobileBottomNav';
-import { WhatsAppFloatingButton } from '@/components/chat/WhatsAppFloatingButton';
-import { PopupAdDialog } from '@/components/PopupAdDialog';
 
-interface DashboardLayoutProps { children: ReactNode; }
-
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -27,8 +23,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="max-w-7xl mx-auto w-full">{children}</div>
         </div>
       </main>
-      <WhatsAppFloatingButton />
-      <PopupAdDialog />
     </div>
   );
 }
