@@ -22,12 +22,12 @@ interface Row {
   qty: Record<string, number>; // per-type quantity (custom override)
 }
 
-const ALL_TYPES = ['views', 'likes', 'shares', 'comments', 'saves', 'followers'] as const;
-const DEFAULT_TYPES: Record<string, boolean> = { views: true, likes: false, shares: false, comments: false, saves: false, followers: false };
+const ALL_TYPES = ['views', 'likes', 'shares', 'reposts', 'comments', 'saves', 'followers'] as const;
+const DEFAULT_TYPES: Record<string, boolean> = { views: true, likes: false, shares: false, reposts: false, comments: false, saves: false, followers: false };
 const TIMEFRAMES = ['Under 6 hours', 'Under 12 hours', 'Under 24 hours', 'Under 48 hours', 'Under 72 hours'];
 const CUSTOM = 'Custom';
 const isCustom = (v: string) => !TIMEFRAMES.includes(v);
-const RATIOS: Record<string, number> = { views: 1, likes: 0.031, shares: 0.013, comments: 0.008, saves: 0.012, followers: 0.02 };
+const RATIOS: Record<string, number> = { views: 1, likes: 0.031, shares: 0.013, reposts: 0.010, comments: 0.008, saves: 0.012, followers: 0.02 };
 
 function parseLinks(raw: string): string[] {
   return raw
