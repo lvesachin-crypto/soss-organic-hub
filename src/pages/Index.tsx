@@ -97,7 +97,7 @@ const Index = () => {
             </span>
             <span className="hidden sm:inline ml-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: C.blueSoft, color: C.blue, letterSpacing:'.06em' }}>
-              {"plsss fix website bhit slow chl rha haiskr de mn"}
+              {"ye kya h ?sahi kr siko"}
             </span>
           </Link>
 
