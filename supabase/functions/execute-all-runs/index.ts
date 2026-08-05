@@ -2631,8 +2631,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
     const totalTime = Date.now() - startTime
 
-    if (shouldContinue) {
-      await triggerContinuation(executionId, continuationReason || 'time-slice-exhausted')
+    if (shouldContinue && chainDepth < MAX_CHAIN_DEPTH) {
+      await triggerContinuation(executionId, continuationReason || 'time-slice-exhausted', chainDepth + 1)
+    } else if (shouldContinue) {
+      console.log(`⛔ Continuation chain capped at depth ${chainDepth}; next cron tick will resume.`)
     }
 
     console.log(`\n=== EXECUTION COMPLETE [${executionId}] in ${totalTime}ms ===`)
