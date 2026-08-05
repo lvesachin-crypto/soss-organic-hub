@@ -217,19 +217,22 @@ async function tableOrder(src: Client): Promise<string[]> {
   return ordered;
 }
 
-async function copyData(src: Client, tgt: Client, only?: string[]) {
+async function copyData(src: Client, tgt: Client, only?: string[], startOffset = 0, maxRows = 0) {
   const order = await tableOrder(src);
   const list = only?.length ? order.filter((t) => only.includes(t)) : order;
   const report: Record<string, unknown> = {};
 
   for (const table of list) {
     try {
-      const cols = (await src.queryObject<{ column_name: string }>(
-        `select a.attname as column_name from pg_attribute a join pg_class c on c.oid=a.attrelid
+      const colRows = (await src.queryObject<{ column_name: string; type: string }>(
+        `select a.attname as column_name, format_type(a.atttypid, a.atttypmod) as type
+         from pg_attribute a join pg_class c on c.oid=a.attrelid
          join pg_namespace n on n.oid=c.relnamespace
          where n.nspname='public' and c.relname=$1 and a.attnum>0 and not a.attisdropped order by a.attnum`,
         [table],
-      )).rows.map((r) => r.column_name);
+      )).rows;
+      const cols = colRows.map((r) => r.column_name);
+      const jsonCols = new Set(colRows.filter((r) => /json/i.test(r.type)).map((r) => r.column_name));
 
       const pk = (await src.queryObject<{ col: string }>(
         `select a.attname as col from pg_constraint con
@@ -241,18 +244,58 @@ async function copyData(src: Client, tgt: Client, only?: string[]) {
         [table],
       )).rows.map((r) => r.col);
 
+      // unique constraints other than the PK — trigger-created target rows collide on these
+      const uniqRows = (await src.queryObject<{ conname: string; col: string }>(
+        `select con.conname, a.attname as col from pg_constraint con
+         join pg_class c on c.oid=con.conrelid
+         join pg_namespace n on n.oid=c.relnamespace
+         join unnest(con.conkey) k(attnum) on true
+         join pg_attribute a on a.attrelid=c.oid and a.attnum=k.attnum
+         where con.contype='u' and n.nspname='public' and c.relname=$1`,
+        [table],
+      )).rows;
+      const uniques = new Map<string, string[]>();
+      for (const u of uniqRows) {
+        if (!uniques.has(u.conname)) uniques.set(u.conname, []);
+        uniques.get(u.conname)!.push(u.col);
+      }
+
+      // select json columns as text so they round-trip exactly
+      const selectList = cols.map((c) => (jsonCols.has(c) ? `${q(c)}::text as ${q(c)}` : q(c))).join(", ");
       const colList = cols.map(q).join(", ");
-      let offset = 0, total = 0;
-      const orderBy = pk.length ? pk.map(q).join(", ") : colList;
+      let offset = startOffset, total = 0;
+      const orderBy = pk.length ? pk.map(q).join(", ") : cols.map(q).join(", ");
+      let more = false;
 
       for (;;) {
         const batch = await src.queryArray(
-          `select ${colList} from public.${q(table)} order by ${orderBy} limit 500 offset ${offset}`,
+          `select ${selectList} from public.${q(table)} order by ${orderBy} limit 500 offset ${offset}`,
         );
         if (batch.rows.length === 0) break;
+
+        // clear target rows that would collide on a non-PK unique key (e.g. signup-trigger rows)
+        for (const ucols of uniques.values()) {
+          const idxs = ucols.map((c) => cols.indexOf(c));
+          if (idxs.some((i) => i < 0)) continue;
+          const vals: unknown[] = [];
+          const tuples = batch.rows.map((row) => {
+            const ph = idxs.map((i) => { vals.push(row[i]); return `$${vals.length}`; });
+            return `(${ph.join(", ")})`;
+          });
+          try {
+            await tgt.queryArray(
+              `delete from public.${q(table)} where (${ucols.map(q).join(", ")}) in (${tuples.join(", ")})`,
+              vals,
+            );
+          } catch { /* ignore */ }
+        }
+
         const values: unknown[] = [];
         const rowsSql = batch.rows.map((row) => {
-          const ph = row.map((v) => { values.push(v); return `$${values.length}`; });
+          const ph = row.map((v, i) => {
+            values.push(v);
+            return jsonCols.has(cols[i]) ? `$${values.length}::jsonb` : `$${values.length}`;
+          });
           return `(${ph.join(", ")})`;
         });
         const conflict = pk.length
@@ -265,14 +308,17 @@ async function copyData(src: Client, tgt: Client, only?: string[]) {
         total += batch.rows.length;
         offset += 500;
         if (batch.rows.length < 500) break;
+        if (maxRows > 0 && total >= maxRows) { more = true; break; }
       }
-      report[table] = { copied: total };
+      report[table] = { copied: total, next_offset: more ? offset : null };
+
     } catch (e) {
       report[table] = { error: String((e as Error).message ?? e) };
     }
   }
   return report;
 }
+
 
 /* ---------------- auth users copy ---------------- */
 
@@ -325,16 +371,16 @@ async function copyUsers(src: Client, tgt: Client) {
       if (hasProviderId) {
         await tgt.queryArray(
           `insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-           values ($1, $2::uuid, jsonb_build_object('sub', $2, 'email', $3, 'email_verified', true, 'phone_verified', false), 'email', now(), now(), now())
+           values ($1::text, $2::uuid, jsonb_build_object('sub', $3::text, 'email', $4::text, 'email_verified', true, 'phone_verified', false), 'email', now(), now(), now())
            on conflict (provider_id, provider) do nothing`,
-          [id, id, email],
+          [id, id, id, email],
         );
       } else {
         await tgt.queryArray(
           `insert into auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-           values (gen_random_uuid(), $1::uuid, jsonb_build_object('sub', $1, 'email', $2, 'email_verified', true), 'email', now(), now(), now())
+           values (gen_random_uuid(), $1::uuid, jsonb_build_object('sub', $2::text, 'email', $3::text, 'email_verified', true), 'email', now(), now(), now())
            on conflict do nothing`,
-          [id, email],
+          [id, id, email],
         );
       }
       ident++;
@@ -424,7 +470,7 @@ Deno.serve(async (req) => {
         errors: failed.slice(0, 40),
       };
     } else if (phase === "data") {
-      result = await copyData(src, tgt, body.tables);
+      result = await copyData(src, tgt, body.tables, body.offset ?? 0, body.limit ?? 0);
     } else if (phase === "users") {
       result = await copyUsers(src, tgt);
     } else if (phase === "verify") {
