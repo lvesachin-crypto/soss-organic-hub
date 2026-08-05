@@ -1019,7 +1019,7 @@ async function triggerContinuation(executionId: string, reason: string, nextDept
         'Authorization': `Bearer ${serviceKey}`,
         'apikey': serviceKey,
       },
-      body: JSON.stringify({ continued_from: executionId, reason }),
+      body: JSON.stringify({ continued_from: executionId, reason, chain_depth: nextDepth }),
     })
 
     if (!response.ok) {
