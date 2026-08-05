@@ -217,7 +217,7 @@ async function tableOrder(src: Client): Promise<string[]> {
   return ordered;
 }
 
-async function copyData(src: Client, tgt: Client, only?: string[], startOffset = 0, maxRows = 0) {
+async function copyData(src: Client, tgt: Client, only?: string[], startOffset = 0, maxRows = 0, sinceHours = 0) {
   const order = await tableOrder(src);
   const list = only?.length ? order.filter((t) => only.includes(t)) : order;
   const report: Record<string, unknown> = {};
@@ -260,6 +260,12 @@ async function copyData(src: Client, tgt: Client, only?: string[], startOffset =
         uniques.get(u.conname)!.push(u.col);
       }
 
+      // incremental mode: only rows touched in the last N hours (falls back to full copy)
+      const tsCols = ["updated_at", "created_at"].filter((c) => cols.includes(c));
+      const where = sinceHours > 0 && tsCols.length
+        ? `where greatest(${tsCols.map((c) => `coalesce(${q(c)}, '-infinity'::timestamptz)`).join(", ")}) > now() - interval '${sinceHours} hours'`
+        : "";
+
       // select json columns as text so they round-trip exactly
       const selectList = cols.map((c) => (jsonCols.has(c) ? `${q(c)}::text as ${q(c)}` : q(c))).join(", ");
       const colList = cols.map(q).join(", ");
@@ -269,7 +275,7 @@ async function copyData(src: Client, tgt: Client, only?: string[], startOffset =
 
       for (;;) {
         const batch = await src.queryArray(
-          `select ${selectList} from public.${q(table)} order by ${orderBy} limit 500 offset ${offset}`,
+          `select ${selectList} from public.${q(table)} ${where} order by ${orderBy} limit 500 offset ${offset}`,
         );
         if (batch.rows.length === 0) break;
 
@@ -443,7 +449,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: { phase?: string; tables?: string[]; offset?: number; limit?: number } = {};
+  let body: { phase?: string; tables?: string[]; offset?: number; limit?: number; since_hours?: number } = {};
   try { body = await req.json(); } catch { /* default */ }
   const phase = body.phase ?? "verify";
 
@@ -470,7 +476,13 @@ Deno.serve(async (req) => {
         errors: failed.slice(0, 40),
       };
     } else if (phase === "data") {
-      result = await copyData(src, tgt, body.tables, body.offset ?? 0, body.limit ?? 0);
+      result = await copyData(src, tgt, body.tables, body.offset ?? 0, body.limit ?? 0, body.since_hours ?? 0);
+    } else if (phase === "sync") {
+      // incremental 6-hourly mirror: new/changed rows + new signups
+      const since = body.since_hours ?? 8;
+      const users = await copyUsers(src, tgt);
+      const data = await copyData(src, tgt, body.tables, 0, body.limit ?? 0, since);
+      result = { since_hours: since, users, data };
     } else if (phase === "users") {
       result = await copyUsers(src, tgt);
     } else if (phase === "verify") {
