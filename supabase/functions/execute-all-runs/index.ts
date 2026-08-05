@@ -1155,7 +1155,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .order('scheduled_at', { ascending: true })
-        .limit(1000),
+        .limit(250),
       // 4. Failed engagement runs for retry
       supabase
         .from('organic_run_schedule')
