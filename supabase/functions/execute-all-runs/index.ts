@@ -1108,7 +1108,7 @@ serve(async (req) => {
   }
 })
 
-async function processAllRuns(supabase: any, executionId: string, startTime: number) {
+async function processAllRuns(supabase: any, executionId: string, startTime: number, chainDepth = 0) {
   try {
     let processed = 0
     let skipped = 0
