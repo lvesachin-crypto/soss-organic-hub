@@ -1071,10 +1071,19 @@ serve(async (req) => {
     }
 
     const executionId = crypto.randomUUID().slice(0, 8)
-    console.log(`=== EXECUTE ALL ORGANIC RUNS [${executionId}] ===`)
+
+    // Continuation chain depth — hard-capped so the function cannot self-invoke
+    // forever and melt the database with repeated heavy scans.
+    let chainDepth = 0
+    try {
+      const reqBody = await req.clone().json()
+      chainDepth = Number(reqBody?.chain_depth) || 0
+    } catch { /* no body */ }
+
+    console.log(`=== EXECUTE ALL ORGANIC RUNS [${executionId}] depth=${chainDepth} ===`)
 
     // Return 202 immediately, process in background to avoid context-canceled
-    const backgroundWork = processAllRuns(supabase, executionId, startTime)
+    const backgroundWork = processAllRuns(supabase, executionId, startTime, chainDepth)
     
     try {
       EdgeRuntime.waitUntil(backgroundWork)
