@@ -1184,7 +1184,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('scheduled_at', { ascending: false })
-        .limit(500),
+        .limit(150),
     ])
 
     // ==========================================
