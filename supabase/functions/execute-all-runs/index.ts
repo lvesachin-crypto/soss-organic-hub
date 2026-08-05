@@ -1000,7 +1000,9 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
   await supabase.from('engagement_orders').update({ status: orderStatus }).eq('id', engagementOrderId).neq('status', 'cancelled')
 }
 
-async function triggerContinuation(executionId: string, reason: string) {
+const MAX_CHAIN_DEPTH = 2
+
+async function triggerContinuation(executionId: string, reason: string, nextDepth = 1) {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
