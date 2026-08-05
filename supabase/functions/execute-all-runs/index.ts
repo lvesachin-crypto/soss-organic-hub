@@ -1000,7 +1000,9 @@ async function updateEngagementOrderStatus(supabase: SupabaseClient, engagementO
   await supabase.from('engagement_orders').update({ status: orderStatus }).eq('id', engagementOrderId).neq('status', 'cancelled')
 }
 
-async function triggerContinuation(executionId: string, reason: string) {
+const MAX_CHAIN_DEPTH = 2
+
+async function triggerContinuation(executionId: string, reason: string, nextDepth = 1) {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -1017,7 +1019,7 @@ async function triggerContinuation(executionId: string, reason: string) {
         'Authorization': `Bearer ${serviceKey}`,
         'apikey': serviceKey,
       },
-      body: JSON.stringify({ continued_from: executionId, reason }),
+      body: JSON.stringify({ continued_from: executionId, reason, chain_depth: nextDepth }),
     })
 
     if (!response.ok) {
@@ -1071,10 +1073,19 @@ serve(async (req) => {
     }
 
     const executionId = crypto.randomUUID().slice(0, 8)
-    console.log(`=== EXECUTE ALL ORGANIC RUNS [${executionId}] ===`)
+
+    // Continuation chain depth — hard-capped so the function cannot self-invoke
+    // forever and melt the database with repeated heavy scans.
+    let chainDepth = 0
+    try {
+      const reqBody = await req.clone().json()
+      chainDepth = Number(reqBody?.chain_depth) || 0
+    } catch { /* no body */ }
+
+    console.log(`=== EXECUTE ALL ORGANIC RUNS [${executionId}] depth=${chainDepth} ===`)
 
     // Return 202 immediately, process in background to avoid context-canceled
-    const backgroundWork = processAllRuns(supabase, executionId, startTime)
+    const backgroundWork = processAllRuns(supabase, executionId, startTime, chainDepth)
     
     try {
       EdgeRuntime.waitUntil(backgroundWork)
@@ -1099,7 +1110,7 @@ serve(async (req) => {
   }
 })
 
-async function processAllRuns(supabase: any, executionId: string, startTime: number) {
+async function processAllRuns(supabase: any, executionId: string, startTime: number, chainDepth = 0) {
   try {
     let processed = 0
     let skipped = 0
@@ -1155,7 +1166,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .order('scheduled_at', { ascending: true })
-        .limit(1000),
+        .limit(250),
       // 4. Failed engagement runs for retry
       supabase
         .from('organic_run_schedule')
@@ -1184,7 +1195,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('scheduled_at', { ascending: false })
-        .limit(500),
+        .limit(150),
     ])
 
     // ==========================================
@@ -2622,8 +2633,10 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
 
     const totalTime = Date.now() - startTime
 
-    if (shouldContinue) {
-      await triggerContinuation(executionId, continuationReason || 'time-slice-exhausted')
+    if (shouldContinue && chainDepth < MAX_CHAIN_DEPTH) {
+      await triggerContinuation(executionId, continuationReason || 'time-slice-exhausted', chainDepth + 1)
+    } else if (shouldContinue) {
+      console.log(`⛔ Continuation chain capped at depth ${chainDepth}; next cron tick will resume.`)
     }
 
     console.log(`\n=== EXECUTION COMPLETE [${executionId}] in ${totalTime}ms ===`)
