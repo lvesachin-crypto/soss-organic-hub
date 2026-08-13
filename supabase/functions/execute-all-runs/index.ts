@@ -1226,17 +1226,28 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           const isActive = isActiveProviderStatus(stuck.provider_status)
           const retryCount = stuck.retry_count || 0
 
-          if (deliveredZero && isActive && ageMin < 45) {
-            return null
+          // Never fail a run from STALE provider data. If we haven't polled the
+          // provider recently, the "0 delivered" snapshot may be hours old while
+          // the provider has already delivered/completed. Let check-order-status
+          // refresh it instead of killing a healthy order.
+          const lastCheckMs = stuck.last_status_check ? new Date(stuck.last_status_check).getTime() : 0
+          const checkAgeMin = lastCheckMs ? Math.round((Date.now() - lastCheckMs) / 60000) : 9999
+          const providerDataFresh = checkAgeMin <= 20
+
+          if (deliveredZero && isActive && (ageMin < 120 || !providerDataFresh)) {
+            return supabase.from('organic_run_schedule').update({
+              error_message: `Waiting for provider delivery (${ageMin}min, status: ${stuck.provider_status || 'unknown'})`,
+            }).eq('id', stuck.id)
           }
 
-          if (deliveredZero && !isTerminal && retryCount < 15) {
+          if (deliveredZero && !isTerminal && providerDataFresh && retryCount < 15) {
             return supabase.from('organic_run_schedule').update({
               status: 'failed', completed_at: new Date().toISOString(),
               error_message: `Auto-retry after ${ageMin}min: provider returned ${stuck.provider_status || 'unknown'} with 0 delivered (remains=${remains}/${qty})`,
               rotation_lock_key: null,
             }).eq('id', stuck.id)
           }
+
 
           if (!isTerminal && isActive) {
             return null

@@ -423,6 +423,11 @@ Deno.serve(async (req) => {
 
     console.log(`Found ${engagementRuns?.length || 0} engagement runs waiting for completion`)
 
+    // Bulk provider-status cache (filled via action=multistatus, see below)
+    const multiStatusCache = new Map<string, any>()
+    const multiStatusTried = new Set<string>()
+
+
     // Process each run individually using its ACTUAL provider account
     // (Not grouped by service provider_id - that was the bug!)
     for (const run of engagementRuns || []) {
@@ -493,26 +498,94 @@ Deno.serve(async (req) => {
 
         console.log(`Checking ${run.engagement_order_item?.engagement_type} order ${run.provider_order_id} on ${providerName}`)
 
-        const formData = new URLSearchParams()
-        formData.append('key', apiKey)
-        formData.append('action', 'status')
-        formData.append('order', run.provider_order_id)
+        // ---- BULK PREFETCH (multistatus) ----------------------------------
+        // Polling each run one-by-one could not keep up with 1000+ active runs,
+        // so live progress went stale. Standard SMM APIs support
+        // `action=multistatus&orders=id1,id2,...` (max 100 per call), so the
+        // first run of a provider warms the cache for every other run of the
+        // same provider in this batch.
+        const providerKey = `${apiUrl}||${run.user_provider_account_id || run.provider_account_id || 'default'}`
+        const cacheKey = `${providerKey}||${run.provider_order_id}`
 
-        const response = await fetchWithTimeout(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: formData.toString()
-        })
+        if (!multiStatusCache.has(cacheKey) && !multiStatusTried.has(providerKey)) {
+          multiStatusTried.add(providerKey)
+          const siblingIds = Array.from(new Set(
+            (engagementRuns || [])
+              .filter((r: any) =>
+                r.provider_order_id &&
+                `${(r.user_provider_account?.api_url || r.provider_account?.api_url || apiUrl)}||${r.user_provider_account_id || r.provider_account_id || 'default'}` === providerKey
+              )
+              .map((r: any) => String(r.provider_order_id))
+          ))
+          for (let i = 0; i < siblingIds.length; i += 100) {
+            const chunk = siblingIds.slice(i, i + 100)
+            if (chunk.length < 2) break
+            let cachedAny = false
+            // Panels differ: some expose action=multistatus, others action=status
+            // with an `orders` list. Try both before giving up.
+            for (const action of ['multistatus', 'status']) {
+              try {
+                const multiForm = new URLSearchParams()
+                multiForm.append('key', apiKey)
+                multiForm.append('action', action)
+                multiForm.append('orders', chunk.join(','))
+                const multiRes = await fetchWithTimeout(apiUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: multiForm.toString()
+                })
+                const multiText = await multiRes.text()
+                const multiJson = JSON.parse(multiText)
+                let hits = 0
+                if (multiJson && typeof multiJson === 'object' && !multiJson.error) {
+                  for (const [oid, val] of Object.entries(multiJson)) {
+                    if (val && typeof val === 'object' && !(val as any).error) {
+                      multiStatusCache.set(`${providerKey}||${oid}`, val)
+                      hits++
+                    }
+                  }
+                }
+                if (hits > 0) {
+                  console.log(`BULK ${action} on ${providerName}: cached ${hits}/${chunk.length} orders`)
+                  cachedAny = true
+                  break
+                }
+                console.log(`BULK ${action} on ${providerName} returned no usable data: ${multiText.slice(0, 200)}`)
+              } catch (e) {
+                console.log(`BULK ${action} failed on ${providerName}: ${e}`)
+              }
+            }
+            if (!cachedAny) break
+          }
 
-        const responseText = await response.text()
-        console.log(`Status for ${run.engagement_order_item?.engagement_type} order ${run.provider_order_id}: ${responseText}`)
-
-        let result
-        try {
-          result = JSON.parse(responseText)
-        } catch {
-          result = { error: responseText }
         }
+
+        let result: any = multiStatusCache.get(cacheKey)
+
+        if (!result) {
+          const formData = new URLSearchParams()
+          formData.append('key', apiKey)
+          formData.append('action', 'status')
+          formData.append('order', run.provider_order_id)
+
+          const response = await fetchWithTimeout(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+          })
+
+          const responseText = await response.text()
+          console.log(`Status for ${run.engagement_order_item?.engagement_type} order ${run.provider_order_id}: ${responseText}`)
+
+          try {
+            result = JSON.parse(responseText)
+          } catch {
+            result = { error: responseText }
+          }
+        } else {
+          console.log(`Status (cached) for order ${run.provider_order_id}: ${JSON.stringify(result)}`)
+        }
+
 
         if (result.error) {
           console.error(`Status check failed for ${run.provider_order_id}:`, result.error)
