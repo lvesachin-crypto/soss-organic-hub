@@ -17,7 +17,7 @@ echo "==> 2/4 building frontend"
 if command -v bun >/dev/null 2>&1; then
   bun install && bun run build
 else
-  npm ci && npm run build
+  (npm ci || npm install --no-audit --no-fund) && npm run build
 fi
 
 echo "==> 3/4 syncing edge functions into the Supabase stack"
