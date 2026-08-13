@@ -47,4 +47,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-});
+  // Strip debug logging from production bundles for a smaller, faster app
+  esbuild: mode === "production" ? { drop: ["console", "debugger"] } : {},
+}));
