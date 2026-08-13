@@ -11,7 +11,9 @@ const RETRY_DELAY_MS = 2000
 const MAX_RUN_RETRIES = 9999
 const ACTIVE_ORDER_RETRY_MS = 60 * 1000
 const TEMPORARY_RETRY_MS = 60 * 1000
-const MAX_RUNS_PER_ITEM_PER_INVOCATION = 10
+const MAX_RUNS_PER_ITEM_PER_INVOCATION = 25
+// Wall-clock slice for the dispatch loop (edge runtime allows ~150s).
+const DISPATCH_TIME_BUDGET_MS = 100_000
 
 function getRunProviderAccountId(run: any): string | null {
   return run?.provider_account_id || run?.user_provider_account_id || null
@@ -1166,7 +1168,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .order('scheduled_at', { ascending: true })
-        .limit(250),
+        .limit(600),
       // 4. Failed engagement runs for retry
       supabase
         .from('organic_run_schedule')
@@ -1177,7 +1179,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .not('engagement_order_item.status', 'in', '("paused","cancelled","completed")')
         .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .order('completed_at', { ascending: true })
-        .limit(50),
+        .limit(150),
       // 5. Recently busy runs (for cooldown)
       supabase
         .from('organic_run_schedule')
@@ -1195,7 +1197,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
         .not('engagement_order_item.engagement_order.status', 'in', '("paused","cancelled","completed")')
         .or(`last_status_check.is.null,last_status_check.lt.${busyRetryCooldownBefore}`)
         .order('scheduled_at', { ascending: false })
-        .limit(150),
+        .limit(400),
     ])
 
     // ==========================================
@@ -1388,7 +1390,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     // Process each engagement run
     for (const run of allEngagementRuns) {
       // Timeout guard: if we've been running for 50s, stop to avoid edge function timeout
-      if (Date.now() - startTime > 50000) {
+      if (Date.now() - startTime > DISPATCH_TIME_BUDGET_MS) {
         shouldContinue = true
         continuationReason = 'engagement-time-slice-exhausted'
         console.log(`⏰ Approaching timeout (${Date.now() - startTime}ms), stopping processing. Remaining runs will be picked up next cycle.`)
@@ -2408,8 +2410,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
           success: false, error: lastError, will_retry: true, retry_attempt: retryCount, postponed_min: postponeMs / 60000 })
       }
 
-      // Minimal delay between runs for max throughput
-      await new Promise(resolve => setTimeout(resolve, 50))
+      // No artificial delay between runs — max throughput at scale.
     }
 
     // ==========================================
