@@ -20,51 +20,47 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-card group-[.toaster]:text-foreground group-[.toaster]:border group-[.toaster]:border-border group-[.toaster]:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_12px_32px_-12px_rgba(16,24,40,0.18)] group-[.toaster]:rounded-xl group-[.toaster]:px-4 group-[.toaster]:py-3 group-[.toaster]:min-w-[260px] group-[.toaster]:max-w-[380px] group-[.toaster]:gap-3 group-[.toaster]:items-start",
+            "group toast group-[.toaster]:bg-card/85 group-[.toaster]:text-foreground group-[.toaster]:border group-[.toaster]:border-white/60 group-[.toaster]:ring-1 group-[.toaster]:ring-black/[0.04] group-[.toaster]:shadow-[0_2px_6px_-2px_rgba(16,24,40,0.10),0_24px_48px_-20px_rgba(16,24,40,0.28)] group-[.toaster]:rounded-2xl group-[.toaster]:pl-5 group-[.toaster]:pr-5 group-[.toaster]:py-3.5 group-[.toaster]:min-w-[268px] group-[.toaster]:max-w-[380px] group-[.toaster]:gap-3.5 group-[.toaster]:items-center",
           title:
-            "group-[.toast]:text-[13.5px] group-[.toast]:font-semibold group-[.toast]:leading-snug group-[.toast]:tracking-tight group-[.toast]:text-foreground group-[.toast]:break-words",
+            "group-[.toast]:text-[13px] group-[.toast]:font-bold group-[.toast]:leading-snug group-[.toast]:tracking-[-0.01em] group-[.toast]:text-foreground group-[.toast]:break-words",
           description:
-            "group-[.toast]:text-[12.5px] group-[.toast]:text-muted-foreground group-[.toast]:mt-0.5 group-[.toast]:leading-relaxed group-[.toast]:break-words",
+            "group-[.toast]:text-[12px] group-[.toast]:text-muted-foreground group-[.toast]:mt-0.5 group-[.toast]:leading-relaxed group-[.toast]:break-words",
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-lg group-[.toast]:font-semibold group-[.toast]:text-xs group-[.toast]:px-3 group-[.toast]:py-1.5 group-[.toast]:transition-all hover:group-[.toast]:brightness-105",
+            "group-[.toast]:bg-foreground group-[.toast]:text-background group-[.toast]:rounded-full group-[.toast]:font-semibold group-[.toast]:text-[11px] group-[.toast]:px-3.5 group-[.toast]:py-1.5 group-[.toast]:transition-all hover:group-[.toast]:opacity-90",
           cancelButton:
-            "group-[.toast]:bg-secondary group-[.toast]:text-muted-foreground group-[.toast]:rounded-lg group-[.toast]:text-xs group-[.toast]:px-3 group-[.toast]:py-1.5 group-[.toast]:transition-all hover:group-[.toast]:bg-muted",
+            "group-[.toast]:bg-secondary group-[.toast]:text-muted-foreground group-[.toast]:rounded-full group-[.toast]:text-[11px] group-[.toast]:px-3.5 group-[.toast]:py-1.5 group-[.toast]:transition-all hover:group-[.toast]:bg-muted",
           closeButton:
-            "!left-auto !right-2 !top-2 !bg-secondary !border !border-border !text-muted-foreground hover:!text-foreground hover:!bg-muted !rounded-md !w-5 !h-5 transition-all",
-          success: "group-[.toaster]:border-l-[3px] group-[.toaster]:border-l-emerald-500",
-          error: "group-[.toaster]:border-l-[3px] group-[.toaster]:border-l-red-500",
-          warning: "group-[.toaster]:border-l-[3px] group-[.toaster]:border-l-amber-500",
-          info: "group-[.toaster]:border-l-[3px] group-[.toaster]:border-l-primary",
-          loading: "group-[.toaster]:border-l-[3px] group-[.toaster]:border-l-border",
+            "!left-auto !right-2.5 !top-2.5 !bg-card/80 !border !border-border/70 !text-muted-foreground hover:!text-foreground hover:!bg-muted !rounded-full !w-5 !h-5 !shadow-sm transition-all",
         },
       }}
       icons={{
         success: (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-50 ring-1 ring-emerald-200 flex items-center justify-center mt-0.5">
-            <Check className="h-3 w-3 text-emerald-600 stroke-[3]" />
+          <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_6px_14px_-6px_rgba(5,150,105,0.8)] flex items-center justify-center">
+            <Check className="h-4 w-4 text-white stroke-[3.5]" />
           </div>
         ),
         error: (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-50 ring-1 ring-red-200 flex items-center justify-center mt-0.5">
-            <X className="h-3 w-3 text-red-600 stroke-[3]" />
+          <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-rose-400 to-rose-600 shadow-[0_6px_14px_-6px_rgba(225,29,72,0.8)] flex items-center justify-center">
+            <X className="h-4 w-4 text-white stroke-[3.5]" />
           </div>
         ),
         warning: (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-50 ring-1 ring-amber-200 flex items-center justify-center mt-0.5">
-            <AlertTriangle className="h-3 w-3 text-amber-600 stroke-[3]" />
+          <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_6px_14px_-6px_rgba(217,119,6,0.8)] flex items-center justify-center">
+            <AlertTriangle className="h-4 w-4 text-white stroke-[3]" />
           </div>
         ),
         info: (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 ring-1 ring-primary/25 flex items-center justify-center mt-0.5">
-            <Info className="h-3 w-3 text-primary stroke-[3]" />
+          <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-[0_6px_14px_-6px_hsl(var(--primary)/0.85)] flex items-center justify-center">
+            <Info className="h-4 w-4 text-white stroke-[3]" />
           </div>
         ),
         loading: (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary ring-1 ring-border flex items-center justify-center mt-0.5">
-            <Loader2 className="h-3 w-3 text-muted-foreground animate-spin stroke-[3]" />
+          <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-slate-200 to-slate-400 flex items-center justify-center">
+            <Loader2 className="h-4 w-4 text-white animate-spin stroke-[3]" />
           </div>
         ),
       }}
+
       {...props}
     />
   );
