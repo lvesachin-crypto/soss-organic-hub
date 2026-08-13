@@ -79,7 +79,7 @@ export default function Dashboard() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => navigate('/engagement-order')} className="h-10 px-4 rounded-lg text-[12px] font-semibold flex items-center gap-1.5" style={{ border: '1px solid rgba(0,0,0,.08)', color: '#555' }}>
-              <Sparkles className="w-3.5 h-3.5" style={{ color: '#111827' }} /> Engagement
+              <Sparkles className="w-3.5 h-3.5" style={{ color: '#2563EB' }} /> Engagement
             </button>
             <button onClick={() => navigate('/order')} className="h-10 px-4 rounded-lg text-[12px] font-semibold text-white flex items-center gap-1.5" style={{ background: '#2563EB' }}>
               <Zap className="w-3.5 h-3.5" /> New Order
@@ -110,10 +110,10 @@ export default function Dashboard() {
           <div className="lg:col-span-3 rounded-xl overflow-hidden" style={cardStyle}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,.06)' }}>
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" style={{ color: '#111827' }} />
+                <BarChart3 className="w-4 h-4" style={{ color: '#2563EB' }} />
                 <h2 className="text-[14px] font-bold" style={{ color: '#111827' }}>Engagement Orders</h2>
               </div>
-              <Link to="/engagement-orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#111827' }}>
+              <Link to="/engagement-orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#2563EB' }}>
                 View all <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
@@ -151,7 +151,7 @@ export default function Dashboard() {
                 <Package className="w-4 h-4" style={{ color: '#888' }} />
                 <h2 className="text-[14px] font-bold" style={{ color: '#111827' }}>Single Orders</h2>
               </div>
-              <Link to="/orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#111827' }}>
+              <Link to="/orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#2563EB' }}>
                 View all <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
