@@ -102,67 +102,64 @@ html { font-size: 16px; }
   }
 
 
-  ::selection { background: hsl(var(--primary) / 0.35); color: hsl(var(--foreground)); }
+  ::selection { background: hsl(var(--primary) / 0.18); color: hsl(var(--foreground)); }
 }
 
 @layer components {
   .lux-mono {
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    text-transform: none;
   }
 
   .lux-section-label {
-    @apply lux-mono text-[10px] font-semibold;
+    @apply text-[12px] font-semibold tracking-normal;
     color: hsl(var(--muted-foreground));
   }
 
   .glass-card {
-    @apply relative overflow-hidden rounded-2xl border;
-    background: linear-gradient(180deg, hsl(0 0% 100% / 0.9), hsl(220 25% 98% / 0.9));
+    @apply relative overflow-hidden rounded-xl border bg-card;
     border-color: hsl(var(--border));
-    box-shadow: 0 4px 24px rgba(20,30,60,.06), inset 0 1px 0 hsl(0 0% 100% / 0.6);
-    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-soft);
   }
 
 
   .three-d-card { @apply glass-card; }
   .glass-premium { @apply glass-card; }
-  .glass-panel { @apply rounded-2xl bg-card border border-border; box-shadow: var(--shadow-soft); }
+  .glass-panel { @apply rounded-xl bg-card border border-border; box-shadow: var(--shadow-soft); }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent font-extrabold;
-    background-image: var(--gradient-luxury);
+    @apply font-extrabold;
+    color: hsl(var(--foreground));
   }
 
   .btn-3d {
-    @apply relative overflow-hidden font-semibold rounded-xl flex items-center justify-center transition-all duration-200;
-    background: var(--gradient-luxury);
-    color: hsl(0 0% 100%);
-    box-shadow: 0 8px 28px hsl(224 92% 55% / 0.35), inset 0 1px 0 hsl(220 100% 100% / 0.15);
+    @apply relative overflow-hidden font-semibold rounded-lg flex items-center justify-center transition-colors duration-150 bg-primary text-primary-foreground;
   }
-  .btn-3d:hover { transform: translateY(-1px); box-shadow: 0 12px 36px hsl(224 92% 55% / 0.45); }
-  .btn-3d:active { transform: translateY(0); }
+  .btn-3d:hover { background: hsl(221 83% 46%); }
+  .btn-3d:active { background: hsl(221 83% 42%); }
 
   .btn-glass {
-    @apply relative overflow-hidden font-semibold rounded-xl bg-secondary text-foreground border border-border transition-all duration-200;
+    @apply relative overflow-hidden font-semibold rounded-lg bg-card text-foreground border border-border transition-colors duration-150;
   }
   .btn-glass:hover { @apply bg-muted; }
 
   .nav-link {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground font-medium transition-colors;
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-muted-foreground font-medium transition-colors;
   }
+  .nav-link:hover { @apply bg-muted text-foreground; }
   .nav-link-active {
-    @apply text-foreground;
-    background: linear-gradient(180deg, hsl(224 90% 92%), hsl(224 90% 96%));
-    border: 1px solid hsl(var(--primary) / 0.35);
+    @apply text-primary font-semibold;
+    background: hsl(var(--primary) / 0.08);
+    border: 1px solid hsl(var(--primary) / 0.18);
   }
 
 
   .input-3d {
-    @apply bg-secondary border-border rounded-xl font-medium transition-all text-foreground;
+    @apply bg-card border-border rounded-lg font-medium transition-all text-foreground;
   }
-  .input-3d:focus { @apply border-primary ring-2 ring-primary/25 outline-none; }
+  .input-3d:focus { @apply border-primary ring-2 ring-primary/20 outline-none; }
+
 
   .glow-neon { box-shadow: 0 0 20px hsl(var(--primary) / 0.28); }
 
