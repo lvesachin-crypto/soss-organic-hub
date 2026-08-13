@@ -78,10 +78,7 @@ html { font-size: 16px; }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background:
-      radial-gradient(1200px 600px at 10% -10%, hsl(224 100% 80% / 0.22), transparent 60%),
-      radial-gradient(1000px 500px at 110% 20%, hsl(230 71% 30% / 0.14), transparent 60%),
-      hsl(var(--background));
+    background: hsl(var(--background));
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -92,17 +89,18 @@ html { font-size: 16px; }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', system-ui, sans-serif;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: hsl(var(--foreground));
   }
 
   label, .label {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    @apply text-muted-foreground text-[11px];
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    @apply text-muted-foreground text-[13px];
   }
+
 
   ::selection { background: hsl(var(--primary) / 0.35); color: hsl(var(--foreground)); }
 }
