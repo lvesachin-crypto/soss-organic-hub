@@ -11,7 +11,7 @@ set -euo pipefail
 
 STACK_DIR="${STACK_DIR:-/opt/supabase}"
 ENV_FILE="$STACK_DIR/functions.env"
-OVERRIDE="$STACK_DIR/docker-compose.override.yml"
+OVERRIDE="$STACK_DIR/docker-compose.boostly-secrets.yml"
 
 mkdir -p "$STACK_DIR"
 touch "$ENV_FILE"
@@ -42,10 +42,29 @@ services:
     env_file:
       - ./functions.env
 YML
+chmod 600 "$OVERRIDE"
 
-echo "==> restarting edge functions"
+echo "==> recreating edge functions with the secrets file"
 cd "$STACK_DIR"
-docker compose up -d functions
-sleep 3
-docker compose ps --format '{{.Name}}  {{.Status}}' | grep functions || true
-echo "==> done"
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.boostly-secrets.yml \
+  up -d --force-recreate functions
+
+echo "==> verifying PROVIDER_KEY_SECRET inside the running container"
+for _ in $(seq 1 15); do
+  if docker exec supabase-edge-functions sh -c 'test -n "$PROVIDER_KEY_SECRET"' 2>/dev/null; then
+    echo "   PROVIDER_KEY_SECRET loaded successfully"
+    docker compose \
+      -f docker-compose.yml \
+      -f docker-compose.boostly-secrets.yml \
+      ps --format '{{.Name}}  {{.Status}}' | grep functions || true
+    echo "==> done"
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "!! PROVIDER_KEY_SECRET is still unavailable in supabase-edge-functions" >&2
+echo "!! Run: docker logs --tail 100 supabase-edge-functions" >&2
+exit 1
