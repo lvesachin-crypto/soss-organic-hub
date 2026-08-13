@@ -229,7 +229,7 @@ export default function Wallet() {
       case 'deposit': return '#3b82f6';
       case 'order': return '#ef4444';
       case 'refund': return '#2563eb';
-      default: return '#0E1B4D';
+      default: return '#2563EB';
     }
   };
 
@@ -288,7 +288,7 @@ export default function Wallet() {
       <PageMeta title="Wallet & Top-up" description="Add funds via UPI or crypto and review your Boostly Pro wallet balance and transaction history." canonicalPath="/wallet" noIndex />
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#0E1B4D' }}>Wallet</h1>
+          <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>Wallet</h1>
           <p className="text-[13px] mt-1" style={{ color: '#999' }}>Manage your balance and transactions.</p>
         </div>
 
@@ -428,7 +428,7 @@ export default function Wallet() {
         {/* Transaction History */}
         <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid rgba(0,0,0,.06)', boxShadow: '0 2px 12px rgba(0,0,0,.04)' }}>
           <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-            <h2 className="text-lg font-bold" style={{ color: '#0E1B4D' }}>Transaction History</h2>
+            <h2 className="text-lg font-bold" style={{ color: '#111827' }}>Transaction History</h2>
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(0,0,0,.03)' }}>
               {(['all', 'deposit', 'order', 'refund'] as const).map((f) => (
                 <button
@@ -459,7 +459,7 @@ export default function Wallet() {
                       {getIcon(tx.type)}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium text-[13px] leading-tight truncate max-w-[260px]" style={{ color: '#0E1B4D' }}>
+                      <p className="font-medium text-[13px] leading-tight truncate max-w-[260px]" style={{ color: '#111827' }}>
                         {tx.displayDescription}
                       </p>
                       <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-1">

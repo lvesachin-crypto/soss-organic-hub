@@ -11,15 +11,15 @@ import logo from '@/assets/logo.png';
 
 interface SidebarProps { onClose?: () => void; }
 
-// Landing-page palette
+// Clean light palette
 const C = {
-  navy:  '#0E1B4D',
-  pink:  '#1D5CFF',
-  pink2: '#4B84FF',
+  navy:  '#141414',
+  pink:  '#2563EB',
+  pink2: '#3B82F6',
   white: '#FFFFFF',
-  cream: '#FFF6EC',
-  ink:   '#5A5F7A',
-  line:  'rgba(14,27,77,0.10)',
+  cream: '#F3F4F6',
+  ink:   '#6B7280',
+  line:  'rgba(17,24,39,0.10)',
 };
 
 const menuItems = [
