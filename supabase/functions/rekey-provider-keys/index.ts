@@ -54,7 +54,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const newSecret: string | undefined = body?.new_secret;
-    const dryRun: boolean = body?.dry_run !== false && !newSecret;
+    // mode: 'export' -> do NOT touch this DB, just return re-encrypted ciphertexts
+    const exportOnly: boolean = body?.mode === 'export';
+    const dryRun: boolean = !exportOnly && body?.dry_run !== false && !newSecret;
 
     if (!dryRun && (typeof newSecret !== 'string' || newSecret.length < 16 || newSecret.length > 512)) {
       return json({ error: 'new_secret must be 16-512 characters' }, 400);
@@ -69,6 +71,7 @@ Deno.serve(async (req) => {
     let failed = 0;
     let rekeyed = 0;
     const failures: string[] = [];
+    const items: Array<{ id: string; api_key_ciphertext: string }> = [];
 
     for (const row of rows ?? []) {
       let plain: string;
@@ -82,6 +85,11 @@ Deno.serve(async (req) => {
       }
       if (dryRun) continue;
       const ct = await encryptWith(newSecret!, plain);
+      if (exportOnly) {
+        items.push({ id: row.id, api_key_ciphertext: ct });
+        rekeyed++;
+        continue;
+      }
       const { error: upErr } = await admin
         .from('user_provider_accounts')
         .update({ api_key_ciphertext: ct, updated_at: new Date().toISOString() })
@@ -95,13 +103,15 @@ Deno.serve(async (req) => {
     }
 
     return json({
-      mode: dryRun ? 'dry_run' : 'rekeyed',
+      mode: exportOnly ? 'export' : dryRun ? 'dry_run' : 'rekeyed',
       total: rows?.length ?? 0,
       decryptable: ok,
       rekeyed,
       failed,
       failed_ids: failures,
+      ...(exportOnly ? { items } : {}),
     });
+
   } catch (e) {
     console.error('rekey-provider-keys error', e);
     return json({ error: String((e as Error)?.message ?? e) }, 500);
