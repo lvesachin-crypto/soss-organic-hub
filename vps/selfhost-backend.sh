@@ -58,17 +58,19 @@ if [ ! -f /root/.boostly-secrets ]; then
   DASHBOARD_PASSWORD="$(openssl rand -hex 12)"
   # ANON / SERVICE keys must be signed with JWT_SECRET
   gen_key() { # $1 = role
-    node -e '
+    GK_ROLE="$1" GK_SECRET="$JWT_SECRET" node -e '
       const crypto=require("crypto");
-      const [role,secret]=process.argv.slice(2);
+      const role=process.env.GK_ROLE, secret=process.env.GK_SECRET;
+      if(!role||!secret){console.error("gen_key: missing role/secret");process.exit(1);}
       const b64=o=>Buffer.from(JSON.stringify(o)).toString("base64url");
       const now=Math.floor(Date.now()/1000);
       const h=b64({alg:"HS256",typ:"JWT"});
       const p=b64({role,iss:"supabase",iat:now,exp:now+60*60*24*365*10});
       const s=crypto.createHmac("sha256",secret).update(h+"."+p).digest("base64url");
       process.stdout.write(h+"."+p+"."+s);
-    ' "$1" "$JWT_SECRET"
+    '
   }
+
   ANON_KEY="$(gen_key anon)"
   SERVICE_ROLE_KEY="$(gen_key service_role)"
   cat > /root/.boostly-secrets <<EOF
