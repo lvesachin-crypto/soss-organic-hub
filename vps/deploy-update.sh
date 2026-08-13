@@ -23,7 +23,14 @@ fi
 echo "==> 3/4 syncing edge functions into the Supabase stack"
 mkdir -p "$STACK_DIR/volumes/functions"
 cp -r supabase/functions/. "$STACK_DIR/volumes/functions/"
-( cd "$STACK_DIR" && docker compose restart functions )
+if [ -f "$STACK_DIR/docker-compose.boostly-secrets.yml" ]; then
+  ( cd "$STACK_DIR" && docker compose \
+      -f docker-compose.yml \
+      -f docker-compose.boostly-secrets.yml \
+      up -d --force-recreate functions )
+else
+  ( cd "$STACK_DIR" && docker compose up -d functions )
+fi
 
 echo "==> 4/4 reloading nginx"
 nginx -t && systemctl reload nginx
