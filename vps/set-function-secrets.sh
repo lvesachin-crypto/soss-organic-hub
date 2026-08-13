@@ -18,9 +18,11 @@ touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
 if [ "$#" -eq 0 ]; then
-  echo "No KEY=VALUE pairs given. Current keys in $ENV_FILE:"
-  cut -d= -f1 "$ENV_FILE"
-  exit 1
+  if [ ! -s "$ENV_FILE" ]; then
+    echo "No secrets are stored in $ENV_FILE yet." >&2
+    exit 1
+  fi
+  echo "==> reusing the secrets already stored in $ENV_FILE"
 fi
 
 for pair in "$@"; do
