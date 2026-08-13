@@ -10,7 +10,7 @@ set -euo pipefail
 DOMAIN="boostbotting.site"          # frontend domain
 API_DOMAIN="api.boostbotting.site"  # backend (Supabase) domain
 EMAIL="you@example.com"             # for Let's Encrypt
-GIT_REPO=""                         # e.g. https://github.com/xbhishekh/organicsmm.git
+GIT_REPO="https://github.com/lvesachin-crypto/soss-organic-hub.git"   # private repo: use https://<TOKEN>@github.com/... 
 STACK_DIR="/opt/supabase"
 APP_DIR="/var/www/boostly"
 # -----------------------------------------
