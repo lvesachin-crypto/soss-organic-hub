@@ -2655,7 +2655,7 @@ async function processAllRuns(supabase: any, executionId: string, startTime: num
     console.log(`Processed: ${processed}, Skipped: ${skipped}, Failed: ${failed}, Retried: ${retried}`)
 
     // Send admin alert if failures
-    if (failed > 0) {
+    if (failed > 10) {
       try {
         await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-admin-alert`, {
           method: 'POST',

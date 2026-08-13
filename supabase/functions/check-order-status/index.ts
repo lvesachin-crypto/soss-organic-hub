@@ -66,7 +66,7 @@ async function decryptUserApiKey(accountId: string, payload: string): Promise<st
 // Wall-clock budget so we always return under the edge-function limit and let
 // the cron job pick up the remaining runs on the next tick instead of 504-ing.
 const CHECK_STATUS_BUDGET_MS = 110_000
-const CHECK_STATUS_BATCH_LIMIT = 200
+const CHECK_STATUS_BATCH_LIMIT = 500
 
 // Stop future runs when public delivery already reached the target, even if a provider over-delivers.
 function calculateObservedRunDelivery(run: any): number {
