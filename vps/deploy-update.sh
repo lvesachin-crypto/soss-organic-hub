@@ -29,7 +29,7 @@ if [ -f "$STACK_DIR/docker-compose.boostly-secrets.yml" ]; then
       -f docker-compose.boostly-secrets.yml \
       up -d --force-recreate functions )
 else
-  ( cd "$STACK_DIR" && docker compose restart functions )
+  ( cd "$STACK_DIR" && docker compose up -d functions )
 fi
 
 echo "==> 4/4 reloading nginx"
