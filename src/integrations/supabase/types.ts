@@ -1671,6 +1671,9 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_completed_engagement_orders: { Args: never; Returns: Json }
+      dispatch_check_order_status: { Args: never; Returns: undefined }
+      dispatch_check_provider_balance: { Args: never; Returns: undefined }
+      dispatch_execute_all_runs: { Args: never; Returns: undefined }
       get_admin_users_summary: {
         Args: never
         Returns: {
