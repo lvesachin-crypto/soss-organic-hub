@@ -520,32 +520,44 @@ Deno.serve(async (req) => {
           for (let i = 0; i < siblingIds.length; i += 100) {
             const chunk = siblingIds.slice(i, i + 100)
             if (chunk.length < 2) break
-            try {
-              const multiForm = new URLSearchParams()
-              multiForm.append('key', apiKey)
-              multiForm.append('action', 'multistatus')
-              multiForm.append('orders', chunk.join(','))
-              const multiRes = await fetchWithTimeout(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: multiForm.toString()
-              })
-              const multiJson = JSON.parse(await multiRes.text())
-              if (multiJson && typeof multiJson === 'object' && !multiJson.error) {
+            let cachedAny = false
+            // Panels differ: some expose action=multistatus, others action=status
+            // with an `orders` list. Try both before giving up.
+            for (const action of ['multistatus', 'status']) {
+              try {
+                const multiForm = new URLSearchParams()
+                multiForm.append('key', apiKey)
+                multiForm.append('action', action)
+                multiForm.append('orders', chunk.join(','))
+                const multiRes = await fetchWithTimeout(apiUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: multiForm.toString()
+                })
+                const multiText = await multiRes.text()
+                const multiJson = JSON.parse(multiText)
                 let hits = 0
-                for (const [oid, val] of Object.entries(multiJson)) {
-                  if (val && typeof val === 'object' && !(val as any).error) {
-                    multiStatusCache.set(`${providerKey}||${oid}`, val)
-                    hits++
+                if (multiJson && typeof multiJson === 'object' && !multiJson.error) {
+                  for (const [oid, val] of Object.entries(multiJson)) {
+                    if (val && typeof val === 'object' && !(val as any).error) {
+                      multiStatusCache.set(`${providerKey}||${oid}`, val)
+                      hits++
+                    }
                   }
                 }
-                console.log(`⚡ multistatus on ${providerName}: cached ${hits}/${chunk.length} orders`)
+                if (hits > 0) {
+                  console.log(`BULK ${action} on ${providerName}: cached ${hits}/${chunk.length} orders`)
+                  cachedAny = true
+                  break
+                }
+                console.log(`BULK ${action} on ${providerName} returned no usable data: ${multiText.slice(0, 200)}`)
+              } catch (e) {
+                console.log(`BULK ${action} failed on ${providerName}: ${e}`)
               }
-            } catch (e) {
-              console.log(`multistatus unsupported/failed on ${providerName}, falling back to single status`)
-              break
             }
+            if (!cachedAny) break
           }
+
         }
 
         let result: any = multiStatusCache.get(cacheKey)
