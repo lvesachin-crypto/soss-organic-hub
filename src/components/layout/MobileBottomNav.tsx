@@ -15,7 +15,7 @@ export function MobileBottomNav() {
           </button>
           <div className="flex items-center gap-2">
             <img src={logo} alt="Boostly Pro platform logo" className="w-7 h-7 rounded-md object-cover" />
-            <span className="text-[14px] font-bold tracking-tight" style={{ color: '#2563EB' }}>Boostly Pro</span>
+            <span className="text-[14px] font-bold tracking-tight" style={{ color: '#111827' }}>Boostly Pro</span>
           </div>
           <div className="w-9" />
         </div>

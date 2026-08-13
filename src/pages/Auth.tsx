@@ -105,8 +105,8 @@ export default function Auth() {
           <div className="flex items-center justify-center gap-2.5 mb-10">
             <img src={logo} alt="Boostly Pro platform logo" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
             <div className="flex flex-col">
-              <span className="text-[16px] font-bold tracking-tight" style={{ color: '#2563EB' }}>Boostly Pro</span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.15em]" style={{ color: '#2563EB' }}>✦ Updated Version</span>
+              <span className="text-[16px] font-bold tracking-tight" style={{ color: '#111827' }}>Boostly Pro</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.15em]" style={{ color: '#111827' }}>✦ Updated Version</span>
             </div>
           </div>
 
@@ -114,7 +114,7 @@ export default function Auth() {
             <ArrowLeft className="w-3.5 h-3.5" /> Back to home
           </Link>
 
-          <h1 className="text-2xl font-extrabold tracking-tight mb-1" style={{ color: '#2563EB', fontFamily: "'Outfit', system-ui, sans-serif" }}>
+          <h1 className="text-2xl font-extrabold tracking-tight mb-1" style={{ color: '#111827', fontFamily: "'Outfit', system-ui, sans-serif" }}>
             {isForgotPassword ? 'Reset password' : isLogin ? 'Welcome back' : 'Create account'}
           </h1>
           <p className="text-[14px] mb-8" style={{ color: '#999' }}>
@@ -126,10 +126,10 @@ export default function Auth() {
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ background: '#EAF1FF' }}>
                 <Mail className="w-7 h-7" style={{ color: '#3b82f6' }} />
               </div>
-              <h3 className="text-xl font-bold mb-2" style={{ color: '#2563EB' }}>Check your inbox</h3>
+              <h3 className="text-xl font-bold mb-2" style={{ color: '#111827' }}>Check your inbox</h3>
               <p className="text-[13px] mb-2" style={{ color: '#888' }}>Verification link sent to:</p>
-              <p className="text-[13px] font-semibold mb-6" style={{ color: '#2563EB' }}>{email}</p>
-              <button onClick={() => { setShowVerifyEmail(false); setIsLogin(true); }} className="text-[13px] font-semibold" style={{ color: '#2563EB' }}>
+              <p className="text-[13px] font-semibold mb-6" style={{ color: '#111827' }}>{email}</p>
+              <button onClick={() => { setShowVerifyEmail(false); setIsLogin(true); }} className="text-[13px] font-semibold" style={{ color: '#111827' }}>
                 ← Back to login
               </button>
             </div>
@@ -166,7 +166,7 @@ export default function Auth() {
                     <div className="flex items-center justify-between mb-1.5">
                       <Label className="text-[12px] font-semibold" style={{ color: '#555', textTransform: 'none', letterSpacing: 'normal' }}>Password</Label>
                       {isLogin && (
-                        <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[11px] font-medium" style={{ color: '#2563EB' }}>
+                        <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[11px] font-medium" style={{ color: '#111827' }}>
                           Forgot password?
                         </button>
                       )}
@@ -188,7 +188,7 @@ export default function Auth() {
 
                   <p className="text-center text-[13px]" style={{ color: '#999' }}>
                     {isLogin ? "Don't have an account? " : 'Already have an account? '}
-                    <button type="button" onClick={() => { setIsLogin(!isLogin); setError(''); setSuccessMessage(''); }} className="font-semibold" style={{ color: '#2563EB' }}>
+                    <button type="button" onClick={() => { setIsLogin(!isLogin); setError(''); setSuccessMessage(''); }} className="font-semibold" style={{ color: '#111827' }}>
                       {isLogin ? 'Sign up' : 'Sign in'}
                     </button>
                   </p>
@@ -203,7 +203,7 @@ export default function Auth() {
               <svg className="w-4 h-4 fill-[#0088cc]" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.53-1.39.52-.46-.01-1.33-.26-1.98-.48-.8-.27-1.43-.42-1.37-.89.03-.25.38-.51 1.03-.78 4.04-1.76 6.74-2.92 8.09-3.48 3.85-1.61.8-1.88 1.77-1.88.21 0 .69.05.99.23.32.19.43.46.46.72.02.16.01.32-.01.48z" /></svg>
             </div>
             <div>
-              <p className="text-[12px] font-semibold" style={{ color: '#2563EB' }}>Join our Telegram</p>
+              <p className="text-[12px] font-semibold" style={{ color: '#111827' }}>Join our Telegram</p>
               <p className="text-[11px]" style={{ color: '#999' }}>Updates & support</p>
             </div>
           </a>

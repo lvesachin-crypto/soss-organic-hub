@@ -70,7 +70,7 @@ export default function Dashboard() {
             <p className="text-[12px] font-medium mb-0.5" style={{ color: '#999' }}>
               Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'},
             </p>
-            <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: '#2563EB', fontFamily: "'Outfit', system-ui, sans-serif" }}>
+            <h1 className="text-2xl font-extrabold tracking-tight" style={{ color: '#111827', fontFamily: "'Outfit', system-ui, sans-serif" }}>
               Account Dashboard
             </h1>
             <p className="text-[13px] mt-0.5" style={{ color: '#666' }}>
@@ -79,7 +79,7 @@ export default function Dashboard() {
           </div>
           <div className="flex gap-2">
             <button onClick={() => navigate('/engagement-order')} className="h-10 px-4 rounded-lg text-[12px] font-semibold flex items-center gap-1.5" style={{ border: '1px solid rgba(0,0,0,.08)', color: '#555' }}>
-              <Sparkles className="w-3.5 h-3.5" style={{ color: '#2563EB' }} /> Engagement
+              <Sparkles className="w-3.5 h-3.5" style={{ color: '#111827' }} /> Engagement
             </button>
             <button onClick={() => navigate('/order')} className="h-10 px-4 rounded-lg text-[12px] font-semibold text-white flex items-center gap-1.5" style={{ background: '#2563EB' }}>
               <Zap className="w-3.5 h-3.5" /> New Order
@@ -99,7 +99,7 @@ export default function Dashboard() {
                 <s.icon className="w-4 h-4" />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#aaa' }}>{s.label}</p>
-              <p className="text-2xl font-extrabold tracking-tight" style={{ color: '#2563EB' }}>{s.value}</p>
+              <p className="text-2xl font-extrabold tracking-tight" style={{ color: '#111827' }}>{s.value}</p>
               <p className="text-[11px] mt-1" style={{ color: '#bbb' }}>{s.sub}</p>
             </div>
           ))}
@@ -110,10 +110,10 @@ export default function Dashboard() {
           <div className="lg:col-span-3 rounded-xl overflow-hidden" style={cardStyle}>
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,.06)' }}>
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" style={{ color: '#2563EB' }} />
-                <h2 className="text-[14px] font-bold" style={{ color: '#2563EB' }}>Engagement Orders</h2>
+                <BarChart3 className="w-4 h-4" style={{ color: '#111827' }} />
+                <h2 className="text-[14px] font-bold" style={{ color: '#111827' }}>Engagement Orders</h2>
               </div>
-              <Link to="/engagement-orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#2563EB' }}>
+              <Link to="/engagement-orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#111827' }}>
                 View all <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
@@ -125,7 +125,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-mono" style={{ background: '#EAF1FF', color: '#888' }}>#{order.order_number}</div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium truncate max-w-[200px]" style={{ color: '#2563EB' }}>{order.link?.replace('https://', '').slice(0, 35)}...</p>
+                      <p className="text-[13px] font-medium truncate max-w-[200px]" style={{ color: '#111827' }}>{order.link?.replace('https://', '').slice(0, 35)}...</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {order.items?.slice(0, 3).map((item: any, idx: number) => {
                           const Icon = typeIcon[item.engagement_type] || Eye;
@@ -149,9 +149,9 @@ export default function Dashboard() {
             <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,.06)' }}>
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4" style={{ color: '#888' }} />
-                <h2 className="text-[14px] font-bold" style={{ color: '#2563EB' }}>Single Orders</h2>
+                <h2 className="text-[14px] font-bold" style={{ color: '#111827' }}>Single Orders</h2>
               </div>
-              <Link to="/orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#2563EB' }}>
+              <Link to="/orders" className="text-[11px] font-medium flex items-center gap-0.5" style={{ color: '#111827' }}>
                 View all <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
@@ -159,7 +159,7 @@ export default function Dashboard() {
               {recentOrders && recentOrders.length > 0 ? recentOrders.slice(0, 4).map((order: any) => (
                 <div key={order.id} className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: '1px solid rgba(0,0,0,.04)' }}>
                   <div className="min-w-0">
-                    <p className="text-[13px] font-medium truncate max-w-[150px]" style={{ color: '#2563EB' }}>{order.service?.name || 'Service'}</p>
+                    <p className="text-[13px] font-medium truncate max-w-[150px]" style={{ color: '#111827' }}>{order.service?.name || 'Service'}</p>
                     <p className="text-[11px] mt-0.5" style={{ color: '#999' }}>{order.quantity?.toLocaleString()} • {formatPrice(Number(order.price))}</p>
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-1 rounded-md" style={{ background: (statusColor[order.status] || '#999') + '14', color: statusColor[order.status] || '#999' }}>{order.status}</span>
@@ -184,7 +184,7 @@ export default function Dashboard() {
                 <a.icon className="w-4.5 h-4.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold" style={{ color: '#2563EB' }}>{a.label}</p>
+                <p className="text-[13px] font-semibold" style={{ color: '#111827' }}>{a.label}</p>
                 <p className="text-[11px]" style={{ color: '#999' }}>{a.desc}</p>
               </div>
               <ArrowUpRight className="w-4 h-4 shrink-0" style={{ color: '#ccc' }} />
