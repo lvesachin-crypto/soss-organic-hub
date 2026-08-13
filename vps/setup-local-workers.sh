@@ -45,7 +45,7 @@ case "$ACTION" in
   *) echo "Usage: $0 dispatch|status" >&2; exit 2 ;;
 esac
 
-exec curl --silent --show-error --fail-with-body \
+exec curl --silent --show-error --fail \
   --max-time "$TIMEOUT" \
   --request POST "https://api.boostbotting.site/functions/v1/$ENDPOINT" \
   --header "Authorization: Bearer $SERVICE_ROLE_KEY" \
