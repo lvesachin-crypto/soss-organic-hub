@@ -69,10 +69,27 @@ cd /var/www/boostly && git pull && bun install && bun run build && systemctl rel
 ```
 
 ## Backups (daily 2 AM)
+
+Run a backup manually:
 ```bash
-echo '0 2 * * * docker exec supabase-db pg_dumpall -U postgres | gzip > /root/backups/db-$(date +\%F).sql.gz' | crontab -
-mkdir -p /root/backups
+cd /var/www/boostly && bash vps/backup.sh
 ```
+
+Schedule automatic daily backups:
+```bash
+mkdir -p /root/backups
+(crontab -l 2>/dev/null; echo "0 2 * * * cd /var/www/boostly && bash vps/backup.sh >> /var/log/boostly-backup.log 2>&1") | crontab -
+```
+
+This saves:
+- Full Postgres cluster dump
+- `/root/.boostly-secrets`
+- `/opt/supabase/.env`
+- Edge function manifest
+
+Backups are kept for 7 days in `/root/backups`. Latest backup is always symlinked to `/root/backups/latest`.
+
+**Disaster recovery guide:** see `vps/disaster-recovery.md`
 
 ## Rollback
 Frontend `.env` ko wapas Lovable Cloud URL + publishable key pe set karke rebuild kar do — backend Lovable pe intact rehta hai.
