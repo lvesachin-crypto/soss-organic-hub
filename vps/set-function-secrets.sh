@@ -3,16 +3,18 @@ set -euo pipefail
 
 STACK_DIR="${STACK_DIR:-/opt/supabase}"
 ENV_FILE="$STACK_DIR/functions.env"
-OVERRIDE="$STACK_DIR/docker-compose.override.yml"
+OVERRIDE="$STACK_DIR/docker-compose.boostly-secrets.yml"
 
 mkdir -p "$STACK_DIR"
 touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
 if [ "$#" -eq 0 ]; then
-  echo "No KEY=VALUE pairs given. Current keys in $ENV_FILE:"
-  cut -d= -f1 "$ENV_FILE"
-  exit 0
+  if [ ! -s "$ENV_FILE" ]; then
+    echo "No secrets are stored in $ENV_FILE yet." >&2
+    exit 1
+  fi
+  echo "==> reusing secrets already stored in $ENV_FILE"
 fi
 
 for pair in "$@"; do
@@ -25,26 +27,35 @@ for pair in "$@"; do
 done
 chmod 600 "$ENV_FILE"
 
-# Detect actual service name (default to functions)
-cd "$STACK_DIR"
-SERVICE_NAME=$(docker compose ps --format '{{.Service}}' | grep -E '^(functions|edge-functions)$' | head -n 1 || echo "functions")
-
-# Generate environment block for YAML
-ENV_BLOCK=""
-while IFS='=' read -r key val || [ -n "$key" ]; do
-  [ -z "$key" ] && continue
-  # Escape quotes for YAML
-  val_escaped=$(echo "$val" | sed 's/"/\\"/g')
-  ENV_BLOCK="$ENV_BLOCK
-      $key: \"$val_escaped\""
-done < "$ENV_FILE"
-
 cat > "$OVERRIDE" <<YML
 services:
-  $SERVICE_NAME:
-    environment: $ENV_BLOCK
+  functions:
+    env_file:
+      - ./functions.env
 YML
+chmod 600 "$OVERRIDE"
 
-echo "==> updating $SERVICE_NAME service"
-docker compose up -d "$SERVICE_NAME"
-echo "==> done"
+echo "==> recreating edge functions with stored secrets"
+cd "$STACK_DIR"
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.boostly-secrets.yml \
+  up -d --force-recreate functions
+
+echo "==> verifying PROVIDER_KEY_SECRET inside edge functions"
+for _ in $(seq 1 15); do
+  CONTAINER_ID=$(docker compose \
+    -f docker-compose.yml \
+    -f docker-compose.boostly-secrets.yml \
+    ps -q functions 2>/dev/null || true)
+  if [ -n "$CONTAINER_ID" ] && docker exec "$CONTAINER_ID" sh -c 'test -n "$PROVIDER_KEY_SECRET"' 2>/dev/null; then
+    echo "PROVIDER_KEY_SECRET loaded successfully"
+    echo "==> done"
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "PROVIDER_KEY_SECRET is still unavailable in edge functions." >&2
+echo "Run: docker logs --tail 100 supabase-edge-functions" >&2
+exit 1
