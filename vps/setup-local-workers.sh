@@ -14,8 +14,9 @@ if [ ! -r "$SECRETS_FILE" ]; then
 fi
 
 # Disable restored pg_cron HTTP jobs that still point at the old cloud backend.
-# VPS-local cron below replaces only these two workers.
-docker exec -i supabase-db psql -v ON_ERROR_STOP=1 -U postgres -d postgres <<'SQL'
+# Some restored stacks keep cron.job owned by supabase_admin, so this cleanup is
+# best-effort and must never prevent the VPS-local workers from being installed.
+if docker exec -i supabase-db psql -v ON_ERROR_STOP=1 -U supabase_admin -d postgres <<'SQL'
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
@@ -26,6 +27,11 @@ BEGIN
   END IF;
 END $$;
 SQL
+then
+  echo "==> old cloud cron workers disabled"
+else
+  echo "==> warning: old pg_cron jobs could not be disabled; continuing with local workers" >&2
+fi
 
 cat > "$WORKER" <<'WORKER_SCRIPT'
 #!/usr/bin/env bash
