@@ -32,11 +32,20 @@ async function decrypt(payload: string): Promise<string> {
 }
 
 // JAP-style panel call — tolerant of panels behind WAF/Cloudflare
-const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
-  'Accept': 'application/json, text/plain, */*',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
+const HEADER_PROFILES: Record<string, string>[] = [
+  // 1) minimal, curl-like — many Cloudflare setups allow this and block "fake browser" headers
+  { 'User-Agent': 'curl/8.4.0', 'Accept': '*/*' },
+  // 2) plain API client
+  { 'User-Agent': 'BoostlyPro/1.0 (+api)', 'Accept': 'application/json' },
+  // 3) full browser-like
+  {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+  },
+  // 4) no custom headers at all
+  {},
+];
 
 function parseMaybeJson(text: string): any | null {
   try { return JSON.parse(text); } catch { /* not json */ }
@@ -46,22 +55,38 @@ function parseMaybeJson(text: string): any | null {
   return null;
 }
 
+function urlVariants(url: string): string[] {
+  const out = [url];
+  try {
+    const u = new URL(url);
+    if (u.hostname.startsWith('www.')) u.hostname = u.hostname.slice(4);
+    else u.hostname = 'www.' + u.hostname;
+    out.push(u.toString().replace(/\/$/, ''));
+  } catch { /* ignore */ }
+  return out;
+}
+
 async function callPanel(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
-  const url = (api_url || '').trim().replace(/\s+/g, '');
-  if (!/^https?:\/\//i.test(url)) throw new Error('Invalid API URL — it must start with https://');
+  const base = (api_url || '').trim().replace(/\s+/g, '');
+  if (!/^https?:\/\//i.test(base)) throw new Error('Invalid API URL — it must start with https://');
   const params = new URLSearchParams({ key: api_key, action, ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, String(v)])) });
 
-  const attempts: Array<() => Promise<Response>> = [
-    () => fetch(url, { method: 'POST', headers: { ...BROWSER_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params }),
-    () => fetch(`${url}${url.includes('?') ? '&' : '?'}${params.toString()}`, { method: 'GET', headers: BROWSER_HEADERS }),
-    () => fetch(url, { method: 'POST', headers: { ...BROWSER_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ key: api_key, action, ...extra }) }),
-  ];
+  const attempts: Array<() => Promise<Response>> = [];
+  for (const url of urlVariants(base)) {
+    for (const h of HEADER_PROFILES) {
+      attempts.push(() => fetch(url, { method: 'POST', headers: { ...h, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }));
+      attempts.push(() => fetch(`${url}${url.includes('?') ? '&' : '?'}${params.toString()}`, { method: 'GET', headers: h }));
+    }
+    attempts.push(() => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: api_key, action, ...extra }) }));
+  }
 
   let lastText = '';
   let lastStatus = 0;
   for (const attempt of attempts) {
     try {
-      const r = await attempt();
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 20000);
+      const r = await attempt().finally(() => clearTimeout(t));
       const text = await r.text();
       lastText = text; lastStatus = r.status;
       const data = parseMaybeJson(text);
@@ -73,6 +98,7 @@ async function callPanel(api_url: string, api_key: string, action: string, extra
   const snippet = lastText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
   throw new Error(`Panel did not return JSON (HTTP ${lastStatus}). It likely blocks server requests (Cloudflare/WAF) or the API URL is wrong. Details: ${snippet}`);
 }
+
 
 
 Deno.serve(async (req) => {
