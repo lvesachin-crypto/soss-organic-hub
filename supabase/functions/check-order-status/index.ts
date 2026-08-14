@@ -66,7 +66,7 @@ async function decryptUserApiKey(accountId: string, payload: string): Promise<st
 // Wall-clock budget so we always return under the edge-function limit and let
 // the cron job pick up the remaining runs on the next tick instead of 504-ing.
 const CHECK_STATUS_BUDGET_MS = 110_000
-const CHECK_STATUS_BATCH_LIMIT = 500
+const CHECK_STATUS_BATCH_LIMIT = 150
 
 // Stop future runs when public delivery already reached the target, even if a provider over-delivers.
 function calculateObservedRunDelivery(run: any): number {
@@ -363,6 +363,34 @@ Deno.serve(async (req) => {
     let budgetExceeded = false
     const overBudget = () => (Date.now() - invocationStart) > CHECK_STATUS_BUDGET_MS
 
+    // Heavy per-item/order rollups are deduped and flushed once after the loop
+    // instead of running for every single run (that was blowing the CPU budget
+    // and killing the invocation before the batch finished).
+    const pendingRollups = new Map<string, string | null>()
+    const queueRollup = (itemId?: string | null, orderId?: string | null) => {
+      if (!itemId) return
+      pendingRollups.set(itemId, orderId || pendingRollups.get(itemId) || null)
+    }
+    const ROLLUP_LIMIT = 25
+    const flushRollups = async () => {
+      const entries = Array.from(pendingRollups.entries())
+      pendingRollups.clear()
+      let done = 0
+      for (const [itemId, orderId] of entries) {
+        // Item/order completion is also enforced by DB triggers
+        // (auto_complete_engagement_order_item / auto_complete_engagement_order),
+        // so cap this expensive extra sync and never blow the invocation budget.
+        if (done >= ROLLUP_LIMIT || overBudget()) break
+        done++
+        try {
+          await syncObservedOverdeliveryGuard(supabase, itemId)
+          if (orderId) await updateEngagementOrderStatus(supabase, orderId, itemId)
+        } catch (e) {
+          console.error(`Rollup failed for item ${itemId}:`, e)
+        }
+      }
+    }
+
     let completed = 0
     let stillProcessing = 0
     let failed = 0
@@ -640,8 +668,7 @@ Deno.serve(async (req) => {
                 },
               }).eq('id', run.id)
               completed++
-              await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-              await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+              queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
             }
           } else if (isProviderCredentialError(providerError)) {
             await supabase.from('organic_run_schedule').update({
@@ -659,8 +686,7 @@ Deno.serve(async (req) => {
               },
             }).eq('id', run.id)
             failed++
-            await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-            await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+            queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
           } else if (providerErrorLower.includes('cancelled')) {
             const orderStatus = run.engagement_order_item?.engagement_order?.status
             const itemStatus = run.engagement_order_item?.status
@@ -688,8 +714,7 @@ Deno.serve(async (req) => {
                 },
               }).eq('id', run.id)
               failed++
-              await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-              await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+              queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
             }
           } else {
             // Update last check time even for errors
@@ -779,8 +804,7 @@ Deno.serve(async (req) => {
             remains: 0
           })
 
-          await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-          await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+          queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
 
         } else if (providerStatus === 'partial') {
           // SCAM GUARD: if provider says "Partial" but delivered 0 (remains == full qty),
@@ -834,8 +858,7 @@ Deno.serve(async (req) => {
             delivered: run.quantity_to_send - remains,
             remains: remains
           })
-          await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-          await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+          queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
 
         } else if (providerStatus === 'cancelled' || providerStatus === 'canceled' || providerStatus === 'refunded' || providerStatus === 'refund' || providerStatus === 'canscelled') {
           const orderStatus = run.engagement_order_item?.engagement_order?.status
@@ -859,8 +882,7 @@ Deno.serve(async (req) => {
               retry_count: 99
             }).eq('id', run.id)
             failed++
-            await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-            await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+            queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
           }
         } else if (deliveredAll) {
           await supabase.from('organic_run_schedule').update({
@@ -880,8 +902,7 @@ Deno.serve(async (req) => {
             delivered: run.quantity_to_send,
             remains: 0
           })
-          await syncObservedOverdeliveryGuard(supabase, run.engagement_order_item?.id)
-          await updateEngagementOrderStatus(supabase, run.engagement_order_item?.engagement_order_id, run.engagement_order_item?.id)
+          queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
         } else {
           await supabase.from('organic_run_schedule').update(trackingUpdate).eq('id', run.id)
 
@@ -904,9 +925,9 @@ Deno.serve(async (req) => {
         stillProcessing++
       }
 
-      // Faster processing - reduced delay between checks
-      await new Promise(resolve => setTimeout(resolve, 100))
     }
+
+    await flushRollups()
 
     // ============================================
     // STEP 2: Check LEGACY ORDER runs (via order_id)
@@ -1105,7 +1126,6 @@ Deno.serve(async (req) => {
           stillProcessing++
         }
 
-        await new Promise(resolve => setTimeout(resolve, 300))
       }
     }
 
@@ -1252,6 +1272,22 @@ Deno.serve(async (req) => {
       } catch (alertError) {
         console.error('Failed to send admin alert:', alertError)
       }
+    }
+
+    // Self-chain: if there is still a backlog, immediately trigger another
+    // invocation instead of waiting for the next cron tick. This is what makes
+    // provider "Completed" reflect on the panel without pressing Check Now.
+    if (!targetRunId && (budgetExceeded || skippedOverBudget > 0 || (completed + stillProcessing + failed) >= CHECK_STATUS_BATCH_LIMIT)) {
+      try {
+        fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/check-order-status`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({ chained: true }),
+        }).catch(() => {})
+      } catch (_e) { /* best effort */ }
     }
 
     return new Response(JSON.stringify({
