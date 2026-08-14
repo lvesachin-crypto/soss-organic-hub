@@ -351,7 +351,9 @@ function ProvidersPanel({
         const token = sess?.session?.access_token;
         const { data, error } = await supabase.functions.invoke('user-provider-manage', {
           body: { op: 'validate_service', account_id: c.accountId, service_id: sid },
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: token
+            ? { Authorization: `Bearer ${token}`, 'x-region': 'us-east-1' }
+            : { 'x-region': 'us-east-1' },
         });
         if (error) { toast.error(error.message || 'Validation failed'); return; }
         if (!data?.ok) { toast.error(`${accounts.find(x=>x.id===c.accountId)?.name}: ${data?.error || 'Invalid Service ID'}`); return; }

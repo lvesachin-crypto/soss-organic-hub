@@ -18,7 +18,7 @@ async function invoke(op: string, payload: any = {}) {
   if (!token) throw new Error('Please sign in again — your session has expired.');
   const { data, error } = await supabase.functions.invoke('user-provider-manage', {
     body: { op, ...payload },
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}`, 'x-region': 'us-east-1' },
   });
   if (error) {
     let detail = error.message;

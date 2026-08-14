@@ -3,6 +3,11 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+const appCorsHeaders = {
+  ...corsHeaders,
+  'Access-Control-Allow-Headers': `${corsHeaders['Access-Control-Allow-Headers']}, x-region`,
+};
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
@@ -117,7 +122,7 @@ async function callPanel(api_url: string, api_key: string, action: string, extra
 
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: appCorsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
 
@@ -186,6 +191,7 @@ Deno.serve(async (req) => {
       const ciphertext = await encrypt(api_key);
       await admin.from('user_provider_accounts').update({
         api_key_ciphertext: ciphertext, api_key_hint: api_key.slice(-4),
+        is_active: ok,
         last_tested_at: new Date().toISOString(), last_test_ok: ok,
         last_test_error: ok ? null : String(test?.error || 'Unknown'),
         balance_cached: ok ? Number(test.balance) : row.balance_cached,
@@ -203,6 +209,7 @@ Deno.serve(async (req) => {
       const test = await callPanel(row.api_url, key, 'balance').catch((e) => ({ error: String(e.message || e) }));
       const ok = !test?.error && (test?.balance !== undefined);
       await admin.from('user_provider_accounts').update({
+        is_active: ok,
         last_tested_at: new Date().toISOString(), last_test_ok: ok,
         last_test_error: ok ? null : String(test?.error || 'Unknown'),
         balance_cached: ok ? Number(test.balance) : row.balance_cached,
@@ -294,5 +301,5 @@ Deno.serve(async (req) => {
 });
 
 function json(obj: any, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(obj), { status, headers: { ...appCorsHeaders, 'Content-Type': 'application/json' } });
 }
