@@ -31,15 +31,49 @@ async function decrypt(payload: string): Promise<string> {
   return new TextDecoder().decode(plain);
 }
 
-// JAP-style balance call
-async function callPanel(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
-  const body = new URLSearchParams({ key: api_key, action, ...Object.fromEntries(Object.entries(extra).map(([k,v]) => [k, String(v)])) });
-  const r = await fetch(api_url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-  const text = await r.text();
-  let data: any = null;
-  try { data = JSON.parse(text); } catch { throw new Error(`Panel returned non-JSON: ${text.slice(0,200)}`); }
-  return data;
+// JAP-style panel call — tolerant of panels behind WAF/Cloudflare
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
+function parseMaybeJson(text: string): any | null {
+  try { return JSON.parse(text); } catch { /* not json */ }
+  // some panels wrap JSON in HTML/whitespace/BOM
+  const m = text.match(/[\{\[][\s\S]*[\}\]]/);
+  if (m) { try { return JSON.parse(m[0]); } catch { /* ignore */ } }
+  return null;
 }
+
+async function callPanel(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
+  const url = (api_url || '').trim().replace(/\s+/g, '');
+  if (!/^https?:\/\//i.test(url)) throw new Error('Invalid API URL — it must start with https://');
+  const params = new URLSearchParams({ key: api_key, action, ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, String(v)])) });
+
+  const attempts: Array<() => Promise<Response>> = [
+    () => fetch(url, { method: 'POST', headers: { ...BROWSER_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params }),
+    () => fetch(`${url}${url.includes('?') ? '&' : '?'}${params.toString()}`, { method: 'GET', headers: BROWSER_HEADERS }),
+    () => fetch(url, { method: 'POST', headers: { ...BROWSER_HEADERS, 'Content-Type': 'application/json' }, body: JSON.stringify({ key: api_key, action, ...extra }) }),
+  ];
+
+  let lastText = '';
+  let lastStatus = 0;
+  for (const attempt of attempts) {
+    try {
+      const r = await attempt();
+      const text = await r.text();
+      lastText = text; lastStatus = r.status;
+      const data = parseMaybeJson(text);
+      if (data) return data;
+    } catch (e: any) {
+      lastText = e?.message || 'network error';
+    }
+  }
+  const snippet = lastText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 140);
+  throw new Error(`Panel did not return JSON (HTTP ${lastStatus}). It likely blocks server requests (Cloudflare/WAF) or the API URL is wrong. Details: ${snippet}`);
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
