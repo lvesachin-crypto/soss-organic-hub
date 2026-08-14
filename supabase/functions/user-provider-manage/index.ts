@@ -8,7 +8,7 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
 const KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET')!;
 const RELAY_SECRET = Deno.env.get('CRON_SECRET') || '';
-const PANEL_RELAY_URL = Deno.env.get('PANEL_RELAY_URL') || 'https://api.boostbotting.site/functions/v1/user-provider-manage';
+const PANEL_RELAY_URL = Deno.env.get('PANEL_RELAY_URL') || 'http://91.188.254.184:8000/functions/v1/user-provider-manage';
 
 // ---- AES-GCM helpers ----
 async function getKey() {
@@ -118,15 +118,20 @@ async function callPanel(api_url: string, api_key: string, action: string, extra
   } catch (directError: any) {
     if (!RELAY_SECRET || !PANEL_RELAY_URL || PANEL_RELAY_URL.includes(SUPABASE_URL.replace(/^https?:\/\//, ''))) throw directError;
     console.warn(`[user-provider-manage] direct panel call failed; trying secure relay: ${String(directError?.message || directError).slice(0, 180)}`);
-    const response = await fetch(PANEL_RELAY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-panel-relay-secret': RELAY_SECRET },
-      body: JSON.stringify({ op: 'panel_relay', api_url, api_key, action, extra }),
-      signal: AbortSignal.timeout(25000),
-    });
-    const payload = await response.json().catch(() => null);
-    if (response.ok && payload?.ok && payload?.data) return payload.data;
-    throw new Error(payload?.error || `Panel relay failed (HTTP ${response.status})`);
+    try {
+      const response = await fetch(PANEL_RELAY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-panel-relay-secret': RELAY_SECRET },
+        body: JSON.stringify({ op: 'panel_relay', api_url, api_key, action, extra }),
+        signal: AbortSignal.timeout(25000),
+      });
+      const payload = await response.json().catch(() => null);
+      if (response.ok && payload?.ok && payload?.data) return payload.data;
+      console.error(`[user-provider-manage] relay rejected request: HTTP ${response.status}`);
+    } catch (relayError: any) {
+      console.error(`[user-provider-manage] relay unavailable: ${String(relayError?.message || relayError).slice(0, 180)}`);
+    }
+    throw directError;
   }
 }
 
