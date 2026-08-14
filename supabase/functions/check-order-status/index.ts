@@ -787,7 +787,7 @@ Deno.serve(async (req) => {
             continue
           }
 
-          await supabase.from('organic_run_schedule').update({
+          const { error: completionUpdateError } = await supabase.from('organic_run_schedule').update({
             ...trackingUpdate,
             status: 'completed',
             completed_at: new Date().toISOString(),
@@ -795,6 +795,10 @@ Deno.serve(async (req) => {
               ? 'Auto-completed (provider remains reached 0)'
               : run.error_message?.includes('Auto-completed') ? null : run.error_message,
           }).eq('id', run.id)
+
+          if (completionUpdateError) {
+            throw new Error(`Failed to persist completed run ${run.id}: ${completionUpdateError.message}`)
+          }
 
           completed++
           results.push({
@@ -845,12 +849,16 @@ Deno.serve(async (req) => {
             }
             // fall through to mark partial-completed if max retries exceeded
           }
-          await supabase.from('organic_run_schedule').update({
+          const { error: partialUpdateError } = await supabase.from('organic_run_schedule').update({
             ...trackingUpdate,
             status: 'completed',
             completed_at: new Date().toISOString(),
             error_message: `Partial: ${remains} remaining`
           }).eq('id', run.id)
+
+          if (partialUpdateError) {
+            throw new Error(`Failed to persist partial run ${run.id}: ${partialUpdateError.message}`)
+          }
 
           completed++
           results.push({
@@ -888,12 +896,16 @@ Deno.serve(async (req) => {
             queueRollup(run.engagement_order_item?.id, run.engagement_order_item?.engagement_order_id)
           }
         } else if (deliveredAll) {
-          await supabase.from('organic_run_schedule').update({
+          const { error: deliveredUpdateError } = await supabase.from('organic_run_schedule').update({
             ...trackingUpdate,
             status: 'completed',
             completed_at: new Date().toISOString(),
             error_message: 'Auto-completed (provider remains reached 0)'
           }).eq('id', run.id)
+
+          if (deliveredUpdateError) {
+            throw new Error(`Failed to persist delivered run ${run.id}: ${deliveredUpdateError.message}`)
+          }
 
           completed++
           results.push({
