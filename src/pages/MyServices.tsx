@@ -41,6 +41,7 @@ export default function MyServices() {
     try {
       const { data, error } = await supabase.functions.invoke('user-provider-manage', {
         body: { op: 'place_order', user_service_id: order.id, link, quantity: qty },
+        headers: { 'x-region': 'us-east-1' },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
