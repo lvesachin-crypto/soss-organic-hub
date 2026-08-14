@@ -60,8 +60,6 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 * * * * * root flock -n /run/boostly-dispatch.lock /usr/local/sbin/boostly-worker dispatch >> /var/log/boostly-dispatch.log 2>&1
-* * * * * root sleep 30; flock -n /run/boostly-dispatch.lock /usr/local/sbin/boostly-worker dispatch >> /var/log/boostly-dispatch.log 2>&1
-* * * * * root flock -n /run/boostly-status.lock /usr/local/sbin/boostly-worker status >> /var/log/boostly-status.log 2>&1
 * * * * * root sleep 30; flock -n /run/boostly-status.lock /usr/local/sbin/boostly-worker status >> /var/log/boostly-status.log 2>&1
 CRON
 chmod 644 "$CRON_FILE"
@@ -78,5 +76,5 @@ else
 fi
 
 echo "==> schedules installed"
-echo "dispatch: every 30 seconds"
-echo "status: every 30 seconds"
+echo "dispatch: every 60 seconds"
+echo "status: every 60 seconds (staggered by 30 seconds)"
