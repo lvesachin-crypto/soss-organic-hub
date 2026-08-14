@@ -7,8 +7,6 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
 const KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET')!;
-const RELAY_SECRET = Deno.env.get('CRON_SECRET') || '';
-const PANEL_RELAY_URL = Deno.env.get('PANEL_RELAY_URL') || 'http://91.188.254.184:8000/functions/v1/user-provider-manage';
 
 // ---- AES-GCM helpers ----
 async function getKey() {
@@ -113,26 +111,7 @@ async function callPanelDirect(api_url: string, api_key: string, action: string,
 }
 
 async function callPanel(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
-  try {
-    return await callPanelDirect(api_url, api_key, action, extra);
-  } catch (directError: any) {
-    if (!RELAY_SECRET || !PANEL_RELAY_URL || PANEL_RELAY_URL.includes(SUPABASE_URL.replace(/^https?:\/\//, ''))) throw directError;
-    console.warn(`[user-provider-manage] direct panel call failed; trying secure relay: ${String(directError?.message || directError).slice(0, 180)}`);
-    try {
-      const response = await fetch(PANEL_RELAY_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-panel-relay-secret': RELAY_SECRET },
-        body: JSON.stringify({ op: 'panel_relay', api_url, api_key, action, extra }),
-        signal: AbortSignal.timeout(25000),
-      });
-      const payload = await response.json().catch(() => null);
-      if (response.ok && payload?.ok && payload?.data) return payload.data;
-      console.error(`[user-provider-manage] relay rejected request: HTTP ${response.status}`);
-    } catch (relayError: any) {
-      console.error(`[user-provider-manage] relay unavailable: ${String(relayError?.message || relayError).slice(0, 180)}`);
-    }
-    throw directError;
-  }
+  return await callPanelDirect(api_url, api_key, action, extra);
 }
 
 
@@ -141,21 +120,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
-
-    // Server-to-server fallback for panels that block shared cloud egress IPs.
-    // The API key is transient and this operation is protected by a shared secret.
-    if (body?.op === 'panel_relay') {
-      if (!RELAY_SECRET || req.headers.get('x-panel-relay-secret') !== RELAY_SECRET) return json({ error: 'unauthorized' }, 401);
-      const apiUrl = String(body.api_url || '').trim();
-      const apiKey = String(body.api_key || '').trim();
-      const action = String(body.action || '').trim();
-      const extra = body.extra && typeof body.extra === 'object' && !Array.isArray(body.extra) ? body.extra : {};
-      if (!apiUrl || !apiKey || !/^(balance|services|add|status|cancel|refill|refill_status)$/.test(action)) {
-        return json({ error: 'invalid relay request' }, 400);
-      }
-      const data = await callPanelDirect(apiUrl, apiKey, action, extra);
-      return json({ ok: true, data });
-    }
 
     if (!KEY_SECRET) { console.error('PROVIDER_KEY_SECRET missing'); return json({ error: 'server misconfigured: PROVIDER_KEY_SECRET missing' }, 500); }
     if (!SERVICE_ROLE) { console.error('SERVICE_ROLE missing'); return json({ error: 'server misconfigured: SERVICE_ROLE missing' }, 500); }
