@@ -7,6 +7,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
 const KEY_SECRET = Deno.env.get('PROVIDER_KEY_SECRET')!;
+const RELAY_SECRET = Deno.env.get('CRON_SECRET') || '';
+const PANEL_RELAY_URL = Deno.env.get('PANEL_RELAY_URL') || 'https://api.boostbotting.site/functions/v1/user-provider-manage';
 
 // ---- AES-GCM helpers ----
 async function getKey() {
@@ -66,27 +68,38 @@ function urlVariants(url: string): string[] {
   return out;
 }
 
-async function callPanel(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
+function validatePublicPanelUrl(value: string): string {
+  const parsed = new URL(value);
+  if (parsed.protocol !== 'https:') throw new Error('Panel API URL must use https://');
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === 'localhost' || host === '0.0.0.0' || host === '::1' ||
+    host.endsWith('.local') || host.endsWith('.internal') ||
+    /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  ) throw new Error('Private/internal panel URLs are not allowed');
+  return parsed.toString().replace(/\/$/, '');
+}
+
+async function callPanelDirect(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
   const base = (api_url || '').trim().replace(/\s+/g, '');
-  if (!/^https?:\/\//i.test(base)) throw new Error('Invalid API URL — it must start with https://');
+  const safeBase = validatePublicPanelUrl(base);
   const params = new URLSearchParams({ key: api_key, action, ...Object.fromEntries(Object.entries(extra).map(([k, v]) => [k, String(v)])) });
 
   const attempts: Array<() => Promise<Response>> = [];
-  for (const url of urlVariants(base)) {
+  for (const url of urlVariants(safeBase)) {
     for (const h of HEADER_PROFILES) {
-      attempts.push(() => fetch(url, { method: 'POST', headers: { ...h, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() }));
-      attempts.push(() => fetch(`${url}${url.includes('?') ? '&' : '?'}${params.toString()}`, { method: 'GET', headers: h }));
+      attempts.push(() => fetch(url, { method: 'POST', headers: { ...h, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString(), signal: AbortSignal.timeout(8000) }));
+      attempts.push(() => fetch(`${url}${url.includes('?') ? '&' : '?'}${params.toString()}`, { method: 'GET', headers: h, signal: AbortSignal.timeout(8000) }));
     }
-    attempts.push(() => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: api_key, action, ...extra }) }));
+    attempts.push(() => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: api_key, action, ...extra }), signal: AbortSignal.timeout(8000) }));
   }
 
   let lastText = '';
   let lastStatus = 0;
   for (const attempt of attempts) {
     try {
-      const ac = new AbortController();
-      const t = setTimeout(() => ac.abort(), 20000);
-      const r = await attempt().finally(() => clearTimeout(t));
+      const r = await attempt();
       const text = await r.text();
       lastText = text; lastStatus = r.status;
       const data = parseMaybeJson(text);
@@ -99,11 +112,46 @@ async function callPanel(api_url: string, api_key: string, action: string, extra
   throw new Error(`Panel did not return JSON (HTTP ${lastStatus}). It likely blocks server requests (Cloudflare/WAF) or the API URL is wrong. Details: ${snippet}`);
 }
 
+async function callPanel(api_url: string, api_key: string, action: string, extra: Record<string, any> = {}) {
+  try {
+    return await callPanelDirect(api_url, api_key, action, extra);
+  } catch (directError: any) {
+    if (!RELAY_SECRET || !PANEL_RELAY_URL || PANEL_RELAY_URL.includes(SUPABASE_URL.replace(/^https?:\/\//, ''))) throw directError;
+    console.warn(`[user-provider-manage] direct panel call failed; trying secure relay: ${String(directError?.message || directError).slice(0, 180)}`);
+    const response = await fetch(PANEL_RELAY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-panel-relay-secret': RELAY_SECRET },
+      body: JSON.stringify({ op: 'panel_relay', api_url, api_key, action, extra }),
+      signal: AbortSignal.timeout(25000),
+    });
+    const payload = await response.json().catch(() => null);
+    if (response.ok && payload?.ok && payload?.data) return payload.data;
+    throw new Error(payload?.error || `Panel relay failed (HTTP ${response.status})`);
+  }
+}
+
 
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
+    const body = await req.json().catch(() => ({}));
+
+    // Server-to-server fallback for panels that block shared cloud egress IPs.
+    // The API key is transient and this operation is protected by a shared secret.
+    if (body?.op === 'panel_relay') {
+      if (!RELAY_SECRET || req.headers.get('x-panel-relay-secret') !== RELAY_SECRET) return json({ error: 'unauthorized' }, 401);
+      const apiUrl = String(body.api_url || '').trim();
+      const apiKey = String(body.api_key || '').trim();
+      const action = String(body.action || '').trim();
+      const extra = body.extra && typeof body.extra === 'object' && !Array.isArray(body.extra) ? body.extra : {};
+      if (!apiUrl || !apiKey || !/^(balance|services|add|status|cancel|refill|refill_status)$/.test(action)) {
+        return json({ error: 'invalid relay request' }, 400);
+      }
+      const data = await callPanelDirect(apiUrl, apiKey, action, extra);
+      return json({ ok: true, data });
+    }
+
     if (!KEY_SECRET) { console.error('PROVIDER_KEY_SECRET missing'); return json({ error: 'server misconfigured: PROVIDER_KEY_SECRET missing' }, 500); }
     if (!SERVICE_ROLE) { console.error('SERVICE_ROLE missing'); return json({ error: 'server misconfigured: SERVICE_ROLE missing' }, 500); }
     if (!ANON) { console.error('ANON missing'); return json({ error: 'server misconfigured: ANON key missing' }, 500); }
@@ -118,7 +166,6 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: 'unauthorized' }, 401);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const body = await req.json().catch(() => ({}));
     const op = String(body?.op || '');
     console.log(`[user-provider-manage] op=${op} user=${user.id}`);
 
