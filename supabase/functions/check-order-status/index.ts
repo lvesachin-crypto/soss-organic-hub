@@ -438,7 +438,10 @@ Deno.serve(async (req) => {
       // Process oldest-checked runs first and cap the batch so one invocation
       // finishes inside the edge-function time budget. Remaining runs are
       // picked up on the next cron tick.
+      // Skip runs already checked in the last 2 minutes so every tick rotates to
+      // the older backlog instead of re-polling the same freshly checked runs.
       engagementQuery = engagementQuery
+        .or(`last_status_check.is.null,last_status_check.lt.${new Date(Date.now() - 120_000).toISOString()}`)
         .order('last_status_check', { ascending: true, nullsFirst: true })
         .limit(CHECK_STATUS_BATCH_LIMIT)
     }
